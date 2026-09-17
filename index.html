@@ -7940,6 +7940,327 @@ function updateHomerun(v, m, dt) {
 })();
 
 
+/* CARE_SNUB_V1 — 기존 스크립트의 '시작' 주석 바로 위에 한 번만 추가 */
+(() => {
+  if (window.__SC_CARE_SNUB_V1) return;
+
+  const replies = {
+    stop: ['됐고.', '그만해.', '부탁한 적 없는데.'],
+    shrug: ['그래서 어쩌라고?', '칭찬해 달랬냐?', '그게 나랑 무슨 상관인데.'],
+    brush: ['됐으니까 저리 가.', '치워.', '볼일 끝났지?'],
+    inspect: ['너 뭐 돼?', '네가 뭔데 칭찬이야.', '평가해 달랬냐?'],
+    flip: ['이거나 먹어.', '…어쩌라고.', '할 말 끝났어?']
+  };
+
+  const choices = {
+    comfort: ['inspect', 'shrug', 'stop', 'flip'],
+    hand: ['stop', 'brush', 'flip'],
+    love: ['inspect', 'brush', 'stop', 'flip'],
+    thumb: ['inspect', 'shrug', 'flip'],
+    clap: ['stop', 'brush', 'inspect', 'flip'],
+    fiveMiss: ['stop', 'brush', 'flip'],
+    hug: ['stop', 'brush'],
+    release: ['brush', 'inspect', 'flip']
+  };
+
+  // 감사/수줍음 분기는 사용하지 않는다.
+  // 같은 동작이 연속으로 나오는 것도 피한다.
+  queueCareReply = function(group) {
+    const v = G.v;
+
+    if (
+      !v || G.mode !== 'care' || G.editing ||
+      !['stand', 'hug'].includes(v.state)
+    ) return;
+
+    if (group === 'fiveHit') group = 'fiveMiss';
+
+    const pool = choices[G.hug ? 'hug' : group] || choices.comfort;
+    const different = pool.filter(k => k !== v._snubLast);
+    const gesture = pick(different.length ? different : pool);
+
+    let lines = replies[gesture];
+
+    if (G.hug || group === 'hug') {
+      lines = ['놔.', '안으라고 했냐.', '붙지 마.'];
+    } else if (group === 'fiveMiss') {
+      lines = ['안 해.', '손 내려.', '누가 해 준대.'];
+    } else if (group === 'hand' && gesture === 'stop') {
+      lines = ['손 치워.', '만지지 마.'];
+    }
+
+    const otherLines = lines.filter(s => s !== v._snubLine);
+    const line = pick(otherLines.length ? otherLines : lines);
+
+    v._snubLast = gesture;
+    v._snubLine = line;
+
+    G.react = {
+      v,
+      group,
+      gesture,
+      line,
+      flip: gesture === 'flip',
+      fired: false,
+      t: 0,
+      delay: CARE_REPLY_DELAY[group] ?? 1.3
+    };
+
+    if (G.social) G.social.noEcho = true;
+  };
+
+  careReplyLine = r => r.line || '…어쩌라고.';
+
+  updateCareReply = function(dt) {
+    const r = G.react;
+    if (!r) return;
+
+    if (
+      r.v !== G.v || G.mode !== 'care' || G.editing ||
+      !['stand', 'hug'].includes(r.v.state)
+    ) {
+      G.react = null;
+      return;
+    }
+
+    const a = G.social;
+
+    // 내가 박수 치는 동안에는 기다렸다가,
+    // 멈춘 뒤에 띠꺼운 반응을 한다.
+    if (
+      r.group === 'clap' && !r.fired && a?.kind === 'clap' &&
+      (a.clapT < .32 || a.queued > 0 || a.t - a.lastBeat < .6)
+    ) {
+      r.t = 0;
+      return;
+    }
+
+    r.t += dt;
+
+    if (!r.fired && r.t >= r.delay) {
+      r.fired = true;
+      speak(careReplyLine(r), '', 1.8, true);
+
+      // 민망한 홍조·자동 맞박수는 넣지 않는다.
+    }
+
+    if (
+      r.fired && r.t - r.delay > 2.5 &&
+      !(r.v.mouth.talk > 0)
+    ) {
+      G.react = null;
+    }
+  };
+
+  // 기존 맞엄지·맞박수·머리 정리·옷 정리·포옹 반응을 대체.
+  poseSocialActor = function(v, dt) {
+    restoreCareActorHands(v);
+    if (!careIsAwkward(v)) return;
+
+    const r = G.react;
+    if (!r || r.v !== v || !r.fired) return;
+
+    if (r.gesture === 'flip') {
+      poseCareFlip(v);
+      return;
+    }
+
+    const t = r.t - r.delay;
+    const w = careWindow(t, 0, .25, 1.65, 2.2);
+    if (w <= .001) return;
+
+    const right = v.armRig[1];
+
+    if (r.gesture === 'stop') {
+      // 손바닥을 내보이며 "됐어".
+      // 얼굴 아래에서 한 번만 밀어낸다.
+      const p = flipHandTarget(v);
+      p.y = Math.min(p.y, .36);
+      p.z += carePulse(t, .22, .65) * .025;
+
+      poseCareArm(v, right, p, V3(0, 0, 1), w);
+
+    } else if (r.gesture === 'shrug') {
+      // 양쪽 손바닥을 위로.
+      // 박수처럼 두 손을 모으지 않는다.
+      const lift = carePulse(t, .20, .9);
+
+      for (const arm of v.armRig) {
+        const p = V3(
+          arm.s * (.38 + .025 * lift),
+          .23 + .04 * lift,
+          .21
+        );
+
+        poseCareArm(v, arm, p, V3(0, 1, .25), w);
+      }
+
+    } else if (r.gesture === 'brush') {
+      // 한 번 옆으로 쓸어 치우기.
+      // 인사처럼 계속 흔들지 않는다.
+      const sweep = ease(clamp((t - .28) / .55, 0, 1));
+
+      const p = V3(
+        .29 + .15 * sweep,
+        .26,
+        .27 - .07 * sweep
+      );
+
+      poseCareArm(v, right, p, V3(-.28, .06, 1), w);
+    }
+
+    // inspect는 손을 쓰지 않고 시선·턱으로만 반응한다.
+  };
+
+  careFace = function(v) {
+    const f = {
+      x: -.055,
+      y: .045,
+      z: 0,
+      px: .008,
+      py: 0,
+      open: .76,
+      brow: .025,
+      mouth: .018
+    };
+
+    const r = G.react;
+
+    if (r?.v === v && r.fired) {
+      const t = r.t - r.delay;
+      const w = careWindow(t, 0, .25, 1.65, 2.2);
+
+      f.open -= .10 * w;
+
+      if (r.gesture === 'inspect') {
+        // 위아래로 훑어본 뒤 턱을 들고 고개를 돌린다.
+        f.x -= .11 * w;
+
+        f.py = lerp(
+          .017,
+          -.017,
+          ease(clamp(t / .85, 0, 1))
+        ) * w;
+
+        f.y += .62 * careWindow(t, .9, 1.2, 1.65, 2.2);
+        f.px = .016 * w;
+
+      } else if (r.gesture === 'shrug') {
+        f.z = .11 * w;
+        f.brow = .055;
+
+      } else if (r.gesture === 'brush') {
+        f.y += .55 * w;
+        f.px = .020 * w;
+
+      } else {
+        f.x -= .07 * w;
+        f.y -= .23 * w;
+      }
+    }
+
+    // 놀라서 두 번 깜빡이는 동작은 제거.
+    // 기존 자연 눈깜빡임은 그대로 남는다.
+    return f;
+  };
+
+  const oldStart = startSocial;
+
+  startSocial = function(kind) {
+    const result = oldStart.apply(this, arguments);
+    const a = G.social;
+
+    if (a) a.noEcho = true;
+
+    if (
+      kind === 'five' &&
+      a?.kind === 'five' &&
+      a.phase === 'invite'
+    ) {
+      a.phase = 'snub';
+      a.requested = false;
+      queueCareReply('fiveMiss');
+      $('#fiveTarget').hidden = true;
+    }
+
+    return result;
+  };
+
+  // 손바닥을 눌러도 수락·성공 효과음·성공 횟수로 넘어가지 않는다.
+  requestHighFive = () => false;
+
+  const oldSocial = updateSocial;
+
+  updateSocial = function(dt) {
+    if (G.social) G.social.noEcho = true;
+
+    const result = oldSocial.apply(this, arguments);
+    const a = G.social;
+
+    if (a?.kind === 'five' && a.phase === 'snub') {
+      $('#fiveTarget').hidden = true;
+
+      if (a.t > 2.6) {
+        G.social = null;
+        hideSocialHands();
+      }
+    }
+
+    return result;
+  };
+
+  const oldRender = renderSocialHands;
+
+  renderSocialHands = function(dt) {
+    const a = G.social;
+    const v = G.v;
+
+    if (a?.kind !== 'five' || a.phase !== 'snub') {
+      return oldRender.apply(this, arguments);
+    }
+
+    if (!v || G.mode !== 'care') return false;
+
+    ensureSocialRigs();
+
+    Object.values(RIG.care).forEach(h => h.visible = false);
+    RIG.open.forEach(h => h.visible = false);
+
+    // 나는 손을 내밀었다가, 거절당하고 혼자 내린다.
+    const hand = RIG.open[0];
+    const w = careWindow(a.t, 0, .30, 1.35, 2.15);
+
+    const target = v.headMesh
+      .getWorldPosition(V3())
+      .add(V3(-.48, -.27, .70));
+
+    hand.visible = w > .001;
+    hand.position.copy(camRest(-1, -.85)).lerp(target, w);
+    orient(hand, V3(0, 0, -1), V3(0, 1, 0));
+
+    $('#fiveTarget').hidden = true;
+    return true;
+  };
+
+  HINTS.five = '손을 내밀어 하이파이브 청하기 · 상대는 거절합니다';
+
+  window.__SC_CARE_SNUB_V1 = { version: 1 };
+
+  if (window.__api) {
+    Object.assign(window.__api, {
+      queueCareReply,
+      careReplyLine,
+      updateCareReply,
+      poseSocialActor,
+      careFace,
+      startSocial,
+      requestHighFive,
+      updateSocial,
+      renderSocialHands
+    });
+  }
+})();
+
 /* ================= 시작 ================= */
 function boot() {
   setHint();
