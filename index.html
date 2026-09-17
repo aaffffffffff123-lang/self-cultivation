@@ -986,6 +986,103 @@ const SFX = (() => {
     [650,975].forEach((f,i)=>tone(o,t+i*.065,{type:'triangle',f0:f,dur:.10,peak:.09}));};
   /* SC_IMPACT_V2_AUDIO_END */
 
+  /* SC_ROPE_AUDIO_V1_BEGIN — insert inside SFX, before S.unlock = unlock. */
+  const ropeAudioConfig = Object.freeze({ ropeVolume: .85, voiceVolume: .85 });
+  const ropeAudioGroups = new Set();
+  const ropeClamp = (x,a,b) => Math.min(b,Math.max(a,Number.isFinite(x)?x:a));
+
+  // Dry, bounded one-shots; no reverb tail or endless looping source.
+  function ropeLayer(pan, volume) {
+    if (!ctx || !on || ctx.state !== 'running' || ropeAudioGroups.size >= 3) return null;
+    const gate=ctx.createGain(), nodes=[gate], sources=[];
+    gate.gain.value=volume;
+    if(ctx.createStereoPanner){
+      const p=ctx.createStereoPanner();p.pan.value=ropeClamp(pan,-1,1);
+      gate.connect(p);p.connect(bus);nodes.push(p);
+    }else gate.connect(bus);
+    const group={gate,nodes,sources,left:0,closed:false};
+    group.node = n => { nodes.push(n); return n; };
+    group.close = () => {
+      if(group.closed)return;group.closed=true;
+      nodes.forEach(n=>{try{n.disconnect();}catch(_){}});
+      ropeAudioGroups.delete(group);
+    };
+    group.play = (src,t,end,offset) => {
+      sources.push(src);group.left++;
+      src.onended=()=>{ if(--group.left===0)group.close(); };
+      if(offset===undefined)src.start(t);else src.start(t,offset);
+      src.stop(end);
+    };
+    ropeAudioGroups.add(group);return group;
+  }
+  function ropeEnvelope(g,t,peak,dur){
+    g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(peak,t+.006);
+    g.gain.linearRampToValueAtTime(peak*.72,t+dur*.48);
+    g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    g.gain.linearRampToValueAtTime(0,t+dur+.008);
+  }
+  function ropeNoise(group,t,dur,level,hz,q=1,endHz=hz){
+    const src=group.node(ctx.createBufferSource());src.buffer=noise;
+    const bp=group.node(ctx.createBiquadFilter());bp.type='bandpass';bp.Q.value=q;
+    bp.frequency.setValueAtTime(hz,t);bp.frequency.exponentialRampToValueAtTime(endHz,t+dur);
+    const g=group.node(ctx.createGain());ropeEnvelope(g,t,level,dur);
+    src.connect(bp);bp.connect(g);g.connect(group.gate);
+    group.play(src,t,t+dur+.012,R(0,1.3));
+  }
+
+  S.ropePullSound=(pan=0,strength=.6)=>{
+    const q=ropeClamp(strength,0,1),o=ropeLayer(pan,ropeAudioConfig.ropeVolume);
+    if(!o)return;const t=ctx.currentTime+.003,d=.12+q*.09;
+    // Friction rises with the pull, with little irregular strand/handle creaks.
+    ropeNoise(o,t,d,.28+q*.18,420+q*360,2.3,1050+q*550);
+    ropeNoise(o,t+.016,d*.76,.13,1900,1.2,2500);
+    for(let i=0;i<3;i++)ropeNoise(o,t+.026+i*.04,.023,.12/(1+i*.3),R(520,1100),4.8);
+  };
+  S.ropeGrunt=(pan=0,strength=.8,pitch=155)=>{
+    const q=ropeClamp(strength,0,1),o=ropeLayer(pan,ropeAudioConfig.voiceVolume);
+    if(!o)return;const start=ctx.currentTime+.003;
+    const base=ropeClamp(pitch,85,260)*R(.95,1.06);
+    // Two short, interrupted cartoon syllables, not a continuous scream.
+    for(let i=0;i<2;i++){
+      const t=start+(i?.15:0),dur=i?.105+q*.045:.066+q*.02;
+      const src=o.node(ctx.createOscillator());src.type='sawtooth';
+      const f=base*(i?.91:1.09);
+      src.frequency.setValueAtTime(f,t);
+      src.frequency.exponentialRampToValueAtTime(f*(i?.73:.88),t+dur);
+      const jitter=o.node(ctx.createOscillator()),jg=o.node(ctx.createGain());
+      jitter.frequency.value=27+q*10;jg.gain.value=base*.035;
+      jitter.connect(jg);jg.connect(src.frequency);
+      const amp=o.node(ctx.createGain());ropeEnvelope(amp,t,.23+q*.11,dur);
+      [[490,5.5,3.0],[1020,7,2.0],[2250,5,.45]].forEach(([hz,Q,level])=>{
+        const b=o.node(ctx.createBiquadFilter()),g=o.node(ctx.createGain());
+        b.type='bandpass';b.Q.value=Q;b.frequency.setValueAtTime(hz*(i?.91:1.04),t);
+        b.frequency.linearRampToValueAtTime(hz*.83,t+dur);g.gain.value=level;
+        src.connect(b);b.connect(g);g.connect(amp);
+      });
+      const rough=o.node(ctx.createOscillator()),rg=o.node(ctx.createGain());
+      const trem=o.node(ctx.createGain());trem.gain.value=.76;
+      rough.type='triangle';rough.frequency.value=35+q*15;rg.gain.value=.24;
+      rough.connect(rg);rg.connect(trem.gain);amp.connect(trem);trem.connect(o.gate);
+      [src,jitter,rough].forEach(s=>o.play(s,t,t+dur+.015));
+      ropeNoise(o,t,.034,.24,2050,1,1000);
+      ropeNoise(o,t+.018,dur*.8,.06,880,1.4,560);
+    }
+  };
+  S.ropeAudioStop=()=>{
+    if(!ctx)return;const t=ctx.currentTime;
+    for(const o of [...ropeAudioGroups]){
+      // Stop also cancels a scheduled second syllable. 18 ms avoids a click.
+      const p=o.gate.gain;p.cancelScheduledValues(t);p.setValueAtTime(p.value,t);
+      p.linearRampToValueAtTime(0,t+.018);
+      for(const src of o.sources){try{src.stop(t+.020);}catch(_){}}
+    }
+  };
+  // The old P.speed-based trigger is replaced by the input-aware controller below.
+  S.ropeTug=()=>{};
+  S.ropeAudioConfig=ropeAudioConfig;
+  /* SC_ROPE_AUDIO_V1_END */
+
   S.unlock = unlock; S.setOn = setOn;
   return S;
 })();
@@ -7044,6 +7141,58 @@ window.__api=Object.assign(window.__api,{startSocial,stopSocial,requestHighFive,
 })();
 /* SC_IMPACT_V2_END */
 
+
+/* SC_ROPE_AUDIO_INPUT_V1_BEGIN — after other patches, immediately before boot. */
+(() => {
+  if(window.__SC_ROPE_AUDIO_V1)return;
+  const CFG=Object.freeze({voiceAt:.67,pullEvery:.19,voiceEvery:.95});
+  let current=null,owner=null,prevDistance=0,lastPull=-10,nextVoice=0,previousTension=0;
+  function stop(){
+    SFX.ropeAudioStop();current=owner=null;prevDistance=previousTension=0;
+    lastPull=-10;nextVoice=0;
+  }
+  const oldHold=updateToolHold;
+  updateToolHold=function(dt){
+    const out=oldHold.apply(this,arguments),P=G.ptr,H=P?.toolHold,v=G.v;
+    if(G.editing||document.hidden||G.mode!=='hit'||G.tool!=='rope'||
+      !P||P.kind!=='ropeHold'||!H||!v||v.state!=='tether'||!PREF.sound){
+      if(current)stop();return out;
+    }
+    if(H!==current||v!==owner){
+      stop();current=H;owner=v;nextVoice=G.time+.20;
+    }
+    const q=clamp(Number.isFinite(H.tension)?H.tension:0,0,1);
+    const distance=Math.hypot(P.last.x-P.x0,P.last.y-P.y0);
+    const movingOut=distance-prevDistance>.35;
+    const loading=q-previousTension>.007;
+    const pan=clamp((H.pullX||0)*2,-.65,.65);
+    if(q>.53&&(movingOut||loading)&&G.time-lastPull>=CFG.pullEvery){
+      SFX.ropePullSound(pan,q);lastPull=G.time;
+    }
+    if(q>=CFG.voiceAt&&G.time>=nextVoice){
+      SFX.ropeGrunt(pan,q,v.look.pitch);
+      nextVoice=G.time+CFG.voiceEvery+rnd(-.12,.20);
+    }else if(q<CFG.voiceAt){
+      nextVoice=Math.max(nextVoice,G.time+.10);
+    }
+    // Do not reuse P.speed: it can stay nonzero after the finger has stopped.
+    prevDistance=distance;previousTension=q;return out;
+  };
+  const oldEnd=endToolHold;
+  endToolHold=function(){stop();return oldEnd.apply(this,arguments);};
+  const oldCancel=cancelPointer;
+  cancelPointer=function(){stop();return oldCancel.apply(this,arguments);};
+  const oldNew=newVillain;
+  newVillain=function(){stop();return oldNew.apply(this,arguments);};
+  const oldOn=SFX.setOn;
+  SFX.setOn=function(enabled){if(!enabled)stop();return oldOn.apply(this,arguments);};
+  addEventListener('blur',stop);
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();});
+  canvas.addEventListener('webglcontextlost',stop);
+  window.__SC_ROPE_AUDIO_V1={version:1,config:CFG,stop};
+  if(window.__api)Object.assign(window.__api,{updateToolHold,endToolHold,cancelPointer,newVillain});
+})();
+/* SC_ROPE_AUDIO_INPUT_V1_END */
 
 /* ================= 시작 ================= */
 function boot() {
