@@ -899,8 +899,8 @@ const SFX = (() => {
   S.pat = (pan = 0) => {
     if (!ctx) return;
     const t = ctx.currentTime, o = out(pan, 0.15);
-    tone(o, t, { f0: 190, f1: 110, dur: 0.07, peak: 0.45 });
-    burst(o, t, { dur: 0.06, peak: 0.3, type: 'lowpass', f: 900, q: 0.6 });
+    tone(o, t, { f0: 190, f1: 110, dur: 0.07, peak: 0.2 });
+    burst(o, t, { dur: 0.06, peak: 0.12, type: 'lowpass', f: 800, q: 0.6 });
   };
   function contLoop(name, filterF, q, gain) {
     if (!ctx || loops[name]) return;
@@ -911,8 +911,8 @@ const SFX = (() => {
     s.connect(f); f.connect(g); g.connect(o); s.start(t);
     loops[name] = { g, f, stop() { const n = ctx.currentTime; g.gain.cancelScheduledValues(n); g.gain.setTargetAtTime(0.0001, n, 0.04); s.stop(n + 0.3); } };
   }
-  S.rubStart = () => contLoop('rub', 1700, 0.9, 0.0);
-  S.rubLevel = (v) => { const l = loops.rub; if (l && ctx) { l.g.gain.setTargetAtTime(Math.min(0.28, v * 0.28), ctx.currentTime, 0.04); l.f.frequency.setTargetAtTime(1200 + v * 1400, ctx.currentTime, 0.05); } };
+  S.rubStart = () => contLoop('rub', 650, 0.5, 0.0);
+  S.rubLevel = (v) => { const l = loops.rub; if (l && ctx) { l.g.gain.setTargetAtTime(Math.min(0.045, v * 0.045), ctx.currentTime, 0.08); l.f.frequency.setTargetAtTime(520 + v * 320, ctx.currentTime, 0.08); } };
   S.rubStop = () => { if (loops.rub) { loops.rub.stop(); loops.rub = null; } };
   S.hugStart = () => contLoop('hug',650,.8,.012);
   S.hugStop = () => { if (loops.hug) { loops.hug.stop(); loops.hug = null; } };
@@ -960,6 +960,28 @@ const SFX = (() => {
       burst(o,t+d,{dur:.025,peak:.29/(1+i*.32),type:'highpass',f:1300+i*170});
       tone(o,t+d,{type:'triangle',f0:830+i*217,f1:500+i*137,dur:.06,peak:.12/(1+i*.25)});
     });
+  };
+  // 의자 내려치기: 쾅(저음 충격) + 쩍(프레임 꺾임) + 우당탕(부품 튕기는 소리) + 와장창(파편).
+  S.chairCrash=(pan=0,power=1)=>{
+    if(!ctx)return;const t=ctx.currentTime,o=out(pan,.16),p=Math.min(1.3,.8+power*.18);
+    tone(o,t,{f0:96,f1:28,dur:.42,peak:.95*p});
+    tone(o,t,{type:'triangle',f0:210,f1:52,dur:.15,peak:.62*p});
+    burst(o,t,{dur:.05,peak:.95*p,type:'bandpass',f:1150,q:.7});
+    burst(o,t,{dur:.018,peak:.5*p,type:'highpass',f:2600});
+    burst(o,t+.004,{dur:.26,peak:.55*p,type:'lowpass',f:640,f1:110});
+    tone(o,t+.01,{type:'square',f0:118,f1:84,dur:.07,peak:.10*p});
+    // 우당탕: 다리·등받이가 여러 번 부딪히며 굴러간다
+    const beats=[.075,.14,.19,.25,.33,.38,.46,.57,.69,.84];
+    beats.forEach((d,i)=>{
+      const k=1/(1+i*.33),q=t+d+R(-.012,.012),side=clamp(pan+R(-.35,.35),-1,1),oo=out(side,.12);
+      burst(oo,q,{dur:R(.03,.06),peak:.5*k*p,type:'bandpass',f:R(700,2400),q:R(1.2,3)});
+      if(i%2===0)tone(oo,q,{type:'triangle',f0:R(120,180),f1:55,dur:.08,peak:.42*k*p});
+      else tone(oo,q,{type:'triangle',f0:R(700,1400),f1:R(380,600),dur:.055,peak:.14*k*p});
+    });
+    // 와장창: 잘게 흩어지는 파편
+    burst(o,t+.02,{dur:.42,peak:.16*p,a:.004,type:'highpass',f:4200,f1:2600});
+    for(let i=0;i<16;i++){const d=.02+Math.pow(Math.random(),1.6)*.5;burst(out(clamp(pan+R(-.6,.6),-1,1),.1),t+d,{dur:R(.008,.02),peak:R(.12,.26)*(1-d),type:'highpass',f:R(3200,7200)});}
+    clicks(o,t+.05,7,.35,3600,.12);
   };
   S.wallCrash=(pan=0)=>{if(!ctx)return;const t=ctx.currentTime,o=out(pan,.14);
     tone(o,t,{f0:108,f1:31,dur:.25,peak:.88});
@@ -1561,9 +1583,23 @@ ntag.renderOrder = 2;
       tag(mesh(capsuleGeo(0.056, 0.13), shirt, el), 'arm').position.y = -0.085;
       const cuff = mesh(new THREE.CylinderGeometry(0.058, 0.058, 0.025, 14), mat('#ffffff'), el); cuff.position.y = -0.17;
       const hand = new THREE.Group(); hand.position.y = -0.2; el.add(hand);
-      tag(mesh(new THREE.SphereGeometry(0.058, 14, 10), skin, hand), 'arm').scale.set(1, 1.15, 0.72);
-      const th = mesh(capsuleGeo(0.018, 0.035), skin, hand); th.position.set(-s * 0.05, 0.01, 0.02); th.rotation.z = s * 0.7;
-      for (let i = 0; i < 4; i++) { const f = mesh(capsuleGeo(0.014, 0.03), skin, hand); f.position.set(s * (0.03 - i * 0.02) * 0.8 + s * 0.005, -0.065, 0.005); }
+      // 편 손. 손목(팔 끝) 아래에 붙인다. 로컬 -y=손가락, -z=손바닥, +z=손등(손톱), 엄지는 몸 안쪽(-s·x).
+      const HO = -0.042;
+      const palmM = tag(mesh(new THREE.SphereGeometry(0.05, 16, 12), skin, hand), 'arm'); palmM.scale.set(1.02, 1.12, 0.56); palmM.position.y = HO;
+      const nailMat = this.nailMat = mat('#f6d6cc', { roughness: 0.3 });
+      const segH = (p0, p1, r) => { const d = p1.clone().sub(p0), m = mesh(capsuleGeo(r, Math.max(0.001, d.length()), 12, 5), skin, hand); m.position.copy(p0).add(p1).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(V3(0, 1, 0), d.normalize()); return m; };
+      const lens = [0.05, 0.057, 0.052, 0.041];
+      for (let i = 0; i < 4; i++) {
+        const x = -s * 0.034 + s * i * 0.0227, base = V3(x, HO - 0.04, -0.002);
+        const tip = V3(x + s * (i - 1.5) * 0.007, HO - 0.04 - lens[i], 0.002);
+        segH(base, tip, i === 3 ? 0.0115 : 0.0128);
+        const n = mesh(new THREE.SphereGeometry(0.0085, 10, 8), nailMat, hand); n.scale.set(1, 1.3, 0.4); n.position.copy(tip).add(V3(0, 0.004, 0.0105));
+      }
+      // 엄지: 손바닥 쪽 안쪽 모서리에서 비스듬히 벌어진다.
+      const thenar = mesh(new THREE.SphereGeometry(0.024, 12, 9), skin, hand); thenar.scale.set(1, 1.3, 0.75); thenar.position.set(-s * 0.03, HO + 0.004, -0.012);
+      const t0 = V3(-s * 0.04, HO - 0.004, -0.014), t1 = V3(-s * 0.064, HO - 0.03, -0.02), t2 = V3(-s * 0.078, HO - 0.056, -0.018);
+      segH(t0, t1, 0.0155); segH(t1, t2, 0.0145);
+      const tn = mesh(new THREE.SphereGeometry(0.009, 10, 8), nailMat, hand); tn.scale.set(1, 1.3, 0.4); tn.position.copy(t2).add(V3(s * 0.004, 0.002, 0.012));
       this.armRig.push({ sh, el, hand, s, cur: { sx: 0, sz: 0, ex: 0, ez: 0 } });
     }
     // 목·머리
@@ -2644,10 +2680,10 @@ function sendAway() {
 }
 
 /* ================= 대사 ================= */
-function speak(line, kind = '', dur) {
+function speak(line, kind = '', dur, force = false) {
   if(G.editing)return;
   const v = G.v; if (!v) return;
-  if(G.mode==='care'&&['stand','hug'].includes(v.state))return;
+  if(!force&&G.mode==='care'&&['stand','hug'].includes(v.state))return;
   const text = lisp(line, v.st.teeth);
   say(text, dur || clamp(0.9 + text.length * 0.08, 1.3, 3.2), kind);
   v.mouth.talk = clamp(text.length * 0.07, 0.3, 2.2);
@@ -3538,11 +3574,17 @@ function poseSolidTool(a,tgt,n){
   else if(t<c){const u=easeIn((t-pre)/(c-pre));p=bez(wind,wind.clone().lerp(contactRoot,.58).add(V3(s*.12,0,.14)),contactRoot,u);q.copy(windQ).slerp(contactQ,u);}
   else if(t<c+dwell){p=contactRoot.clone().addScaledVector(n,-.009*Math.sin((t-c)/dwell*Math.PI));}
   else{
-    const u=clamp((t-c-dwell)/(D-c-dwell),0,1),bounce=Math.sin(Math.min(1,u*3)*Math.PI)*(hammer?.18:.11);
-    const away=camRest(s,-.95);p=contactRoot.clone().addScaledVector(n,bounce).lerp(away,easeIn(u));
+    const u=clamp((t-c-dwell)/(D-c-dwell),0,1);
     const follow=a.toolKind==='bat'?-s*.58:hammer?s*.52:s*.23;
     q.multiply(new THREE.Quaternion().setFromAxisAngle(V3(0,0,1),Math.sin(u*Math.PI)*follow));
     if(a.toolKind==='pan'){const buzz=Math.sin((t-c)*145)*Math.exp(-(t-c)*24)*.014;q.multiply(new THREE.Quaternion().setFromAxisAngle(V3(0,1,0),buzz));}
+    // 회수: 도구 몸통(타격면)을 먼저 머리 바깥 앞쪽으로 들어 올린 뒤 화면 아래로 뺀다.
+    // 손잡이 기준으로 곧장 빼면 몸통이 머리를 관통해 바닥면이 사라져 보인다.
+    const off=localContact.clone().applyQuaternion(q);
+    const lift=tgt.clone().addScaledVector(n,hammer?.36:.30).add(V3(s*.08,.04,.36));
+    const awayBody=camRest(s,-.95).add(off);
+    const body=u<.38?tgt.clone().lerp(lift,easeOut(u/.38)):lift.clone().lerp(awayBody,easeIn((u-.38)/.62));
+    p=body.sub(off);
   }
   r.position.copy(p);r.quaternion.copy(q);
   if(a.toolKind==='tissue')U.head.scale.set(t>=c?1-Math.sin(clamp((t-c)/.14,0,1)*Math.PI)*.38:1,1,1);
@@ -3825,10 +3867,91 @@ function careSay(group='comfort',force=false){
   const text=nextCareLine(group);G.careLastVoice=G.time;G.careCaptionUntil=G.time+Math.max(3.8,text.length*.16+1);
   const box=$('#careCaption');box.hidden=false;$('#careCaptionText').textContent=text;
   CareVoice.say(text);if(typeof syncCareVoice==='function')syncCareVoice();G.lastAct=G.time;G.lastSay=G.time;
-  // Only the player speaks. The character does not lip-sync these words.
+  // The character does not lip-sync the player's words; it answers afterwards in its own bubble.
   G.v.mouth.talk=0;BUB.text='';bubble.classList.remove('show');
+  if(group!=='five')queueCareReply(group);
 }
 function careIsAwkward(v){return G.mode==='care'&&!G.editing&&['stand','hug'].includes(v.state)&&!(v.ouch>0);}
+/* 달래기 대답: 플레이어 말이 끝나면 나쁜 놈이 말풍선으로 받아친다. 민망하면 플레이어에게 뻐큐를 날린다. */
+const CARE_REPLY={
+  comfort:['…뭐래.','갑자기 왜 이래요.','그런 말 처음 들어 봐요.','…저한테 한 말이에요?','아까 때리던 사람 맞아요?','…어쩌라고요.'],
+  hand:['머리 만지지 마요…','…제가 강아지예요?','아 간지러워요.','…언제까지 할 건데요.'],
+  love:['…갑자기요?','아 소름 돋았어요.','그런 말 함부로 하는 거 아니에요.','…저 그런 사람 아닌데.'],
+  thumb:['…뭘 잘했는데요.','그 손가락 치워요.','아까는 때렸잖아요.','…네, 뭐.'],
+  clap:['박수는 왜 쳐요…','구경났어요?','그만 쳐요, 민망하게.'],
+  fiveHit:['…이러면 된 거죠?','손 아파요.','…한 번만이에요.'],
+  fiveMiss:['안 해요.','…손 내려요.','그런 거 안 해요.'],
+  hug:['…놔요.','숨 막혀요…','아 진짜 왜 이래요…','…조금만이에요.'],
+  release:['…다 했어요?','이상한 사람이야, 진짜.','…옷 구겨졌잖아요.'],
+  soft:['…고마워요.','왜 잘해 줘요…','저 같은 걸…','흐윽… 따뜻해…'],
+  flip:['에라이, 이거나 먹어요.','보지 마요, 민망하니까!','아 몰라요!','…이게 제 대답이에요.','민망하게 진짜…','뭘 봐요!']
+};
+const CARE_REPLY_DELAY={comfort:1.4,hand:1.2,love:2.35,thumb:1.45,clap:.75,fiveHit:1.3,fiveMiss:.55,hug:1.8,release:.6};
+const careReplyLast={};
+function queueCareReply(group){
+  const v=G.v;if(!v||G.mode!=='care'||G.editing||!['stand','hug'].includes(v.state))return;
+  const n=v.careReplies||0;let flip=false;
+  if(group!=='hug'&&!G.hug){
+    let p=v.confessed?.2:.42;if(v.lastFlip)p*=.45;
+    if(n>=1&&!v.flipped)p=1; // 두 번째 대답에서는 반드시 한 번 보여 준다.
+    flip=Math.random()<p;
+  }
+  v.careReplies=n+1;v.lastFlip=flip;if(flip)v.flipped=true;
+  G.react={group,t:0,delay:CARE_REPLY_DELAY[group]??1.3,flip,fired:false,v};
+  // 뻐큐를 날릴 때는 엄지·하트·박수 따라 하기를 하지 않는다.
+  if(flip&&G.social&&['thumb','love','clap'].includes(G.social.kind))G.social.noEcho=true;
+}
+function careReplyLine(r){
+  const v=r.v;let key=r.flip?'flip':r.group;
+  if(!r.flip&&v.confessed&&v.comfort>.45&&r.group!=='fiveMiss')key='soft';
+  const list=CARE_REPLY[key]||CARE_REPLY.comfort;
+  let line=pick(list);if(list.length>1&&line===careReplyLast[key])line=list[(list.indexOf(line)+1)%list.length];
+  return careReplyLast[key]=line;
+}
+function updateCareReply(dt){
+  const r=G.react;if(!r)return;
+  if(r.v!==G.v){G.react=null;return;}
+  const a=G.social;
+  // 박수는 박수를 멈춘 뒤에 대답한다.
+  if(r.group==='clap'&&!r.fired&&a?.kind==='clap'&&(a.clapT<.32||a.queued>0||a.t-a.lastBeat<.6))r.t=0;
+  r.t+=dt;
+  if(!r.fired&&r.t>=r.delay){
+    r.fired=true;const v=r.v;
+    if(r.flip&&G.hug)r.flip=false;
+    speak(careReplyLine(r),r.flip?'shout':'',undefined,true);
+    if(r.flip){v.blush=Math.max(v.blush,.6);v.faceDirty=true;SFX.whoosh(.25);vib(12);}
+  }
+  if(r.fired){const since=r.t-r.delay;if(since>(r.flip?2.45:.3)&&!(r.v.mouth.talk>0))G.react=null;}
+}
+function careFlipWeight(){
+  const r=G.react;if(!r||!r.flip||!r.fired)return 0;
+  return careWindow(r.t-r.delay,0,.26,1.9,2.35);
+}
+// 뻐큐 손 위치: 손가락 끝까지 머리(코·안경 여유 포함) 밖에 있고 팔이 닿는 곳을 매번 계산한다.
+function flipHandTarget(v){
+  v.root.updateMatrixWorld(true);
+  const T=v.torso,H=v.headMesh,c=T.worldToLocal(H.getWorldPosition(V3()));
+  const r=(x,y,z)=>T.worldToLocal(H.localToWorld(V3(x,y,z))).distanceTo(c);
+  const rx=r(HEAD_R,0,0)*1.12+.07,ry=r(0,HEAD_R,0)*1.08+.05,rz=r(0,0,HEAD_R)*1.12+.12;
+  const sh=v.armRig[1].sh.position,tipUp=.24;
+  const out=(p)=>{let worst=Infinity;for(const u of [0,.5,1]){const q=V3(p.x,p.y+tipUp*u,p.z);worst=Math.min(worst,((q.x-c.x)/rx)**2+((q.y-c.y)/ry)**2+((q.z-c.z)/rz)**2);}return worst;};
+  let best=null,bestScore=-Infinity;
+  for(const x of [.2,.27,.34])for(const z of [.37,.33,.28])for(let y=.56;y>=.28;y-=.02){
+    const p=V3(x,y,z);if(p.distanceTo(sh)>.39)continue;
+    const o=out(p);
+    if(o>=1)return p; // 높고 앞에 있는 자리부터 찾는다
+    if(o>bestScore){bestScore=o;best=p;}
+  }
+  return best||V3(.3,.36,.3);
+}
+function poseCareFlip(v){
+  const w=careFlipWeight();if(w<=.001)return;
+  const s=G.react.t-G.react.delay;
+  // 들어 올린 직후 한 번 쑥 내민다.
+  const jab=carePulse(s,.22,.55)*.05;
+  const p=flipHandTarget(v);p.z+=jab;
+  poseCareArm(v,v.armRig[1],p,V3(.2,0,-1),w,'flip');
+}
 function carePulse(t,a,b){if(t<=a||t>=b)return 0;return Math.sin((t-a)/(b-a)*Math.PI);}
 function careWindow(t,a,b,c,d){return ease(clamp((t-a)/Math.max(.001,b-a),0,1))*(1-ease(clamp((t-c)/Math.max(.001,d-c),0,1)));}
 function hideSocialHands(){
@@ -3836,7 +3959,7 @@ function hideSocialHands(){
   for(const h of RIG.open)if(!G.hug&&!G.ptr?.rubbing&&!G.attacks.some(a=>a.rig===h))h.visible=false;
 }
 function stopSocial(){
-  G.social=null;G.careAnim=null;G.careCaptionUntil=0;CareVoice.stop();$('#careCaption').hidden=true;$('#fiveTarget').hidden=true;
+  G.social=null;G.react=null;G.careAnim=null;G.careCaptionUntil=0;CareVoice.stop();$('#careCaption').hidden=true;$('#fiveTarget').hidden=true;
   hideSocialHands();if(G.v)restoreCareActorHands(G.v);
 }
 function startSocial(kind){
@@ -3871,6 +3994,7 @@ function updateSocial(dt){
   if(G.mode!=='care'||G.editing||!v){if(G.social)stopSocial();return;}
   if(!['stand','hug'].includes(v.state)){if(G.social)stopSocial();return;}
   v.careAge=(v.careAge||0)+dt;v.careBlink=Math.max(0,(v.careBlink||0)-dt);
+  updateCareReply(dt);
   if(G.time>G.careCaptionUntil)$('#careCaption').hidden=true;
   if(G.hug){G.lastAct=G.time;G.lastSay=G.time;if(G.time-(G.careLastVoice??0)>6.5)careSay('hug');}
   const a=G.social;if(!a)return;a.t+=dt;G.lastAct=G.time;G.lastSay=G.time;
@@ -3880,17 +4004,17 @@ function updateSocial(dt){
     if(a.clapT>=.32&&a.queued>0){a.queued--;a.clapT=0;a.clapContact=false;}
     const since=a.t-a.lastBeat;
     if(a.clapT>.32&&a.queued===0){
-      if(a.echo<1&&since>.95){a.echo=1;SFX.clap(.20);}
-      if(a.echo<2&&since>1.34){a.echo=2;SFX.clap(.19);}
+      if(!a.noEcho&&a.echo<1&&since>.95){a.echo=1;SFX.clap(.20);}
+      if(!a.noEcho&&a.echo<2&&since>1.34){a.echo=2;SFX.clap(.19);}
       if(since>2.3){G.social=null;hideSocialHands();}
     }
   }else if(a.kind==='five'){
     if(a.phase==='invite'&&a.requested&&a.t>=1.12){a.phase='contact';a.hitT=0;}
     if(a.phase==='contact'){
       a.hitT+=dt;
-      if(a.hitT>=.16&&!a.contact){a.hitT=.16;a.contact=true;SFX.clap(1);vib(10);countCare('highfives');v.careBlink=.12;}
+      if(a.hitT>=.16&&!a.contact){a.hitT=.16;a.contact=true;SFX.clap(1);vib(10);countCare('highfives');v.careBlink=.12;queueCareReply('fiveHit');}
       if(a.hitT>1.22){G.social=null;hideSocialHands();$('#fiveTarget').hidden=true;}
-    }else if(a.phase==='invite'&&a.t>5.2){a.phase='miss';a.hitT=0;$('#fiveTarget').hidden=true;}
+    }else if(a.phase==='invite'&&a.t>5.2){a.phase='miss';a.hitT=0;$('#fiveTarget').hidden=true;queueCareReply('fiveMiss');}
     else if(a.phase==='miss'){a.hitT+=dt;if(a.hitT>1.5){G.social=null;hideSocialHands();}}
   }else if(a.kind==='hugRelease'){if(a.t>1.1){G.social=null;hideSocialHands();}}
   else if(a.kind==='groom'){if(a.t>1.1){G.social=null;hideSocialHands();}}
@@ -3904,11 +4028,38 @@ function buildCareHand(kind,material=mySkin,sleeve=true){
   if(kind==='open'){
     for(let i=0;i<4;i++){const f=mesh(capsuleGeo(.018,.075-Math.abs(i-1.4)*.012,12,5),material,g);f.position.set(-.05+i*.034,.123-Math.abs(i-1.4)*.008,0);f.rotation.z=(i-1.5)*-.075;}
     const th=mesh(capsuleGeo(.022,.054,12,5),material,g);th.position.set(.083,.012,.012);th.rotation.z=-.75;
+  }else if(kind==='flip'){
+    // 가운데 손가락 욕. 로컬 +y=손가락, +z=손바닥(자기 쪽), -z=손등(상대 쪽). 검지·엄지는 -x 쪽.
+    palm.scale.set(.96,1.0,.46);
+    const nail=mat('#f4cdc1',{roughness:.32});
+    const seg=(a,b,r)=>{const d=b.clone().sub(a),m=mesh(capsuleGeo(r,Math.max(.001,d.length()),12,5),material,g);m.position.copy(a).add(b).multiplyScalar(.5);m.quaternion.setFromUnitVectors(V3(0,1,0),d.normalize());return m;};
+    const joint=(p,r)=>{const m=mesh(new THREE.SphereGeometry(r,12,9),material,g);m.position.copy(p);return m;};
+    const xs=[-.051,-.017,.017,.049],kr=[.021,.023,.02,.018];
+    xs.forEach((x,i)=>{
+      const k=V3(x,.07-Math.abs(i-1)*.005,-.01);joint(k,kr[i]*1.05);
+      if(i===1){
+        // 쭉 편 가운데 손가락: 마디 3개 + 손톱
+        const j1=V3(x,.138,-.006),j2=V3(x,.186,-.004),tip=V3(x,.222,-.002);
+        seg(k,j1,.021);joint(j1,.0205);seg(j1,j2,.02);joint(j2,.0195);seg(j2,tip,.019);
+        const n=mesh(new THREE.SphereGeometry(.015,12,8),nail,g);n.scale.set(1,1.35,.35);n.position.set(x,.214,-.019);
+      }else{
+        // 접은 손가락: 마디에서 손바닥 쪽으로 꺾여 내려간다
+        const r=kr[i]*.95,j1=V3(x,.09,.045),j2=V3(x,.052,.07);
+        seg(k,j1,r);joint(j1,r);seg(j1,j2,r*.95);joint(j2,r*.95);
+      }
+    });
+    // 엄지: 검지 옆 아래에서 나와 접은 검지 위로 걸친다. 옆에서 또렷이 보이게 굵게.
+    const t0=V3(-.07,-.012,.012),t1=V3(-.086,.03,.05),t2=V3(-.045,.058,.088);
+    joint(t0,.028);seg(t0,t1,.025);joint(t1,.023);seg(t1,t2,.021);
+    const tn=mesh(new THREE.SphereGeometry(.014,12,8),nail,g);tn.scale.set(1.3,1,.35);tn.position.copy(t2).add(V3(.006,.012,.008));tn.lookAt(tn.position.clone().add(V3(0,1,.3)));
   }else{
     for(let i=0;i<4;i++){const f=mesh(capsuleGeo(.021,.031,12,5),material,g);f.rotation.z=Math.PI/2;f.position.set(.013,.057-i*.03,.041);}
     if(kind==='thumb'){
-      const th=mesh(capsuleGeo(.026,.135,14,6),material,g);th.position.set(-.058,.111,.006);th.rotation.z=-.12;
-      mesh(new THREE.SphereGeometry(.028,12,8),material,g).position.set(-.057,.067,.015);
+      palm.scale.set(.66,1,.78);palm.position.set(-.004,0,-.004); // 옆으로 튀어나온 손바닥 덩어리가 없도록 주먹 폭에 맞춘다
+      // 굵고 짧은 엄지가 접은 검지 위에서 바로 솟는다(따로 꽂은 막대처럼 보이지 않게).
+      mesh(new THREE.SphereGeometry(.036,14,10),material,g).position.set(-.04,.066,.02);
+      const th=mesh(capsuleGeo(.029,.07,14,6),material,g);th.position.set(-.046,.118,.014);th.rotation.z=-.1;
+      const tn=mesh(new THREE.SphereGeometry(.016,12,8),mat('#f4cdc1',{roughness:.32}),g);tn.scale.set(1,1.3,.35);tn.position.set(-.05,.15,-.012);
     }else if(kind==='love'){
       const index=mesh(capsuleGeo(.021,.085,14,6),material,g);index.position.set(-.029,.113,.020);index.rotation.z=-.35;
       const th=mesh(capsuleGeo(.025,.085,14,6),material,g);th.position.set(.010,.089,.039);th.rotation.z=.65;
@@ -3918,12 +4069,12 @@ function buildCareHand(kind,material=mySkin,sleeve=true){
 }
 function ensureSocialRigs(){
   if(RIG.care)return;RIG.care={love:buildCareHand('love'),thumb:buildCareHand('thumb')};
-  for(const h of Object.values(RIG.care)){h.visible=false;handsRoot.add(h);}
+  for(const h of Object.values(RIG.care)){h.visible=false;h.scale.x=-1;handsRoot.add(h);} // 뒤에서 본 오른손이 되도록 좌우 반전
 }
 function ensureActorCareHand(v,a){
   if(a.careModels)return;
   a.baseHandChildren=a.hand.children.slice();a.careModels={};
-  for(const kind of ['open','thumb']){const m=buildCareHand(kind,v.skinMat,false);m.scale.setScalar(.66);m.visible=false;a.hand.add(m);a.careModels[kind]=m;}
+  for(const kind of ['open','thumb','flip']){const m=buildCareHand(kind,v.skinMat,false);m.scale.setScalar(kind==='flip'?1.0:.66);m.visible=false;a.hand.add(m);a.careModels[kind]=m;}
   // Existing resource ownership captures these on disposal as well.
 }
 function actorCareHand(v,a,kind){
@@ -3972,7 +4123,7 @@ function poseSocialActor(v,dt){
     if(half)poseCareArm(v,v.armRig[1],V3(.31,.27,.18),V3(0,0,1),half);
     return;
   }
-  if(!a)return;
+  if(!a){poseCareFlip(v);return;}
   if(a.kind==='five'){
     let rise=ease(clamp((t-.55)/.57,0,1)),target=fiveHandTarget(v);
     if(a.phase==='contact'){
@@ -3982,13 +4133,13 @@ function poseSocialActor(v,dt){
       const u=ease(clamp((a.hitT-.45)/.55,0,1));target.lerp(V3(target.x,target.y-.2,target.z*.5),u);rise*=1-ease(clamp((a.hitT-1)/.5,0,1));
     }
     poseCareArm(v,v.armRig[0],target,V3(0,0,1),rise);
-  }else if(a.kind==='thumb'){
+  }else if(a.kind==='thumb'&&!a.noEcho){
     const w=careWindow(t,1.45,1.92,2.65,3.15);poseCareArm(v,v.armRig[1],V3(.26,.39,.28),V3(0,0,1),w,'thumb');
-  }else if(a.kind==='love'){
+  }else if(a.kind==='love'&&!a.noEcho){
     const w=careWindow(t,2.4,2.7,3.1,3.55)*.75;poseCareArm(v,v.armRig[1],V3(.085,.41,.24),V3(0,0,-1),w);
   }else if(a.kind==='clap'){
     const z=t-a.lastBeat;
-    if(a.clapT>.32&&!a.queued&&z>.65){
+    if(!a.noEcho&&a.clapT>.32&&!a.queued&&z>.65){
       const w=careWindow(z,.65,.88,1.60,2.05);
       const closed=Math.max(carePulse(z,.80,1.10),carePulse(z,1.19,1.49)),spread=lerp(.14,.025,closed);
       for(const arm of v.armRig)poseCareArm(v,arm,V3(arm.s*spread,.42,.285),V3(-arm.s,0,0),w);
@@ -3999,6 +4150,7 @@ function poseSocialActor(v,dt){
   }else if(a.kind==='hugRelease'){
     const w=careWindow(t,0,.25,.6,1.05);poseCareArm(v,v.armRig[1],V3(.12,.3,.25),V3(0,0,-1),w*.75);
   }
+  poseCareFlip(v);
 }
 function careFace(v){
   const a=G.social,t=a?.t||0,T=v.careAge||0;
@@ -4011,6 +4163,8 @@ function careFace(v){
   else if(a?.kind==='clap'){f.px=t<.65?Math.sin(t*7)*.018:0;f.x=carePulse(t,.75,1.6)*.14;}
   else if(a?.kind==='five'){f.px=-.016;f.py=-.005;if(a.contact)f.x=carePulse(a.hitT,.48,1)*.075;}
   else{f.px=careWindow(T%7,4.2,4.4,4.9,5.1)*.01;}
+  const fw=careFlipWeight();
+  if(fw>0){f.x=lerp(f.x,-.06,fw);f.y=lerp(f.y,-.55,fw);f.z=lerp(f.z,.08,fw);f.px=lerp(f.px,-.016,fw);f.py=lerp(f.py,-.006,fw);f.brow=lerp(f.brow,.06,fw);}
   // Two deliberate blinks after receiving an unexpected gesture, then stillness.
   let blink=0;if(a&&t<1.65){blink=Math.max(carePulse(t,.55,.73),carePulse(t,.92,1.10));}
   if(G.hug){const p=v.stateT%3.6;blink=Math.max(blink,carePulse(p,.8,1.0),carePulse(p,1.20,1.4));}
@@ -4024,7 +4178,7 @@ function renderSocialHands(dt){
   if(a.kind==='love'||a.kind==='thumb'){
     const h=RIG.care[a.kind],w=careWindow(t,0,.28,.90,1.38);h.visible=w>.001;
     const target=head.clone().add(V3(.31,-.32,.67));
-    h.position.copy(camRest(1,-.95)).lerp(target,w);orient(h,V3(-.13,0,1),V3(0,1,0));h.rotation.z=-.10;
+    h.position.copy(camRest(1,-.95)).lerp(target,w);orient(h,V3(-.3,0,-1),V3(0,1,0));h.rotateZ(.10); // 손바닥·손가락 쪽이 나쁜 놈을 향하고, 나는 손등을 본다.
   }else if(a.kind==='clap'){
     const u=a.clapT;if(u<.39){
       const close=u<.15?easeIn(clamp(u/.15,0,1)):1-easeOut(clamp((u-.15)/.18,0,1));
@@ -4173,7 +4327,7 @@ function startHug(){
 function endHug(){
   if(!G.hug)return;G.hug=false;SFX.hugStop();CareVoice.stop();RIG.open.forEach(h=>h.visible=false);
   if(G.v&&G.v.state==='hug'){G.v.state='stand';G.v.stateT=0;
-    if(G.mode==='care'&&!G.editing)G.social={kind:'hugRelease',t:0};}
+    if(G.mode==='care'&&!G.editing){G.social={kind:'hugRelease',t:0};queueCareReply('release');}}
   $('[data-care=hug]').classList.remove('on');
 }
 
@@ -4738,7 +4892,10 @@ function updateVillain(v, dt) {
     c.sx = damp(c.sx, sx, k, dt); c.sz = damp(c.sz, sz, k, dt); c.ex = damp(c.ex, ex, k, dt); c.ez = damp(c.ez, ez, k, dt);
     a.sh.rotation.set(c.sx, 0, a.s * c.sz);
     a.el.rotation.set(c.ex, 0, -a.s * c.ez);
-    a.hand.rotation.set(v.toothHold > 0 && a.s > 0 ? -1.3 : 0, 0, 0);
+    // 손바닥 방향: 막는 자세는 앞으로, 나머지는 몸 안쪽(허벅지 쪽)으로. 엄지가 앞에 오도록.
+    const tooth = v.toothHold > 0 && a.s > 0, hy = tooth || armMode === 'guard' ? 0 : a.s * 1.4;
+    c.hy = c.hy === undefined ? hy : damp(c.hy, hy, 10, dt);
+    a.hand.rotation.set(tooth ? -1.3 : 0, c.hy, 0);
   }
   poseSocialActor(v,dt);
   v.toothHold = Math.max(0, (v.toothHold || 0) - dt);
@@ -4808,7 +4965,7 @@ function updateVillain(v, dt) {
     const clench=v.hitAge<.10 || (v.hitAge>.31 && v.ouch>.12);
     Object.assign(TG,{open:clench?.22:.85,smile:-.8,smirk:0,wide:clench?1.02:.75});M.shape=clench?'grit':'o';
   }
-  else if(cf){Object.assign(TG,{open:cf.mouth,smile:0,smirk:0,wide:.72});M.shape='flat';M.talk=0;}
+  else if(cf){Object.assign(TG,{open:cf.mouth,smile:0,smirk:0,wide:.72});M.shape='flat';if(!G.react?.fired)M.talk=0;}
   else if(v.guardHold>0){Object.assign(TG,{open:.10,smile:-.65,smirk:0,wide:.85});M.shape='frown';}
   else if (mood === 'smug') Object.assign(TG,mouthRest(v.look,true)), M.shape = 'smug';
   else if (mood === 'fluster') Object.assign(TG, { open: 0.3, smile: -0.45, smirk: 0, wide: 0.7 }), M.shape = 'o';
@@ -5782,7 +5939,7 @@ const Slapstick = (() => {
       // Arms trail toward the head when inverted, not straight through the floor.
       const z=hanging?2.48:1.18;
       a.sh.rotation.set(.08*Math.sin(T*9+a.s),0,a.s*(z+.12*Math.sin(T*8+a.s)));
-      a.el.rotation.set(-.2,0,-a.s*.2);a.hand.rotation.set(0,0,0);
+      a.el.rotation.set(-.2,0,-a.s*.2);a.hand.rotation.set(0,a.s*1.4,0);
     }
     v.root.updateMatrixWorld(true);
   }
@@ -6272,7 +6429,7 @@ const AppearanceEditor=(()=>{
     const v=E.model,L=v.look;E.time+=dt;
     v.root.rotation.y=E.yaw;v.root.position.set(0,0,0);v.root.scale.setScalar(1);
     v.headPivot.rotation.set(0,0,0);v.torso.scale.set(1,1,1);
-    for(const a of v.armRig){a.sh.rotation.set(-.03,0,a.s*.1);a.el.rotation.set(-.18,0,0);a.hand.rotation.set(0,0,0);}
+    for(const a of v.armRig){a.sh.rotation.set(-.03,0,a.s*.1);a.el.rotation.set(-.18,0,0);a.hand.rotation.set(0,a.s*1.4,0);}
     let open=.97,browR=0,browY=0;let mouth=mouthRest(L);
     if(E.expression==='smug'){open=.62;mouth=mouthRest(L,true);browR=.16;}
     else if(E.expression==='surprise'){open=1;mouth={open:.78,smile:-.15,smirk:0,wide:.55};browY=.025;}
@@ -6369,7 +6526,7 @@ const AppearanceEditor=(()=>{
 window.__appearanceEditor=AppearanceEditor;
 canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();window.__bootGuard.lost=true;cancelPointer();endHug();clearAttacks();window.showGameError('3D 화면을 복구하고 있어요.','외모와 저장된 기록은 지우지 않았어요. 복구되지 않으면 화면 다시 열기를 눌러 주세요.');});
 canvas.addEventListener('webglcontextrestored',()=>{window.__bootGuard.lost=false;lastT=performance.now();scene.traverse(o=>{for(const m of(o.material?(Array.isArray(o.material)?o.material:[o.material]):[])){m.needsUpdate=true;for(const t of Object.values(m))if(t?.isTexture)t.needsUpdate=true;}});fit();$('#fallback').style.display='none';});
-window.__api=Object.assign(window.__api,{startSocial,stopSocial,requestHighFive,careSay,CARE_LINES,CareVoice,poseCareArm,careFace,careIsAwkward,clearAttacks,gestureExtra,step,poseAttack,doContact,RIG,scene,camera,renderer,TOOL_SPEC,normaliseLook,randomLook,impactStopDuration,moodOf,updateVillain,liveContactPoint});
+window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,CARE_REPLY,startSocial,stopSocial,requestHighFive,careSay,CARE_LINES,CareVoice,poseCareArm,careFace,careIsAwkward,clearAttacks,gestureExtra,step,poseAttack,doContact,RIG,scene,camera,renderer,TOOL_SPEC,normaliseLook,randomLook,impactStopDuration,moodOf,updateVillain,liveContactPoint});
 
 
 
@@ -7012,7 +7169,7 @@ window.__api=Object.assign(window.__api,{startSocial,stopSocial,requestHighFive,
     neutralBody(v);const t=m.age,k=t<.11?1:t<.30?lerp(1,.84,(t-.11)/.19):1-ease(clamp((t-.30)/.84,0,1));
     v.head.position.y=.31-CFG.headDrop*k;v.head.scale.set(1+.11*k,1-.30*k,1+.09*k);
     v.headPivot.rotation.set(.04*k,0,0);v.torso.position.y=.5-.048*k;
-    for(const a of v.armRig){a.sh.rotation.set(-.25*k,0,a.s*(.12+1.38*k));a.el.rotation.set(-.12,0,0);a.hand.rotation.set(0,0,0);}
+    for(const a of v.armRig){a.sh.rotation.set(-.25*k,0,a.s*(.12+1.38*k));a.el.rotation.set(-.12,0,0);a.hand.rotation.set(0,a.s*1.4,0);}
     v.legs.forEach((l,i)=>l.rotation.set(0,0,(i?1:-1)*.07*k));
     Object.assign(v.mouth,{open:.72*k,smile:-.8*k,smirk:0,wide:.85});v.mouth.shape='o';v.mouth.talk=0;v.paintMouth();
     v.root.updateMatrixWorld(true);
@@ -7084,7 +7241,7 @@ window.__api=Object.assign(window.__api,{startSocial,stopSocial,requestHighFive,
   TOOL_SPEC.brick={power:1.95,contact:.16,dur:.42,dwell:.02,recovery:.16};TOOLPOW.brick=1.95;
   TOOLPOP.brick=['빠각!','퍽!'];POP_COLORS.brick='#efab75';
   SFX.brick=(pan=0)=>SFX.brickImpact?.(pan);
-  SFX.chair=(pan=0,p=1)=>SFX.chairMetal?.(pan,p);
+  SFX.chair=(pan=0,p=1)=>SFX.chairCrash?.(pan,p);
   const projectiles=[];
   const projectileRay=new THREE.Raycaster();
   function releaseBrick(h){
