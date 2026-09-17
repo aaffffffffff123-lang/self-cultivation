@@ -3950,6 +3950,20 @@ function poseCareArm(v,a,target,palmNormal,weight,kind='open'){
   const handQ=a.el.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(worldQ);
   a.hand.quaternion.slerp(handQ,weight);if(weight>.12)actorCareHand(v,a,kind);
 }
+// 하이파이브 손 위치: 몸 비율과 상관없이 머리 바깥, 팔이 닿는 곳을 매 프레임 계산한다.
+function fiveHandTarget(v){
+  v.root.updateMatrixWorld(true);
+  const T=v.torso,H=v.headMesh,c=T.worldToLocal(H.getWorldPosition(V3()));
+  const r=(x,y,z)=>T.worldToLocal(H.localToWorld(V3(x,y,z))).distanceTo(c);
+  const rx=r(HEAD_R,0,0)*1.15+.10,ry=r(0,HEAD_R,0)*1.10+.14,rz=r(0,0,HEAD_R)*1.15+.08;
+  const sh=v.armRig[0].sh.position,z=.185;let p=null;
+  for(let y=.69;y>=.29;y-=.02){
+    const k=1-((y-c.y)/ry)**2-((z-c.z)/rz)**2;
+    p=V3(k>0?Math.min(-.425,c.x-rx*Math.sqrt(k)):-.425,y,z);
+    if(p.distanceTo(sh)<=.38)return p;
+  }
+  return p;
+}
 function poseSocialActor(v,dt){
   restoreCareActorHands(v);if(!careIsAwkward(v))return;
   const a=G.social,t=a?.t||0;
@@ -3960,12 +3974,12 @@ function poseSocialActor(v,dt){
   }
   if(!a)return;
   if(a.kind==='five'){
-    let rise=ease(clamp((t-.55)/.57,0,1)),target=V3(-.425,.69,.185);
+    let rise=ease(clamp((t-.55)/.57,0,1)),target=fiveHandTarget(v);
     if(a.phase==='contact'){
       target.z-=carePulse(a.hitT,.16,.45)*.065;
       rise*=1-ease(clamp((a.hitT-.65)/.55,0,1));
     }else if(a.phase==='miss'){
-      const u=ease(clamp((a.hitT-.45)/.55,0,1));target.lerp(V3(-.27,.74,.035),u);rise*=1-ease(clamp((a.hitT-1)/.5,0,1));
+      const u=ease(clamp((a.hitT-.45)/.55,0,1));target.lerp(V3(target.x,target.y-.2,target.z*.5),u);rise*=1-ease(clamp((a.hitT-1)/.5,0,1));
     }
     poseCareArm(v,v.armRig[0],target,V3(0,0,1),rise);
   }else if(a.kind==='thumb'){
@@ -4019,7 +4033,7 @@ function renderSocialHands(dt){
     }
   }else if(a.kind==='five'){
     const h=RIG.open[0],hand=v.armRig[0].hand;v.root.updateMatrixWorld(true);
-    const actual=hand.getWorldPosition(V3()),awaitPos=v.torso.localToWorld(V3(-.425,.69,.185)).add(V3(0,0,.62));
+    const actual=hand.getWorldPosition(V3()),awaitPos=v.torso.localToWorld(fiveHandTarget(v)).add(V3(0,0,.62));
     h.visible=true;let p=camRest(-1,-.85).lerp(awaitPos,easeOut(clamp(t/.36,0,1)));
     if(a.phase==='contact'){
       const u=a.hitT;
