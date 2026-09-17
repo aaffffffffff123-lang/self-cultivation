@@ -1517,13 +1517,40 @@ class Villain {
       const b = mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.006, 12), mat('#ffffff', { roughness: 0.25 }), this.torso, false);
       b.rotation.x = Math.PI / 2; b.position.set(0, y, this.torsoFront(y) + 0.003); this.buttons.push(b);
     }
-    // 명찰
-    const nt = this.nameTex = canvasTex(256, 96);
-    { const g = nt.g; g.fillStyle = '#fff'; g.fillRect(0, 0, 256, 96); g.fillStyle = '#ff3b3b'; g.fillRect(0, 0, 256, 26);
-      g.strokeStyle = '#1f2a5c'; g.lineWidth = 8; g.strokeRect(4, 4, 248, 88);
-      g.fillStyle = '#1f2a5c'; g.font = '56px "Black Han Sans","Noto Sans CJK KR",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('나쁜 놈', 128, 62); }
-    const ntag = mesh(new THREE.PlaneGeometry(0.13, 0.05), mat('#ffffff', { map: nt.t }), this.torso, false);
-    ntag.position.set(-0.115, 0.34, this.torsoFront(0.34) - 0.012); ntag.rotation.y = -0.42;
+
+
+
+
+ // 몸통에 직접 표시할 세로 이름
+const nt = this.nameTex = canvasTex(512, 1024);
+
+const ntag = mesh(
+  new THREE.PlaneGeometry(.18, .36, 8, 20),
+  new THREE.MeshBasicMaterial({
+    map: nt.t,
+    transparent: true,
+    alphaTest: .03,
+    depthTest: true,
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1
+  }),
+  this.torso,
+  false
+);
+
+ntag.position.set(
+  -.105,
+  .26,
+  this.torsoFront(.26) + .014
+);
+
+ntag.renderOrder = 2;
+
+
+
+
     // 팔
     this.armRig = [];
     for (const s of [-1, 1]) {
@@ -2059,15 +2086,45 @@ class Villain {
     for(const sc of new Set([scene,this.hostScene]))sc.traverse(o=>{if(o.geometry)dead.g.delete(o.geometry);for(const m of (o.material?(Array.isArray(o.material)?o.material:[o.material]):[])){dead.m.delete(m);for(const v of Object.values(m))if(v&&v.isTexture)dead.t.delete(v);}});
     for(const type of ['g','m','t'])for(const v of dead[type])if(!v.userData?.shared){v.dispose();this.owned?.[type].delete(v);}
   }
-  drawName(){
-    const {g,t}=this.nameTex;
-    g.clearRect(0,0,256,96);g.fillStyle='#fff';g.fillRect(0,0,256,96);g.fillStyle='#ff3b3b';g.fillRect(0,0,256,26);
-    g.strokeStyle='#1f2a5c';g.lineWidth=8;g.strokeRect(4,4,248,88);g.fillStyle='#1f2a5c';
-    const name=this.look.name||'나쁜 놈';let size=56;
-    g.font=`${size}px "Black Han Sans","Noto Sans CJK KR",sans-serif`;
-    while(g.measureText(name).width>232&&size>16){size-=2;g.font=`${size}px "Black Han Sans","Noto Sans CJK KR",sans-serif`;}
-    g.textAlign='center';g.textBaseline='middle';g.fillText(name,128,63);t.needsUpdate=true;
-  }
+ drawName() {
+  const { g, t } = this.nameTex;
+  const W = g.canvas.width;
+  const H = g.canvas.height;
+
+  const chars = Array.from(
+    String(this.look.name || '나쁜 놈').replace(/\s+/g, '')
+  );
+
+  if (!chars.length) chars.push('나', '쁜', '놈');
+
+  // 명찰 배경·테두리 없이 투명하게 비운다.
+  g.clearRect(0, 0, W, H);
+
+  const size = Math.min(420, 900 / chars.length);
+  const line = size * 1.08;
+
+  g.font =
+    `${size}px "Black Han Sans","Gothic A1","Malgun Gothic",sans-serif`;
+
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.lineJoin = 'round';
+
+  // 어두운 옷에서도 보이도록 글자에만 얇은 밝은 외곽선.
+  g.lineWidth = Math.max(5, size * .065);
+  g.strokeStyle = '#fffdf4';
+  g.fillStyle = '#1f2a5c';
+
+  const y0 = (H - line * chars.length) / 2 + line / 2;
+
+  chars.forEach((ch, i) => {
+    const y = y0 + i * line;
+    g.strokeText(ch, W / 2, y, W - 40);
+    g.fillText(ch, W / 2, y, W - 40);
+  });
+
+  t.needsUpdate = true;
+}
   makeBrowGeometry(style){
     if(style==='straight'||style==='short'||style==='none')return capsuleGeo(.013,style==='short'?.041:.075,12,5);
     const pts=[];
@@ -4378,6 +4435,136 @@ function showLetter(){
 }
 $('#letterNext').addEventListener('click', () => { $('#letterModal').hidden = true; sendAway(); });
 
+function fixActorHandPose(v) {
+  // 달래기 동작·이빨을 들고 있는 손은 건드리지 않는다.
+  if (
+    G.mode !== 'hit' || G.social || G.hug ||
+    G.ptr?.grab || v.toothHold > 0
+  ) return;
+
+  if (v.state === 'tether') v._safeHandsUntil = G.time + .8;
+
+  const reacting =
+    v._guardV2 || v._wipeV2 ||
+    G.time < (v._safeHandsUntil || 0) ||
+    ['fluster', 'beg', 'cry'].includes(moodOf(v));
+
+  if (
+    v.state !== 'tether' &&
+    !(v.state === 'stand' && reacting)
+  ) return;
+
+  v.root.updateMatrixWorld(true);
+
+  // 머리 크기와 몸 크기에 맞춰 손이 들어가지 않을 여유 공간을 둔다.
+  const hs = v.headMesh.getWorldScale(V3());
+  const bs = v.torso.getWorldScale(V3());
+  const padding =
+    (.105 * Math.max(bs.x, bs.y, bs.z) + .018) /
+    Math.max(.01, Math.min(hs.x, hs.y, hs.z));
+
+  const radius = HEAD_R + .025 + padding;
+  const down = V3(0, -1, 0);
+
+  for (const a of v.armRig) {
+    const p = v.headMesh.worldToLocal(
+      a.hand.getWorldPosition(V3())
+    );
+
+    // 턱 아래나 얼굴 안에 들어간 손은 얼굴 앞쪽으로 빼낸다.
+    if (p.lengthSq() < radius * radius) {
+      p.z = Math.sqrt(Math.max(
+        0,
+        radius * radius - p.x * p.x - p.y * p.y
+      )) + .006;
+    }
+
+    const target = v.torso.worldToLocal(
+      v.headMesh.localToWorld(p)
+    );
+
+    const origin = a.sh.position.clone();
+    const delta = target.clone().sub(origin);
+    const distance = delta.length();
+    if (distance < .001) continue;
+
+    const axis = delta.divideScalar(distance);
+    const L = Math.max(.2, (distance + .008) / 2);
+    const stretch = L / .2;
+    const rec = v._bodyCloth?.arms.find(r => r.a === a);
+
+    a.el.position.y = a.hand.position.y = -L;
+
+    if (rec?.upper) {
+      rec.upper.position.y = -.10 * stretch;
+      rec.upper.scale.y = stretch;
+    }
+    if (rec?.fore) {
+      rec.fore.position.y = -.085 * stretch;
+      rec.fore.scale.y = stretch;
+    }
+    if (rec?.cuff) rec.cuff.position.y = -.17 * stretch;
+
+    // 팔꿈치는 얼굴 앞으로 튀어나오지 않고 바깥쪽·아래쪽으로.
+    const pole = V3(a.s * .75, -.65, -.10)
+      .projectOnPlane(axis);
+
+    if (pole.lengthSq() < 1e-8) {
+      pole.copy(V3(0, 0, 1).projectOnPlane(axis));
+    }
+    pole.normalize();
+
+    const elbow = origin.clone()
+      .addScaledVector(axis, distance / 2)
+      .addScaledVector(
+        pole,
+        Math.sqrt(Math.max(
+          0,
+          L * L - distance * distance / 4
+        ))
+      );
+
+    const upper = new THREE.Quaternion().setFromUnitVectors(
+      down,
+      elbow.clone().sub(origin).normalize()
+    );
+
+    const foreDir = target.clone().sub(elbow).normalize();
+
+    const lower = new THREE.Quaternion().setFromUnitVectors(
+      down,
+      foreDir.clone().applyQuaternion(upper.clone().invert())
+    );
+
+    a.sh.quaternion.copy(upper);
+    a.el.quaternion.copy(lower);
+
+    // 손가락(-Y)은 전완과 같은 방향.
+    // 손목을 뒤로 꺾지 않고 손바닥(+Z)만 몸 쪽으로 정렬한다.
+    const y = foreDir.clone().negate();
+    const z = V3(-a.s * .15, 0, -1).projectOnPlane(y);
+
+    if (z.lengthSq() < 1e-8) {
+      z.copy(V3(0, 1, 0).projectOnPlane(y));
+    }
+    z.normalize();
+
+    const x = y.clone().cross(z).normalize();
+    z.copy(x.clone().cross(y)).normalize();
+
+    const hand = new THREE.Quaternion().setFromRotationMatrix(
+      new THREE.Matrix4().makeBasis(x, y, z)
+    );
+
+    a.hand.quaternion.copy(
+      upper.clone().multiply(lower).invert().multiply(hand)
+    );
+  }
+
+  v.root.updateMatrixWorld(true);
+}
+
+
 /* ================= 나쁜 놈 갱신 ================= */
 const ARM_POSES = {
   hips: { sx: 0.25, sz: 0.62, ex: -0.35, ez: 1.95 },
@@ -5214,11 +5401,41 @@ const BodyWardrobe = (() => {
   function followAccessories(v) {
     const c=v._bodyCloth;if(!c)return;
     // Badge and attached buttons follow dents; dropped buttons remain untouched.
-    if(c.tag) {
-      const phi=-.46;
-      c.tag.position.copy(surfacePoint(c,phi,.34,.009));
-      c.tag.rotation.y=Math.atan2(Math.sin(phi),Math.cos(phi)/zRatio);
-    }
+    
+    
+    if (c.tag) {
+  const tag = c.tag;
+  const geo = tag.geometry;
+  const pos = geo.attributes.position;
+  const uv = geo.attributes.uv;
+
+  tag.position.set(0, 0, 0);
+  tag.rotation.set(0, 0, 0);
+  tag.scale.set(1, 1, 1);
+
+  // 글자 면 전체를 옷의 곡면에 맞춰 붙인다.
+  // 가운데 넥타이는 유지하고, 그 옆에 세로로 배치.
+  for (let i = 0; i < pos.count; i++) {
+    const x = -.105 + (uv.getX(i) - .5) * .18;
+    const y = .08 + uv.getY(i) * .36;
+
+    const r = radiusAt(profiles[c.kind], y);
+    const phi = Math.asin(
+      clamp(x / Math.max(r, .001), -.98, .98)
+    );
+
+    const p = surfacePoint(c, phi, y, .010);
+    pos.setXYZ(i, p.x, p.y, p.z);
+  }
+
+  pos.needsUpdate = true;
+  geo.computeVertexNormals();
+  geo.computeBoundingBox();
+  geo.computeBoundingSphere();
+}
+
+
+
     for(const b of v.buttons)if(b.parent===v.torso)b.position.copy(surfacePoint(c,0,b.position.y,.005));
     v.tie.position.copy(surfacePoint(c,0,.475,.018));
   }
@@ -7060,7 +7277,10 @@ window.__api=Object.assign(window.__api,{startSocial,stopSocial,requestHighFive,
       else if(m.kind==='homerun')updateHomerun(v,m,dt);
       else if(m.kind==='limp')limpPose(v,m);
       v.root.updateMatrixWorld(true);
-    }else reactiveArms(v,dt);
+    }else{
+  reactiveArms(v,dt);
+  fixActorHandPose(v);
+}
     return r;
   };
   const oldCamera=updateCamera;
