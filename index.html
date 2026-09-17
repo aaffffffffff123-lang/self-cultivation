@@ -6006,6 +6006,408 @@ canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();window.__bootG
 canvas.addEventListener('webglcontextrestored',()=>{window.__bootGuard.lost=false;lastT=performance.now();scene.traverse(o=>{for(const m of(o.material?(Array.isArray(o.material)?o.material:[o.material]):[])){m.needsUpdate=true;for(const t of Object.values(m))if(t?.isTexture)t.needsUpdate=true;}});fit();$('#fallback').style.display='none';});
 window.__api=Object.assign(window.__api,{startSocial,stopSocial,requestHighFive,careSay,CARE_LINES,CareVoice,poseCareArm,careFace,careIsAwkward,clearAttacks,gestureExtra,step,poseAttack,doContact,RIG,scene,camera,renderer,TOOL_SPEC,normaliseLook,randomLook,impactStopDuration,moodOf,updateVillain,liveContactPoint});
 
+
+
+/*
+ * self-cultivation — 피격 반응 / 목 전용 줄넘기 패치
+ * 기준: main/index.html, blob a75a0fb73ed707ba9aa84267a39eb63b86abb54a
+ * 삽입: index.html의 시작 섹션 주석 바로 위, 같은 스크립트 내부.
+ * 기존 코드는 지우지 않는다. 같은 패치를 두 번 넣지 않는다.
+ * 모든 시간·단계는 게임 연출용 값이다.
+ */
+(() => {
+  if (window.__SC_REACTION_PATCH_0917) return;
+  window.__SC_REACTION_PATCH_0917 = true;
+
+  const CFG = {
+    peeAt: 5.5,        // 피격 누적치: 낮출수록 빨리 발동
+    soilAt: 12,        // 더러워지는 단계의 피격 누적치
+    peeSeconds: 3.2,   // 방울이 떨어지는 시간
+    soilSeconds: 1.4,
+    redSeconds: 3.2,   // 얼굴색 연출이 최대가 되는 누적 시간
+    spotStart: 2.6,    // 얼굴의 작은 붉은 점이 나타나기 시작
+    spotRamp: 3.2,
+    maxDrops: 44       // 새 물방울/작은 덩어리의 총 상한
+  };
+  const states = new WeakMap();
+  const white = new THREE.Color('#ffffff');
+  const red = new THREE.Color('#c41c38');
+  let active = null;
+
+  function state(v) {
+    let s = states.get(v);
+    if (!s) {
+      s = { hits: 0, peed: false, soiled: false, peeT: 0, soilT: 0,
+        wet: 0, dirt: 0, peeAcc: 0, soilAcc: 0, stainKey: '', stains: [],
+        exposure: 0, grip: 0, flush: 0, blood: 0, spots: 0,
+        faceKey: '', eyeKey: -1, eyeTex: null };
+      states.set(v, s);
+    }
+    return s;
+  }
+
+  // 상한이 있는 재사용 풀. 캐릭터가 바뀌면 남은 방울을 전부 숨긴다.
+  const drops = [];
+  const dropGeo = new THREE.SphereGeometry(1, 9, 6);
+  const dropMats = [
+    new THREE.MeshStandardMaterial({color: '#d4ad3b', roughness: .2}),
+    new THREE.MeshStandardMaterial({color: '#694127', roughness: .96})
+  ];
+  function clearDrops() {
+    for (const p of drops) { p.on = false; p.mesh.visible = false; }
+  }
+  function emit(pos, dirty) {
+    let p = drops.find(p => !p.on);
+    if (!p && drops.length < CFG.maxDrops) {
+      const m = new THREE.Mesh(dropGeo, dropMats[0]);
+      m.visible = false; scene.add(m);
+      p = {mesh: m, vel: V3(), on: false}; drops.push(p);
+    }
+    if (!p) return;
+    p.on = true; p.age = 0; p.ground = false; p.dirty = dirty;
+    p.radius = dirty ? rnd(.017, .026) : rnd(.009, .015);
+    p.life = dirty ? 5 : 3.8;
+    p.mesh.material = dropMats[dirty ? 1 : 0];
+    p.mesh.position.copy(pos); p.mesh.visible = true;
+    p.mesh.rotation.set(0, 0, dirty ? rnd(-.6, .6) : 0);
+    p.mesh.scale.set(p.radius, p.radius * (dirty ? 1.15 : 1.7), p.radius);
+    p.vel.set(rnd(-.10, .10), rnd(-.65, -.35), rnd(.025, .10));
+  }
+  function tickDrops(dt) {
+    for (const p of drops) {
+      if (!p.on) continue;
+      p.age += dt;
+      if (p.age >= p.life) { p.on = false; p.mesh.visible = false; continue; }
+      if (!p.ground) {
+        p.vel.y -= 6.5 * dt; p.mesh.position.addScaledVector(p.vel, dt);
+        if (p.mesh.position.y < .008) {
+          p.ground = true; p.mesh.position.y = .008;
+          p.mesh.rotation.set(0, 0, 0);
+        }
+      }
+      if (p.ground) {
+        const f = Math.min(1, (p.life - p.age) / .5), r = p.radius * f;
+        p.mesh.scale.set(r * (p.dirty ? 1.15 : 2.7),
+          p.dirty ? r * .48 : .0018, r * (p.dirty ? 1.1 : 2));
+      }
+    }
+  }
+
+  // 평면을 앞에 세우지 않고, 실제 바지 표면과 같은 형상의 얇은 레이어를 쓴다.
+  function makeStains(v, s) {
+    if (s.stains.length) return;
+    v.legs.forEach((leg, side) => {
+      const src = leg.children.find(m => m.isMesh && m.userData.part === 'body');
+      if (!src) return;
+      const geo = src.geometry.clone(); geo.computeBoundingBox();
+      const p = geo.attributes.position, n = geo.attributes.normal, uv = geo.attributes.uv;
+      const lo = geo.boundingBox.min.y, height = geo.boundingBox.max.y - lo;
+      for (let i = 0; i < p.count; i++) {
+        const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+        uv.setXY(i, .5 + Math.atan2(x, z) / (Math.PI * 2), (y - lo) / height);
+        p.setXYZ(i, x + n.getX(i) * .0011, y + n.getY(i) * .0011, z + n.getZ(i) * .0011);
+      }
+      p.needsUpdate = uv.needsUpdate = true; geo.computeBoundingSphere();
+      const tex = canvasTex(256, 512);
+      const material = new THREE.MeshStandardMaterial({map: tex.t, transparent: true,
+        depthWrite: false, roughness: .3, polygonOffset: true, polygonOffsetFactor: -1});
+      const m = new THREE.Mesh(geo, material); m.renderOrder = 1;
+      src.add(m); s.stains.push({m, tex, side});
+    });
+    v.captureResources();
+  }
+  function blot(g, x, y, rx, ry, color) {
+    g.save(); g.translate(x, y); g.scale(rx, ry);
+    const a = g.createRadialGradient(0, 0, .12, 0, 0, 1);
+    a.addColorStop(0, color); a.addColorStop(.7, color); a.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = a; g.beginPath(); g.arc(0, 0, 1, 0, Math.PI * 2); g.fill(); g.restore();
+  }
+  function paintStains(v, s) {
+    const hidden = v.look.bottomStyle === 'skirt' || v.look.topStyle === 'dress';
+    for (const a of s.stains) a.m.visible = !hidden;
+    const key = Math.round(s.wet * 18) + ':' + Math.round(s.dirt * 12);
+    if (key === s.stainKey) return;
+    s.stainKey = key;
+    for (const {tex, side} of s.stains) {
+      const g = tex.g; g.clearRect(0, 0, 256, 512);
+      if (s.wet > .01) {
+        blot(g, 128, 52, 49, 66, 'rgba(61,45,14,.62)');
+        const end = 75 + s.wet * (side ? 362 : 418);
+        for (let y = 60; y < end; y += 15) {
+          const taper = 1 - (y - 60) / Math.max(1, end - 60);
+          const x = 128 + (side ? 12 : -10) + Math.sin(y * .019 + side) * 7;
+          blot(g, x, y, 13 + 19 * taper, 21, 'rgba(51,42,15,.59)');
+          blot(g, x - 9, y, 4, 17, 'rgba(191,156,48,.12)');
+        }
+      }
+      if (s.dirt > .01) {
+        g.globalAlpha = s.dirt;
+        // 뒤쪽 자국 + 안쪽 허벅지에 조금 번진 자국.
+        for (const x of [0, 256]) blot(g, x, 62, 52, 92, 'rgba(80,43,23,.94)');
+        blot(g, side ? 92 : 164, 64, 29, 54, 'rgba(93,54,27,.84)');
+        g.globalAlpha = 1;
+      }
+      tex.t.needsUpdate = true;
+    }
+  }
+  function onHit(v, h) {
+    const s = state(v);
+    const power = Number.isFinite(h.power) ? Math.max(.1, h.power) : 1;
+    s.hits += power * (h.part === 'body' ? 1.35 : 1);
+    if (!s.peed && s.hits >= CFG.peeAt) {
+      s.peed = true; s.peeT = CFG.peeSeconds; makeStains(v, s);
+    }
+    if (!s.soiled && s.hits >= CFG.soilAt) {
+      s.soiled = true; s.soilT = CFG.soilSeconds; makeStains(v, s);
+    }
+  }
+
+  function paintEyes(v, s) {
+    const key = Math.round(s.blood * 24);
+    if (key === s.eyeKey) return;
+    s.eyeKey = key;
+    if (!s.eyeTex) {
+      if (!key) return;
+      s.eyeTex = v.eyes.map(e => {
+        const tex = canvasTex(256, 128);
+        e.white.material.map = tex.t; e.white.material.needsUpdate = true;
+        return tex;
+      });
+      v.captureResources();
+    }
+    for (const tex of s.eyeTex) {
+      const g = tex.g; g.fillStyle = '#fff'; g.fillRect(0, 0, 256, 128);
+      // SphereGeometry의 정면(+Z)은 기본 UV에서 u=.25이다.
+      g.strokeStyle = `rgba(174,22,44,${s.blood * .85})`; g.lineWidth = 1.15;
+      for (const sign of [-1, 1]) for (let j = 0; j < 4; j++) {
+        const y = 30 + j * 22;
+        g.beginPath(); g.moveTo(64 + sign * 49, y);
+        g.lineTo(64 + sign * 35, y + (64 - y) * .25);
+        g.lineTo(64 + sign * 23, y + (64 - y) * .53);
+        g.lineTo(64 + sign * 17, y + (64 - y) * .74); g.stroke();
+        g.beginPath(); g.moveTo(64 + sign * 35, y + (64 - y) * .25);
+        g.lineTo(64 + sign * 40, y - 9); g.lineTo(64 + sign * 45, y - 12); g.stroke();
+      }
+      tex.t.needsUpdate = true;
+    }
+  }
+  function paintFaceOverlay(v, s) {
+    if (!s || (s.flush < .002 && s.spots < .002)) return;
+    const g = v.face.g; g.save();
+    g.fillStyle = `rgba(186,15,38,${s.flush * .51})`; g.fillRect(0, 0, 1024, 1024);
+    const rr = seededLookRandom(917163);
+    for (const side of [-1, 1]) {
+      const [cx, cy] = faceXY(dirN(side * .37, -.15, .94));
+      for (let i = 0; i < 34; i++) {
+        const x = cx + (rr() - .5) * 111, y = cy + (rr() - .5) * 95;
+        const radius = 1.2 + rr() * 2.3, threshold = rr();
+        const a = clamp((s.spots - threshold) * 5, 0, .8);
+        if (!a) continue;
+        g.fillStyle = `rgba(132,9,31,${a})`;
+        g.beginPath(); g.arc(x, y, radius, 0, Math.PI * 2); g.fill();
+      }
+    }
+    g.restore(); v.face.t.needsUpdate = true;
+  }
+
+  // 캐릭터의 두 손을 목 근처로 올린다. 팔을 크게 휘두르는 기존 tether 자세는 덮는다.
+  function neckHands(v, strength) {
+    for (const a of v.armRig) {
+      const start = a.sh.position.clone();
+      const target = V3(a.s * .094, .552, .108);
+      const delta = target.clone().sub(start), distance = clamp(delta.length(), .02, .395);
+      const axis = delta.normalize();
+      const pole = V3(a.s * .6, -.15, .8);
+      pole.addScaledVector(axis, -pole.dot(axis)).normalize();
+      const elbow = start.clone().addScaledVector(axis, distance / 2)
+        .addScaledVector(pole, Math.sqrt(.04 - distance * distance / 4));
+      const qs = new THREE.Quaternion().setFromUnitVectors(V3(0, -1, 0), elbow.clone().sub(start).normalize());
+      const qe = new THREE.Quaternion().setFromUnitVectors(V3(0, -1, 0), target.clone().sub(elbow).normalize());
+      qe.premultiply(qs.clone().invert());
+      a.sh.quaternion.slerp(qs, strength); a.el.quaternion.slerp(qe, strength);
+      a.hand.rotation.z = a.s * .2 * strength;
+    }
+  }
+  function poseRope(v, H) {
+    const q = H.tension, t = G.time, r = RIG.tools.rope, U = r.userData;
+    v.root.updateMatrixWorld(true);
+    const center = v.torso.localToWorld(V3(0, .552, 0));
+    const spread = .27 + q * .35;
+    const jitter = Math.sin(t * 57) * .003 * q;
+    const right = center.clone().add(V3(spread + jitter, -.105 - q * .045, .32 + q * .28));
+    const left = center.clone().add(V3(-spread + jitter, -.115 - q * .045, .32 + q * .28));
+    const dir = center.clone().sub(right).normalize();
+    r.visible = true; r.quaternion.setFromUnitVectors(V3(0, 1, 0), dir);
+    r.position.copy(right).sub(V3(0, .17, 0).applyQuaternion(r.quaternion));
+    r.updateMatrixWorld(true);
+    const radius = .087 - q * .005;
+    const attach = a => v.torso.localToWorld(V3(Math.sin(a) * radius, .552, Math.cos(a) * radius));
+    // 정면과 양옆에 밀착한 곡선, 양손까지의 구간은 직선에 가깝게 유지.
+    const begin = attach(1.85), end = attach(-1.85), pts = U.cord.points;
+    for (let i = 0; i <= U.cord.N; i++) {
+      const u = i / U.cord.N; let p;
+      if (u < .2) p = right.clone().lerp(begin, u / .2);
+      else if (u <= .8) p = attach(1.85 - (u - .2) / .6 * 3.7);
+      else p = end.clone().lerp(left, (u - .8) / .2);
+      pts[i].copy(r.worldToLocal(p));
+    }
+    updateRopeMesh(U.cord, pts);
+    U.tip.position.copy(r.worldToLocal(left.clone()));
+    const away = left.clone().sub(center).normalize();
+    const qLeft = new THREE.Quaternion().setFromUnitVectors(V3(0, 1, 0), away);
+    qLeft.premultiply(r.quaternion.clone().invert()); U.tip.quaternion.copy(qLeft);
+    U.otherHand.visible = true;
+    U.otherHand.position.copy(r.worldToLocal(left.clone().addScaledVector(away, .095)));
+    U.otherHand.quaternion.copy(qLeft);
+  }
+
+  const oldHit = applyHit;
+  applyHit = function(h) {
+    const v = G.v, hits = v?.st.hits;
+    const out = oldHit.apply(this, arguments);
+    if (v && G.v === v && h && h.tool !== 'tissue' && v.st.hits > hits) onHit(v, h);
+    return out;
+  };
+  const oldPaintFace = Villain.prototype.paintFace;
+  Villain.prototype.paintFace = function() {
+    const out = oldPaintFace.apply(this, arguments);
+    paintFaceOverlay(this, states.get(this)); return out;
+  };
+
+  const oldStart = startToolHold;
+  startToolHold = function(P, e) {
+    if (G.tool !== 'rope') return oldStart.apply(this, arguments);
+    const v = G.v;
+    if (!v || v.state !== 'stand' || G.attacks.length) return;
+    clearTimeout(P.holdTimer);
+    P.kind = 'ropeHold';
+    P.toolHold = {t0: G.time, info: P.info, neck: true, pullX: 0, pullZ: 0, tension: 0, soundT: -1};
+    v.state = 'tether'; v.stateT = 0; v.mouth.talk = 0;
+    state(v).exposure = 0; G.lastAct = G.time;
+    SFX.ropeTug(0, .3);
+  };
+  const oldHold = updateToolHold;
+  updateToolHold = function(dt) {
+    const P = G.ptr, H = P?.toolHold, v = G.v;
+    if (!H || !v || P.kind !== 'ropeHold') return oldHold.apply(this, arguments);
+    const dx = P.last.x - P.x0, dy = P.last.y - P.y0;
+    const drag = clamp(Math.hypot(dx, dy) / Math.max(55, Math.min(innerWidth, innerHeight) * .18), 0, 1);
+    const engage = clamp((G.time - H.t0) / .25, 0, 1);
+    H.tension = damp(H.tension, (.48 + drag * .52) * engage, 16, dt);
+    H.pullX = clamp(dx * worldPerPx() * .19, -.17, .17);
+    H.pullZ = .06 + H.tension * .14;
+    G.lastAct = G.time;
+    if (G.time - H.soundT > .4 && (P.speed > .03 || G.time - H.t0 < .65)) {
+      H.soundT = G.time; SFX.ropeTug(H.pullX, H.tension);
+    }
+    // 줄은 updateVillain이 자세를 확정한 다음 그린다.
+  };
+  const oldEnd = endToolHold;
+  endToolHold = function(cancelled = false) {
+    const P = G.ptr, H = P?.toolHold, v = G.v;
+    if (!H || P.kind !== 'ropeHold') return oldEnd.apply(this, arguments);
+    RIG.tools.rope.visible = false; RIG.tools.rope.userData.otherHand.visible = false;
+    if (v && v.state === 'tether') { v.state = 'stand'; v.stateT = 0; }
+    P.toolHold = null;
+  };
+
+  const oldUpdate = updateVillain;
+  updateVillain = function(v, dt) {
+    if (active !== v) { clearDrops(); active = v; }
+    const s = state(v), H = G.ptr?.kind === 'ropeHold' ? G.ptr.toolHold : null;
+    const held = !!(H && v === G.v && v.state === 'tether');
+    s.grip = damp(s.grip, held ? H.tension : 0, held ? 16 : 9, dt);
+    if (held) s.exposure = Math.min(12, s.exposure + dt * (.25 + .75 * H.tension));
+    s.flush = damp(s.flush, held ? clamp(s.exposure / CFG.redSeconds, 0, 1) : 0, held ? 3 : .55, dt);
+    s.blood = damp(s.blood, held ? clamp((s.exposure - .7) / 3.2, 0, 1) : 0, held ? 3 : .3, dt);
+    s.spots = held ? Math.max(s.spots, clamp((s.exposure - CFG.spotStart) / CFG.spotRamp, 0, 1))
+      : Math.max(0, s.spots - dt * .012);
+    const faceKey = [s.flush, s.spots].map(x => Math.round(x * 40)).join(':');
+    if (faceKey !== s.faceKey) { s.faceKey = faceKey; v.faceDirty = true; }
+    const out = oldUpdate.apply(this, arguments);
+    if (G.v !== v) { clearDrops(); return out; }
+
+    if (s.grip > .008) {
+      const q = s.grip, k = clamp(q * 2.8, 0, 1), t = v.animTime;
+      v.headPivot.rotation.x = lerp(v.headPivot.rotation.x, -.12 - q * .14, k);
+      v.headPivot.rotation.y = lerp(v.headPivot.rotation.y, Math.sin(t * 23) * .014 * q, k);
+      v.headPivot.rotation.z = lerp(v.headPivot.rotation.z, Math.sin(t * 37) * .013 * q, k);
+      v.body.rotation.x = lerp(v.body.rotation.x, -.035 * q, k);
+      neckHands(v, k);
+      for (const e of v.eyes) {
+        const open = .94 - .045 * Math.sin(t * 17 + e.s);
+        e.lidU.rotation.x = lerp(e.lidU.rotation.x, lerp(1.62, -1.25, open), k);
+        e.lidL.rotation.x = lerp(e.lidL.rotation.x, 1.33, k);
+        e.pupilG.scale.lerp(V3(.55, .55, .55), k);
+        e.pupilG.position.y = lerp(e.pupilG.position.y, .012 + Math.sin(t * 29) * .002, k);
+        e.brow.userData.inner.rotation.z = lerp(e.brow.userData.inner.rotation.z,
+          Math.PI / 2 + e.s * .48 - e.s * v.look.browTilt, k);
+      }
+      const M = v.mouth;
+      M.shape = 'o'; M.talk = 0;
+      M.open = lerp(M.open, .74 + Math.sin(t * 11) * .09, k);
+      M.smile = lerp(M.smile, -.9, k); M.smirk = 0; M.wide = lerp(M.wide, .57, k);
+      Object.assign(M.target, {open: M.open, smile: M.smile, smirk: 0, wide: M.wide});
+      v.paintMouth();
+    }
+    for (const e of v.eyes) {
+      e.white.material.color.copy(white).lerp(red, s.blood * .42);
+      if (s.flush > .002) e.lidMat.color.lerp(red, s.flush * .42);
+    }
+    if (s.flush > .002) v.noseMat.color.lerp(red, s.flush * .42);
+    paintEyes(v, s);
+    if (held) poseRope(v, H);
+    v.root.updateMatrixWorld(true);
+
+    if (s.peed) s.wet = Math.min(1, s.wet + dt * .65);
+    if (s.soiled) s.dirt = Math.min(1, s.dirt + dt * 1.5);
+    if (s.stains.length) paintStains(v, s);
+    tickDrops(dt);
+    const peeDt = Math.min(dt, s.peeT), soilDt = Math.min(dt, s.soilT);
+    s.peeT = Math.max(0, s.peeT - dt); s.soilT = Math.max(0, s.soilT - dt);
+    s.peeAcc = Math.min(3, s.peeAcc + peeDt * 13);
+    s.soilAcc = Math.min(2, s.soilAcc + soilDt * 4);
+    while (s.peeAcc >= 1) {
+      s.peeAcc--;
+      const i = Math.random() < .5 ? 0 : 1;
+      emit(v.legs[i].localToWorld(V3(i ? -.022 : .022, -.19 - .23 * s.wet, .085)), false);
+    }
+    while (s.soilAcc >= 1) {
+      s.soilAcc--; emit(v.body.localToWorld(V3(rnd(-.013, .013), .36, .055)), true);
+    }
+    return out;
+  };
+
+  // 기존 pointerdown 다음에 실행: 줄넘기는 누르는 즉시 목 전용 잡기로 전환한다.
+  canvas.addEventListener('pointerdown', e => {
+    const P = G.ptr;
+    if (G.editing || G.mode !== 'hit' || G.tool !== 'rope' || !P || P.id !== e.pointerId || P.kind) return;
+    clearTimeout(P.holdTimer);
+    if (P.info) startToolHold(P, e);
+    if (!P.kind) P.kind = 'ropeNoop'; // 빈 곳을 눌렀을 때 채찍 공격으로 새지 않게.
+  });
+  const oldSpeak = speak;
+  speak = function() {
+    if (G.ptr?.kind === 'ropeHold' && G.ptr.toolHold) return;
+    return oldSpeak.apply(this, arguments);
+  };
+  const oldHint = setHint;
+  setHint = function() {
+    const out = oldHint.apply(this, arguments);
+    if (G.mode === 'hit' && G.tool === 'rope') {
+      const hint = $('.hint');
+      if (hint) hint.textContent = '캐릭터를 누르면 목에 걸기 · 누른 채 드래그하면 더 세게 당기기 · 놓으면 풀기';
+    }
+    return out;
+  };
+})();
+
+
+
+
+
+
+
 /* ================= 시작 ================= */
 function boot() {
   setHint();
