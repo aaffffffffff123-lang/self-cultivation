@@ -489,20 +489,25 @@ body.look-editing #fiveTarget,body.look-editing .care-caption{visibility:hidden}
     <div class="row">소리<button class="switch" id="swSound" role="switch" aria-checked="true" aria-label="소리"></button></div>
     <div class="row">진동<button class="switch" id="swVibe" role="switch" aria-checked="true" aria-label="진동"></button></div>
     <div class="row">화면 흔들림<button class="switch" id="swShake" role="switch" aria-checked="true" aria-label="화면 흔들림"></button></div>
-    <div style="padding-top:12px;font-weight:800">내가 정한 죄목</div>
-    <p class="small" style="margin-top:2px">한 줄에 하나씩 적으면 기본 죄목과 섞여서 나옵니다.</p>
-    <textarea id="customCrimes" placeholder="예) 내 자리 의자 가져가서 안 돌려놓은 자" maxlength="1200"></textarea>
-    <button class="btn wide" id="saveCrimes">죄목 저장</button>
+ 
+  <div style="padding-top:12px;font-weight:800">캐릭터 대사 추가</div>
+<p class="small" style="margin-top:2px">
+  한 줄에 하나씩 적으면 기본 대사와 섞여서 나옵니다.
+  추가 개수 제한은 없습니다.
+</p>
+<textarea
+  id="customCrimes"
+  aria-label="캐릭터가 말할 추가 대사"
+  placeholder="나 좀 알아봐 줘&#10;잘했다고 한 번만 말해 줘&#10;옆에 있어 줘"
+></textarea>
+<button class="btn wide" id="saveCrimes">대사 저장</button>
+
+
+    
   </div>
 </div>
 
-<div class="modal" id="letterModal" hidden>
-  <div class="letter" role="dialog" aria-modal="true" aria-labelledby="letterTitle">
-    <h2 id="letterTitle">반성문</h2>
-    <div id="letterBody"></div>
-    <button class="btn wide" id="letterNext">다음 놈 끌고 오기</button>
-  </div>
-</div>
+
 
 <div class="modal" id="lookModal" hidden>
   <section class="look-sheet" role="dialog" aria-modal="true" aria-labelledby="lookTitle">
@@ -911,9 +916,147 @@ const SFX = (() => {
     s.connect(f); f.connect(g); g.connect(o); s.start(t);
     loops[name] = { g, f, stop() { const n = ctx.currentTime; g.gain.cancelScheduledValues(n); g.gain.setTargetAtTime(0.0001, n, 0.04); s.stop(n + 0.3); } };
   }
-  S.rubStart = () => contLoop('rub', 650, 0.5, 0.0);
-  S.rubLevel = (v) => { const l = loops.rub; if (l && ctx) { l.g.gain.setTargetAtTime(Math.min(0.045, v * 0.045), ctx.currentTime, 0.08); l.f.frequency.setTargetAtTime(520 + v * 320, ctx.currentTime, 0.08); } };
-  S.rubStop = () => { if (loops.rub) { loops.rub.stop(); loops.rub = null; } };
+
+
+  // SOFT_RUB_V1
+  let rubOn = false, rubTravel = 0, rubLast = -10, rubBuffer = null;
+  const rubVoices = new Set();
+
+  S.rubStop = () => {
+    rubOn = false;
+    rubTravel = 0;
+    for (const v of [...rubVoices]) v.stop();
+  };
+
+  S.rubStart = () => {
+    S.rubStop();
+    rubOn = true;
+    rubLast = -10;
+  };
+
+  // 누적된 G.rub 값으로 지속 잡음을 만들지 않는다.
+  S.rubLevel = () => {};
+
+  S.rubStroke = (distance, pan = 0) => {
+    if (!rubOn || !ctx || !on || ctx.state !== 'running') return;
+    if (!Number.isFinite(distance) || distance <= 0) return;
+
+    const t = ctx.currentTime;
+    rubTravel = Math.min(35, rubTravel + distance);
+
+    if (
+      rubTravel < 10 ||
+      t - rubLast < .16 ||
+      rubVoices.size >= 2
+    ) return;
+
+    const strength = Math.min(1, rubTravel / 30);
+    rubTravel = 0;
+    rubLast = t;
+
+    // 한 번 만들어 재사용한다. 반복 재생은 하지 않는다.
+    if (!rubBuffer) {
+      rubBuffer = ctx.createBuffer(
+        1,
+        Math.ceil(ctx.sampleRate * .5),
+        ctx.sampleRate
+      );
+
+      const data = rubBuffer.getChannelData(0);
+      let smooth = 0;
+
+      for (let i = 0; i < data.length; i++) {
+        smooth = smooth * .94 + (Math.random() * 2 - 1) * .06;
+        data[i] = smooth * 2.2;
+      }
+    }
+
+    const src = ctx.createBufferSource();
+    src.buffer = rubBuffer;
+
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 95;
+
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.Q.value = .55;
+
+    const gain = ctx.createGain();
+    const nodes = [src, hp, lp, gain];
+
+    const dur = .17;
+    const peak = .075 + strength * .035;
+
+    lp.frequency.setValueAtTime(650, t);
+    lp.frequency.linearRampToValueAtTime(300, t + dur);
+
+    // 갑자기 켜지고 끊기는 대신 부드럽게 시작하고 끝낸다.
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(peak, t + .045);
+    gain.gain.linearRampToValueAtTime(peak * .45, t + .095);
+    gain.gain.linearRampToValueAtTime(0, t + dur);
+
+    src.connect(hp);
+    hp.connect(lp);
+    lp.connect(gain);
+
+    // 기존 효과음의 음소거·출력 경로를 그대로 사용한다.
+    if (ctx.createStereoPanner) {
+      const p = ctx.createStereoPanner();
+      p.pan.value = Math.max(-.6, Math.min(.6, pan));
+      gain.connect(p);
+      p.connect(bus);
+      nodes.push(p);
+    } else {
+      gain.connect(bus);
+    }
+
+    let stopped = false;
+
+    const voice = {
+      stop() {
+        if (stopped) return;
+        stopped = true;
+
+        const now = ctx.currentTime;
+        const elapsed = Math.max(0, now - t);
+
+        const level = elapsed < .045
+          ? peak * elapsed / .045
+          : elapsed < .095
+            ? peak * (1 - .55 * (elapsed - .045) / .05)
+            : elapsed < dur
+              ? peak * .45 * (dur - elapsed) / (dur - .095)
+              : 0;
+
+        if (gain.gain.cancelAndHoldAtTime) {
+          gain.gain.cancelAndHoldAtTime(now);
+        } else {
+          gain.gain.cancelScheduledValues(now);
+          gain.gain.linearRampToValueAtTime(Math.max(0, level), now);
+        }
+
+        gain.gain.linearRampToValueAtTime(0, now + .02);
+        try { src.stop(now + .025); } catch (_) {}
+      }
+    };
+
+    rubVoices.add(voice);
+
+    src.onended = () => {
+      nodes.forEach(n => {
+        try { n.disconnect(); } catch (_) {}
+      });
+      rubVoices.delete(voice);
+    };
+
+    src.start(t);
+    src.stop(t + dur + .01);
+  };
+
+
+
   S.hugStart = () => contLoop('hug',650,.8,.012);
   S.hugStop = () => { if (loops.hug) { loops.hug.stop(); loops.hug = null; } };
   S.bandage = (pan = 0) => { if (!ctx) return; S.rip(pan, 0.12); setTimeout(() => S.pat(pan), 110); };
@@ -1328,89 +1471,11 @@ function capsuleGeo(r, len, seg = 18, n = 7) {
   for (let i = 1; i <= n; i++) { const a = (i / n) * Math.PI / 2; pts.push(new THREE.Vector2(Math.max(0.0001, Math.cos(a) * r), Math.sin(a) * r + len / 2)); }
   return new THREE.LatheGeometry(pts, seg);
 }
-
-
-const SC_CANVAS_BACKUPS = new WeakMap();
-
 function canvasTex(w, h) {
-  const c = document.createElement('canvas');
-  c.width = w;
-  c.height = h;
-
-  // 3D 화면이 아니라, 표면 그림의 원본용 캔버스 설정.
-  const g = c.getContext('2d', { willReadFrequently: true });
-
-  if (!g) {
-    throw new Error('텍스처용 캔버스를 만들지 못했습니다.');
-  }
-
-  const t = new THREE.CanvasTexture(c);
-  t.encoding = THREE.sRGBEncoding;
-  t.anisotropy = 4;
-
-  let pixels = null;
-  let savedVersion = -1;
-  let lost = false;
-
-  const backup = {
-    save() {
-      if (
-        lost || g.isContextLost?.() ||
-        !c.width || !c.height
-      ) return;
-
-      if (
-        pixels && savedVersion === t.version &&
-        pixels.width === c.width &&
-        pixels.height === c.height
-      ) return;
-
-      try {
-        pixels = g.getImageData(0, 0, c.width, c.height);
-        savedVersion = t.version;
-      } catch (e) {
-        console.warn('텍스처 백업 실패:', e);
-      }
-    },
-
-    restore(force = false) {
-      if (!pixels || lost || g.isContextLost?.()) return;
-
-      if (
-        pixels.width !== c.width ||
-        pixels.height !== c.height
-      ) return;
-
-      // 백업 후 정상적으로 다시 그려진 그림은 덮어쓰지 않는다.
-      if (!force && savedVersion !== t.version) return;
-
-      g.putImageData(pixels, 0, 0);
-      t.needsUpdate = true;
-      savedVersion = t.version;
-    }
-  };
-
-  SC_CANVAS_BACKUPS.set(t, backup);
-
-  // 첫 업로드 때만 백업. 매 프레임 픽셀을 복사하지 않는다.
-  t.onUpdate = () => {
-    if (!pixels) backup.save();
-  };
-
-  // 2D 원본 손실은 WebGL 화면 손실과 별도로 처리.
-  c.addEventListener('contextlost', () => {
-    lost = true;
-  });
-
-  c.addEventListener('contextrestored', () => {
-    lost = false;
-    backup.restore(true);
-    window.__SC_TEXTURE_RESUME?.request();
-  });
-
-  return { c, g, t };
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4;
+  return { c, g: c.getContext('2d'), t };
 }
-
 // 로컬 기저로 방향 맞추기 (z=forward, y=up)
 const _m4 = new THREE.Matrix4();
 function orient(obj, fwd, up) {
@@ -1631,41 +1696,14 @@ function faceWidthAt(shape,y){
   if(shape==='long')return .91;
   return 1;
 }
-function mouthRest(L, smug = false) {
-  // 기본은 입을 거의 다문, 입꼬리가 내려간 표정.
-  // smug 인수는 기존 호출과의 호환성만 유지한다.
-  const m = {
-    open: 0.035,
-    smile: -0.45,
-    smirk: 0,
-    wide: 0.9
-  };
-
-  // 원래 찡그린 입을 골랐다면 조금 더 찡그린다.
-  if (L.mouthStyle === 'frown') {
-    m.smile = -0.65;
-  }
-
-  // 입의 형태 차이는 남기되, 웃는 표정은 만들지 않는다.
-  if (L.mouthStyle === 'o') {
-    Object.assign(m, {
-      open: 0.20,
-      wide: 0.15
-    });
-  }
-
-  if (L.mouthStyle === 'toothy') {
-    Object.assign(m, {
-      open: 0.18,
-      wide: 1.1
-    });
-  }
-
+function mouthRest(L,smug=false){
+  const m={open:0,smile:smug?.4:0,smirk:smug?.8:0,wide:.9};
+  if(L.mouthStyle==='smile')Object.assign(m,{smile:.7,smirk:smug?.3:0});
+  if(L.mouthStyle==='frown')Object.assign(m,{smile:-.65,smirk:smug?.2:0});
+  if(L.mouthStyle==='o')Object.assign(m,{open:.36,smile:0,smirk:0,wide:.15});
+  if(L.mouthStyle==='toothy')Object.assign(m,{open:.28,smile:.55,smirk:smug?.25:0,wide:1.1});
   return m;
 }
-
-
-
 
 const faceXY = d => [(Math.atan2(d.z, -d.x) / Math.PI) * 1024, (Math.acos(clamp(d.y, -1, 1)) / Math.PI) * 1024];
 const dirN = (x, y, z) => V3(x, y, z).normalize();
@@ -2233,18 +2271,7 @@ ntag.renderOrder = 2;
     g.save();g.translate(256,112);g.scale(L.mouthWidth,L.mouthHeight);g.translate(-256,-112);
     const cx = 256, cy = 112;
     const hw = 64 + M.wide * 40;
-    // 말하기·먹기·피격 때 입을 벌리는 동작은 그대로 사용.
-const open = M.open;
-
-// 다른 동작에서 웃음값을 넣어도,
-// 실제로 그릴 때는 입꼬리가 올라가지 못하게 제한한다.
-const sm = Math.min(
-  -0.30,
-  Number.isFinite(M.smile) ? M.smile : -0.30
-);
-
-// 한쪽 입꼬리만 올리는 비웃음도 차단.
-const sk = 0;
+    const open = M.open, sm = M.smile, sk = M.smirk;
     const lipC = L.lipColor;
     const yl = cy - sk * 16 + sm * -14, yr = cy + sk * 6 + sm * -14;
     if(M.shape==='grit'){
@@ -2629,14 +2656,45 @@ function buildTool(kind) {
     detail.tip=new THREE.Group();g.add(detail.tip);mesh(capsuleGeo(.026,.15,12,6),rubber,detail.tip).position.y=.09;
     const endring=mesh(new THREE.TorusGeometry(.027,.005,6,16),ring,detail.tip,false);endring.rotation.x=Math.PI/2;endring.position.y=.15;
     detail.otherHand=buildFist();detail.otherHand.scale.setScalar(.85);detail.otherHand.visible=false;g.add(detail.otherHand);
+ 
+ 
   } else if (kind === 'tissue') {
-    L = 0.26; c = 0.07; head.position.y = 0.26;
-    const roll = mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.12, 24), mat('#ffffff', { roughness: 0.95 }), head); roll.rotation.x = Math.PI / 2;
-    const hole = mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.125, 14), mat('#c9a57a'), head, false); hole.rotation.x = Math.PI / 2;
-    const tail = mesh(new THREE.PlaneGeometry(0.12, 0.2), mat('#ffffff', { roughness: 0.95, side: THREE.DoubleSide }), head); tail.position.set(-0.075, -0.09, 0); tail.rotation.y = Math.PI / 2;
-    const stick = mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.26, 8), mat('#ffd23f'), g); stick.position.y = 0.13;
-    const dot = mesh(new THREE.TorusGeometry(0.07, 0.004, 4, 30), mat('#ff8fb1'), head, false); dot.rotation.x = 0; dot.position.z = 0.03;
+    L = 0.26;
+    c = 0.07;
+    head.position.y = 0.26;
+
+    // 기존 휴지와 거의 같은 크기.
+    // 구멍과 늘어진 종이 없이 가장자리만 둥글게 만든다.
+    const profile = [
+      [0.0001, -0.060],
+      [0.0550, -0.060],
+      [0.0660, -0.056],
+      [0.0700, -0.045],
+      [0.0700,  0.045],
+      [0.0660,  0.056],
+      [0.0550,  0.060],
+      [0.0001,  0.060]
+    ].map(p => new THREE.Vector2(p[0], p[1]));
+
+    const marshmallow = mesh(
+      new THREE.LatheGeometry(profile, 32),
+      mat('#fffaf3', { roughness: 0.88 }),
+      head
+    );
+
+    marshmallow.rotation.x = Math.PI / 2;
+
+    const stick = mesh(
+      new THREE.CylinderGeometry(0.012, 0.012, 0.26, 8),
+      mat('#dfbb83', { roughness: 0.85 }),
+      g
+    );
+
+    stick.position.y = 0.13;
   }
+
+
+
   g.userData = Object.assign({ L, c, kind },detail);
   return g;
 }
@@ -2813,6 +2871,11 @@ const PREF = Object.assign({ sound: true, vibe: true, shake: true, careVoice:tru
 let DAY = store.get('badguy.day', null);
 if (!DAY || DAY.date !== today()) DAY = { date: today(), villains: 0, hits: 0, teeth: 0, bandages: 0, hugMs: 0, letters: 0, glasses: 0, throws: 0, pets: 0 };
 let customCrimes = store.get('badguy.crimes', []);
+
+let customCharacterLines = normaliseCharacterLines(
+  store.get('badguy.characterLines.v1', [])
+);
+
 let saveTimer = 0;
 function saveDay() { if (DAY.date !== today()) DAY = { date: today(), villains: 0, hits: 0, teeth: 0, bandages: 0, hugMs: 0, letters: 0, glasses: 0, throws: 0, pets: 0 }; clearTimeout(saveTimer); saveTimer = setTimeout(() => store.set('badguy.day', DAY), 400); }
 SFX.setOn(PREF.sound);
@@ -2894,19 +2957,176 @@ function sendAway() {
 }
 
 /* ================= 대사 ================= */
-function speak(line, kind = '', dur, force = false) {
-  if(G.editing)return;
-  const v = G.v; if (!v) return;
-  if(!force&&G.mode==='care'&&['stand','hug'].includes(v.state))return;
-  const text = lisp(line, v.st.teeth);
-  say(text, dur || clamp(0.9 + text.length * 0.08, 1.3, 3.2), kind);
-  v.mouth.talk = clamp(text.length * 0.07, 0.3, 2.2);
-  const n = clamp(Math.round(text.replace(/[^가-힣a-z]/gi, '').length * 0.8), 1, 14);
-  const mood = v.fear;
-  if (kind === 'cry') SFX.sob({ pitch: v.look.pitch });
-  else SFX.babble(n, { pitch: v.look.pitch, mood });
-  G.lastSay = G.time;
+
+
+// 맞는 캐릭터의 일반 대사.
+// 피격 추임새와 플레이어 쪽 대사는 이 목록으로 바꾸지 않는다.
+const CHARACTER_LINES = [
+  '아무도 내 편이 아니야',
+  '연락 오는 사람이 없어',
+  '내가 없어져도 아무도 모를 거야',
+  '대화할 사람이 없어',
+  '나 좀 알아봐 줘',
+  '잘했다고 한 번만 말해 줘',
+  '칭찬받고 싶어',
+  '사랑 받고 싶어',
+  '기대고 싶어',
+  '나는 왜 이 모양일까',
+  '나는 뭘 해도 안 돼',
+  '나 같은 게 뭘 하겠어',
+  '다들 나보다 잘나 보여',
+  '나는 쓸모가 없어',
+  '너무 힘들어',
+  '그냥 다 그만두고 싶어',
+  '버티기 힘들어',
+  '쉬고 싶어',
+  '누가 나 좀 챙겨 줘',
+  '안아 줘',
+  '옆에 있어 줘',
+  '나 혼자 두지 마',
+  '괜찮다고 말해 줘',
+  '버림받을까 봐 무서워',
+  '다들 떠날 것 같아',
+  '내일이 무서워',
+  '나는 사랑 받을 자격이 없는 거 같아'
+];
+
+
+// 빈 줄과 중복 문장은 정리한다. 개수·글자 수를 잘라내지는 않는다.
+function normaliseCharacterLines(value) {
+  if (!Array.isArray(value)) return [];
+
+  return [...new Set(
+    value
+      .filter(s => typeof s === 'string')
+      .map(s => s.trim())
+      .filter(Boolean)
+  )];
 }
+
+// 중얼거림 간격: 매번 이 범위 안에서 한 번씩 결정.
+const MUTTER_MIN = 3;
+const MUTTER_MAX = 5;
+
+let characterPool = [];
+let lastCharacterIndex = -1;
+
+function rebuildCharacterPool() {
+  characterPool = normaliseCharacterLines([
+    ...CHARACTER_LINES,
+    ...customCharacterLines
+  ]);
+
+  lastCharacterIndex = -1;
+}
+
+rebuildCharacterPool();
+
+// 바로 직전과 같은 문장은 연속해서 고르지 않는다.
+function pickCharacterLine() {
+  const n = characterPool.length;
+
+  if (!n) return '너무 힘들어';
+  if (n === 1) return characterPool[0];
+
+  const hasLast = lastCharacterIndex >= 0;
+
+  let i = Math.floor(
+    Math.random() * (n - (hasLast ? 1 : 0))
+  );
+
+  if (hasLast && i >= lastCharacterIndex) i++;
+
+  lastCharacterIndex = i;
+  return characterPool[i];
+}
+
+function speak(line, kind = '', dur, force = false) {
+  if (G.editing) return;
+
+  const v = G.v;
+  if (!v) return;
+
+  if (
+    !force &&
+    G.mode === 'care' &&
+    ['stand', 'hug'].includes(v.state)
+  ) return;
+
+  // 피격 추임새만 원문 유지.
+  const isOuch = LINES.ouch.includes(line);
+  const spokenLine = isOuch ? line : pickCharacterLine();
+
+  const text = lisp(spokenLine, v.st.teeth);
+  const seconds = dur || clamp(
+    0.9 + text.length * 0.08,
+    1.3,
+    3.2
+  );
+
+  say(text, seconds, kind);
+
+  v.mouth.talk = clamp(text.length * 0.07, 0.3, 2.2);
+
+  const n = clamp(
+    Math.round(
+      text.replace(/[^가-힣a-z]/gi, '').length * 0.8
+    ),
+    1,
+    14
+  );
+
+  const mood = v.fear;
+
+  if (kind === 'cry') {
+    SFX.sob({ pitch: v.look.pitch });
+  } else {
+    SFX.babble(n, { pitch: v.look.pitch, mood });
+  }
+
+  G.lastSay = G.time;
+
+  if (!isOuch) {
+    // 일반 대사를 한 뒤 다음 중얼거림까지 3~5초.
+    // 피격 추임새는 이 타이머를 초기화하지 않는다.
+    v._mutterLeft = rnd(MUTTER_MIN, MUTTER_MAX);
+
+    // 대사가 뜨자마자 피격 추임새로 덮이지 않도록 보호.
+    v._characterLineUntil =
+      G.time + Math.min(seconds, 2.2);
+  }
+}
+
+function updateCharacterMutter(dt) {
+  const v = G.v;
+
+  if (!v || G.editing || document.hidden) return;
+
+  // 설정·외모 편집 등 모달을 연 동안에는 중얼거림을 멈춘다.
+  if (document.querySelector('.modal:not([hidden])')) return;
+
+  // 등장·퇴장·특수 이동 연출 중에는 기다린다.
+  if (
+    !['stand', 'down', 'hug', 'tether', 'grabbed']
+      .includes(v.state)
+  ) return;
+
+  if (!Number.isFinite(v._mutterLeft)) {
+    v._mutterLeft = rnd(MUTTER_MIN, MUTTER_MAX);
+  }
+
+  v._mutterLeft -= dt;
+
+  if (v._mutterLeft > 0) return;
+
+  // 달래기에 대한 반응이 진행 중이면 그 반응을 우선한다.
+  if (G.mode === 'care' && G.react) return;
+
+  // 달래기 모드에서도 가만히 있으면 중얼거릴 수 있게 한다.
+  speak('', '', undefined, true);
+}
+
+
 function moodOf(v) {
   if(careIsAwkward(v))return 'awkward';
   if (G.hug) return 'hug';
@@ -3551,18 +3771,93 @@ const HEAVY_WET = (() => {
   return { hit, drip, update, clear };
 })();
 
+
+const MARSHMALLOW = Object.freeze({
+  recovery: 25,
+  chewSeconds: 1.7
+});
+
+// 상처용 누적 데미지와 별개로,
+// 쓰러짐 판정에 사용할 현재 피로도를 계산한다.
+function marshmallowFatigue(v) {
+  const cap =
+    window.__SC_FATIGUE_V1?.config.collapseAt ?? 180;
+
+  const raw = Math.max(0, Number(v.damage) || 0);
+
+  const credit = Math.min(
+    raw,
+    Math.max(0, Number(v._marshmallowCredit) || 0)
+  );
+
+  // 약으로 데미지가 줄었을 때 회복값이 과하게 남지 않게 한다.
+  v._marshmallowCredit = credit;
+
+  return Math.min(cap, Math.max(0, raw - credit));
+}
+
+function feedMarshmallow(v) {
+  const floor =
+    window.__SC_FATIGUE_V1?.config.shakeAt ?? 55;
+
+  const raw = Math.max(0, Number(v.damage) || 0);
+  const before = marshmallowFatigue(v);
+
+  // 55 아래로는 회복시키지 않는다.
+  // 원래 55보다 낮았던 캐릭터의 데미지를 올리지도 않는다.
+  const after = Math.min(
+    before,
+    Math.max(floor, before - MARSHMALLOW.recovery)
+  );
+
+  v._marshmallowCredit = raw - after;
+
+  // 직전 피격 반응이 남아 있다면 그 뒤에도 씹는 시간이 남도록.
+  v._marshmallowChew =
+    MARSHMALLOW.chewSeconds + Math.max(0, v.ouch || 0);
+
+  v.mouth.talk = 0;
+
+  // 씹는 중에 중얼거림이 곧바로 끼어들지 않게 한다.
+  v._mutterLeft = Math.max(
+    v._mutterLeft || 0,
+    v._marshmallowChew + 0.35
+  );
+}
+
+
 function applyHit(h) {
-  const v=G.v;if(!v)return;const P=clamp(Number(h.power)||.1,.05,3);
-  v.st.hits++; DAY.hits++; saveDay();
-  v.damage += P; v.fear = clamp(v.fear + P * 0.065, 0, 1);
-  G.lastAct = G.time;
-  G.combo.push(G.time); G.combo = G.combo.filter(t => G.time - t < 2.6);
+  
+  const v = G.v;
+if (!v) return;
+
+const P = clamp(Number(h.power) || .1, .05, 3);
+const soft = h.tool === 'tissue';
+
+G.lastAct = G.time;
+
+if (!soft) {
+  v.st.hits++;
+  DAY.hits++;
+  saveDay();
+
+  v.damage += P;
+  v.fear = clamp(v.fear + P * 0.065, 0, 1);
+
+  G.combo.push(G.time);
+  G.combo = G.combo.filter(t => G.time - t < 2.6);
+
+  // 다시 맞으면 먹는 동작보다 피격 반응이 우선.
+  v._marshmallowChew = 0;
+}
+  
+  
   // 힘 방향을 나쁜 놈 기준으로
   const inv = v.root.getWorldQuaternion(new THREE.Quaternion()).invert();
   const fl = h.force.clone().applyQuaternion(inv);
   const S = v.spring;
   const onHead = h.part === 'head' || h.part === 'nose';
-  const soft=h.tool==='tissue',k=onHead?1:.45;
+  const k = onHead ? 1 : .45;
   const downward=h.kind==='chop'||(h.kind==='bonk'&&!soft);
   const upward=h.kind==='upper'||h.kind==='upswing';
   const weight=soft?1:h.tool==='hammer'?1.20:h.tool==='pan'?1.13:1.08;
@@ -3655,13 +3950,26 @@ function applyHit(h) {
   if(!soft){G.kickDir=h.force.clone();G.kick=Math.min(.095,Math.max(G.kick||0,.026+P*.023));G.punchIn=Math.min(.034,Math.max(G.punchIn||0,.008+P*.007));}
   vib(soft?3:h.tool==='hammer'?[26,10,12]:h.tool==='pan'?[28,13,12]:h.tool==='bat'?[32,16,14]:Math.round(16+P*14));
   // 어지러움
-  if (G.combo.length >= 7 && v.dizzy <= 0) { v.dizzy = 2.4; SFX.twinkle(); }
+  if (!soft && G.combo.length >= 7 && v.dizzy <= 0) { v.dizzy = 2.4; SFX.twinkle(); }
   // Impact first, short yelp second. No random smug monologue on the contact frame.
   if(!soft){
     if(G.time-(G.lastHitVoice??-10)>.16){G.lastHitVoice=G.time;SFX.yelp({pitch:v.look.pitch,power:P});}
-    if(G.time-G.lastSay>.65){say(pick(LINES.ouch),.58,'shout');G.lastSay=G.time;}
-  }else if(G.time-G.lastSay>1.4){speak(pick(LINES.tool.tissue));}
-  checkConfess();
+    if (
+  G.time - G.lastSay > .65 &&
+  G.time >= (v._characterLineUntil || 0)
+) {
+  say(pick(LINES.ouch), .58, 'shout');
+  G.lastSay = G.time;
+}
+
+} else if (onHead) {
+  // 머리/얼굴에 실제로 닿았을 때만 먹은 것으로 처리.
+  feedMarshmallow(v);
+}
+
+if (!soft) checkConfess();
+
+
 }
 
 function checkConfess() {
@@ -3893,7 +4201,7 @@ function endToolHold(cancelled=false){
 }
 function updateIdleTool(dt){
   if(G.editing||G.mode!=='hit'||G.tool==='hand'||!G.v||G.hug||!['stand','down'].includes(G.v.state)||G.ptr?.toolHold||G.attacks.some(a=>a.k.rig==='tool'))return;
-  if (document.querySelector('.modal:not([hidden])')) return;
+  if(!$('#settingsModal').hidden||!$('#statsModal').hidden||!$('#letterModal').hidden)return;
   const r=RIG.tools[G.tool];if(!r)return;r.visible=true;
   const dock=$('.dock').getBoundingClientRect(),y=Math.min(innerHeight*.69,dock.top-35),center=planePoint(innerWidth*.82,Math.max(120,y),.68);
   const n=V3(.18,.05,1).normalize(),q=contactBasis(n,1,'bonk');r.quaternion.copy(q);
@@ -4285,12 +4593,34 @@ function ensureSocialRigs(){
   if(RIG.care)return;RIG.care={love:buildCareHand('love'),thumb:buildCareHand('thumb')};
   for(const h of Object.values(RIG.care)){h.visible=false;h.scale.x=-1;handsRoot.add(h);} // 뒤에서 본 오른손이 되도록 좌우 반전
 }
-function ensureActorCareHand(v,a){
-  if(a.careModels)return;
-  a.baseHandChildren=a.hand.children.slice();a.careModels={};
-  for(const kind of ['open','thumb','flip']){const m=buildCareHand(kind,v.skinMat,false);m.scale.setScalar(kind==='flip'?1.0:.66);m.visible=false;a.hand.add(m);a.careModels[kind]=m;}
-  // Existing resource ownership captures these on disposal as well.
+
+
+function ensureActorCareHand(v, a) {
+  if (a.careModels) return;
+
+  a.baseHandChildren = a.hand.children.slice();
+  a.careModels = {};
+
+  for (const kind of ['open', 'thumb', 'flip']) {
+    const m = buildCareHand(kind, v.skinMat, false);
+    const size = kind === 'flip' ? 1.0 : .66;
+
+    // 편 손은 엄지가 +X에,
+    // 엄지척·가운데손가락 모델은 엄지가 -X에 만들어져 있다.
+    const mirror = kind === 'open' ? -a.s : a.s;
+
+    m.scale.set(size * mirror, size, size);
+    m.visible = false;
+
+    a.hand.add(m);
+    a.careModels[kind] = m;
+  }
 }
+
+
+
+
+
 function actorCareHand(v,a,kind){
   ensureActorCareHand(v,a);for(const m of a.baseHandChildren)m.visible=false;
   for(const [k,m] of Object.entries(a.careModels))m.visible=k===kind;
@@ -4784,12 +5114,12 @@ addEventListener('keydown', e => { if (e.key === 'Escape') $$('.modal').forEach(
 $('#statsBtn').addEventListener('click', () => {
   saveDay();
   const rows = [['끌려온 놈', DAY.villains + '명', ''], ['날린 주먹', DAY.hits + '방', 'red'], ['빠진 이빨', DAY.teeth + '개', 'red'], ['깨진 안경', DAY.glasses + '개', 'red'], ['집어 던진 횟수', DAY.throws + '번', 'red'],
-    ['붙여 준 반창고', DAY.bandages + '장', 'blue'], ['쓰다듬은 횟수', DAY.pets + '번', 'blue'], ['안아 준 시간', Math.round(DAY.hugMs / 1000) + '초', 'blue'], ['하이파이브', (DAY.highfives||0)+'번','blue'],['쳐 준 박수',(DAY.claps||0)+'번','blue'],['받아 낸 반성문', DAY.letters + '장', '']];
+    ['붙여 준 반창고', DAY.bandages + '장', 'blue'], ['쓰다듬은 횟수', DAY.pets + '번', 'blue'], ['안아 준 시간', Math.round(DAY.hugMs / 1000) + '초', 'blue'], ['하이파이브', (DAY.highfives||0)+'번','blue'],['쳐 준 박수',(DAY.claps||0)+'번','blue']];
   $('#statsList').innerHTML = rows.map(r => `<div>${r[0]}</div><div class="${r[2]}">${r[1]}</div>`).join('');
   openModal('#statsModal');
 });
 $('#settingsBtn').addEventListener('click', () => {
-  $('#customCrimes').value = customCrimes.join('\n');
+  $('#customCrimes').value = customCharacterLines.join('\n');
   openModal('#settingsModal');
 });
 function bindSwitch(id, key, fn) {
@@ -4799,23 +5129,52 @@ function bindSwitch(id, key, fn) {
 bindSwitch('#swSound','sound',v=>{SFX.setOn(v);if(!v)CareVoice.stop();});
 bindSwitch('#swVibe', 'vibe');
 bindSwitch('#swShake', 'shake');
+
+
+
+let characterSaveTimer = 0;
+
 $('#saveCrimes').addEventListener('click', () => {
-  customCrimes = $('#customCrimes').value.split('\n').map(s => s.trim()).filter(Boolean).slice(0, 60);
-  store.set('badguy.crimes', customCrimes);
-  G.crimeBag = [];
-  $('#saveCrimes').textContent = `${customCrimes.length}개 저장됨`;
-  setTimeout(() => $('#saveCrimes').textContent = '죄목 저장', 1400);
+  customCharacterLines = normaliseCharacterLines(
+    $('#customCrimes').value.split(/\r\n?|\n/)
+  );
+
+  // 저장 버튼을 누르면 즉시 실제 대사 목록에도 반영.
+  rebuildCharacterPool();
+
+  $('#customCrimes').value =
+    customCharacterLines.join('\n');
+
+  let saved = true;
+
+  try {
+    localStorage.setItem(
+      'badguy.characterLines.v1',
+      JSON.stringify(customCharacterLines)
+    );
+  } catch (e) {
+    saved = false;
+  }
+
+  const button = $('#saveCrimes');
+
+  clearTimeout(characterSaveTimer);
+
+  button.textContent = saved
+    ? `추가 대사 ${customCharacterLines.length}개 저장됨`
+    : '저장 불가 · 이번 실행에만 적용';
+
+  characterSaveTimer = setTimeout(() => {
+    button.textContent = '대사 저장';
+  }, saved ? 1400 : 3500);
 });
-function showLetter(){
-  cancelPointer();endHug();stopSocial();clearAttacks();
-  const v = G.v;
-  v.lettered = true;
-  DAY.letters++; DAY.hugMs = DAY.hugMs; saveDay();
-  $('#letterBody').innerHTML = letterHTML(v, v.st);
-  $('#letterModal').hidden = false;
-  SFX.paper(); setTimeout(() => SFX.stamp(), 380);
-}
-$('#letterNext').addEventListener('click', () => { $('#letterModal').hidden = true; sendAway(); });
+
+
+
+function showLetter() {}
+
+
+
 
 function fixActorHandPose(v) {
   // 달래기 동작·이빨을 들고 있는 손은 건드리지 않는다.
@@ -4921,15 +5280,36 @@ function fixActorHandPose(v) {
     a.sh.quaternion.copy(upper);
     a.el.quaternion.copy(lower);
 
-    // 손가락(-Y)은 전완과 같은 방향.
-// 손등(+Z)은 바깥쪽, 손바닥(-Z)은 몸 쪽으로 정렬한다.
+    
+    
 const y = foreDir.clone().negate();
-const z = V3(a.s * .15, 0, 1).projectOnPlane(y);
 
-    if (z.lengthSq() < 1e-8) {
-      z.copy(V3(0, 1, 0).projectOnPlane(y));
-    }
-    z.normalize();
+// 손을 내미는 애원 자세에서는 손바닥을 위로 향하게 한다.
+// 손가락이 화면 쪽을 향해도 손목의 기준축이 뒤집히지 않는다.
+const reaching =
+  v.state === 'stand' &&
+  moodOf(v) === 'beg' &&
+  !v._guardV2 &&
+  !v._wipeV2;
+
+const reference = reaching
+  ? V3(0, -1, 0)       // 손등 아래쪽 → 손바닥 위쪽
+  : V3(a.s * .15, 0, 1);
+
+const z = reference.projectOnPlane(y);
+
+if (z.lengthSq() < 1e-8) {
+  z.copy(V3(1, 0, 0).projectOnPlane(y));
+}
+if (z.lengthSq() < 1e-8) {
+  z.copy(V3(0, 0, 1).projectOnPlane(y));
+}
+
+z.normalize();
+
+
+
+
 
     const x = y.clone().cross(z).normalize();
     z.copy(x.clone().cross(y)).normalize();
@@ -5204,6 +5584,29 @@ a.hand.rotation.set(0, c.hy, 0);
   else Object.assign(TG, { open: 0.3, smile: -0.5, smirk: 0, wide: 1 }), M.shape = 'wail';
   if (v.petT > 0 && v.ouch<=0&&!cf) Object.assign(TG, { open: 0, smile: 0.7, smirk: 0 });
   if (v.state === 'grabbed' || v.state === 'air') Object.assign(TG, { open: 0.85, smile: -0.5, smirk: 0, wide: 1.1 });
+
+
+// 마시멜로 먹기: 입을 작게 열고 닫으며 오물오물.
+v._marshmallowChew = Math.max(
+  0,
+  (v._marshmallowChew || 0) - dt
+);
+
+if (v._marshmallowChew > 0 && v.ouch <= 0) {
+  const bite = 0.5 + 0.5 * Math.sin(T * 18);
+
+  Object.assign(TG, {
+    open: 0.025 + bite * 0.16,
+    smile: -0.08,
+    smirk: 0,
+    wide: 0.58 + (1 - bite) * 0.16
+  });
+
+  M.shape = 'o';
+  M.talk = 0;
+}
+
+
   let talkOpen = 0;
   if(M.talk>0){M.talk-=dt;if(v.ouch<=0)talkOpen=Math.abs(Math.sin(T*21))*.45+.1;}
   const nOpen = Math.max(TG.open, talkOpen);
@@ -5317,11 +5720,7 @@ a.hand.rotation.set(0, c.hy, 0);
   v.glasses.position.y = damp(v.glasses.position.y, gl >= 4 ? -0.1 : gl ? -0.012 * gl : 0, 10, dt);
   v.glasses.position.x = damp(v.glasses.position.x, gl >= 4 ? -0.07 : 0, 10, dt);
   // 멍 서서히 짙어짐
-  // 반성문
-  if (v.confessed && v.comfort >= 1.6 && !v.lettered && v.state === 'stand' && !G.hug&&!G.social&&G.time-G.lastAct>4) {
-    G.letterTimer += dt;
-    if (G.letterTimer > 1.2) showLetter();
-  }
+
 
 
   
@@ -5399,6 +5798,9 @@ function step(dt) {
   if (G.ptr && G.ptr.rubbing) SFX.rubLevel(G.rub);
   G.shake = Math.max(0, G.shake - dt * 0.25);
   G.shake *= Math.exp(-9 * dt);
+
+
+  updateCharacterMutter(dt);
 }
 function updateCamera(dt) {
   const v = G.v;
@@ -6216,6 +6618,8 @@ const Slapstick = (() => {
     buildSleeve(grip,V3(.55,-.15,1),1.25);
     grip.userData.hand=hand;grip.visible=false;handsRoot.add(grip);return grip;
   }
+
+
   function showGrip(v,m){
     const h=handRig();h.visible=true;h.position.copy(m.pivot);
     h.scale.setScalar(clamp(.78*v.look.bodyW,.46,1.05));
@@ -6673,7 +7077,7 @@ const AppearanceEditor=(()=>{
   function open(){
     if(E.isOpen||!G.v)return;
     if(!['stand','hug'].includes(G.v.state)){say('잠깐, 똑바로 서면 바꿔 주세요!',1.6);return;}
-    
+    if(!$('#letterModal').hidden)return;
     SFX.unlock();endHug();cancelPointer();stopSocial();clearAttacks();G.attacks=[];G.careAnim=null;handsRoot.children.forEach(o=>o.visible=false);G.hitstop=0;G.slowmo=0;G.shake=0;
     E.draft=clone(G.v.look);E.history=[clone(E.draft)];E.at=0;E.yaw=0;E.full=false;E.expression='neutral';E.time=0;E.drag=null;E.dirty=false;
     $$('.modal:not(#lookModal)').forEach(m=>{if(m.id!=='letterModal')m.hidden=true;});
@@ -6696,23 +7100,8 @@ const AppearanceEditor=(()=>{
       if(G.v){G.v.root.visible=true;G.v.root.position.set(0,0,0);G.v.root.rotation.set(0,0,0);G.v.state='stand';G.v.stateT=0;G.v.root.updateMatrixWorld(true);}
       fit();updateCamera(.05);scene.updateMatrixWorld(true);renderer.render(scene,camera);updateCareButtons(true);refreshAppearanceButton();$('#appearanceBtn').focus({preventScroll:true});
     }
-   if (failed) {
-  say(
-    '외모 적용 중 문제가 생겨 게임 화면으로 돌아왔어요.',
-    3
-  );
-} else if (apply) {
-  // 정상 적용 시에는 효과음만. 캐릭터 대사는 띄우지 않는다.
-  SFX.twinkle();
-
-  // 실제 저장 문제는 사용자가 알 수 있게 남긴다.
-  if (!stored) {
-    say(
-      '적용했어요. 브라우저 저장은 차단되어 있어요.',
-      3
-    );
-  }
-}
+    if(failed)say('외모 적용 중 문제가 생겨 게임 화면으로 돌아왔어요.',3);
+    else if(apply){SFX.twinkle();say(stored?'외모는 바뀌었는데, 죄목은 그대로네?':'적용했어요. 브라우저 저장은 차단되어 있어요.',stored?2:3);}
   }
   function thumbnail(){
     const old={w:E.w,h:E.h,full:E.full,yaw:E.yaw,expression:E.expression};
@@ -6766,149 +7155,8 @@ const AppearanceEditor=(()=>{
   return Object.assign(E,{open,close,resize,frame,selectTab,replaceDraft,savePreset});
 })();
 window.__appearanceEditor=AppearanceEditor;
-
-
-(() => {
-  let queued = 0;
-
-  function textures() {
-    const result = new Set();
-
-    const add = t => {
-      if (t?.isTexture && !t.isRenderTargetTexture) {
-        result.add(t);
-      }
-    };
-
-    // 본게임과 외모 편집기 양쪽을 모두 포함한다.
-    for (const root of [scene, AppearanceEditor.scene]) {
-      if (!root) continue;
-
-      add(root.background);
-      add(root.environment);
-
-      root.traverse(o => {
-        const materials = Array.isArray(o.material)
-          ? o.material
-          : o.material ? [o.material] : [];
-
-        for (const m of materials) {
-          for (const value of Object.values(m)) {
-            add(value);
-          }
-        }
-      });
-    }
-
-    return result;
-  }
-
-  function backup() {
-    for (const t of textures()) {
-      SC_CANVAS_BACKUPS.get(t)?.save();
-    }
-  }
-
-  function repair() {
-    queued = 0;
-
-    if (
-      document.hidden ||
-      renderer.getContext().isContextLost()
-    ) return;
-
-    try {
-      const all = textures();
-
-      for (const t of all) {
-        SC_CANVAS_BACKUPS.get(t)?.restore();
-      }
-
-      // 캐릭터를 새로 만들지 않는다.
-      // 현재 외모·상처·표정 데이터로 그림만 다시 그린다.
-      for (const v of [G.v, AppearanceEditor.model]) {
-        if (!v) continue;
-
-        v.paintFace();
-        v.paintMouth();
-        v.drawName();
-      }
-
-      renderer.resetState();
-      for (const t of all) {
-        // 다음 렌더링에서 엔진이 종류에 맞게 다시 업로드한다.
-        t.needsUpdate = true;
-      }
-
-      renderer.shadowMap.needsUpdate = true;
-      lastT = performance.now();
-
-      if (G.editing && AppearanceEditor.isOpen) {
-        AppearanceEditor.resize();
-        AppearanceEditor.frame(0);
-      } else {
-        fit();
-        updateCamera(0);
-        scene.updateMatrixWorld(true);
-        renderer.render(scene, camera);
-      }
-
-      window.__bootGuard.lost = false;
-      $('#fallback').style.display = 'none';
-
-    } catch (e) {
-      console.error('화면 복구 실패:', e);
-
-      window.showGameError(
-        '화면을 복구하지 못했어요.',
-        '자동 새로고침은 하지 않았어요. ' +
-        '화면 다시 열기로 재시작할 수 있어요.'
-      );
-    }
-  }
-
-  function request() {
-    // focus·pageshow 등이 연달아 와도 한 번만 실행.
-    if (!document.hidden && !queued) {
-      queued = requestAnimationFrame(repair);
-    }
-  }
-
-  canvas.addEventListener('webglcontextlost', e => {
-    e.preventDefault();
-
-    window.__bootGuard.lost = true;
-
-    cancelPointer();
-    endHug();
-    stopSocial();
-    clearAttacks();
-
-    window.showGameError(
-      '3D 화면을 복구하고 있어요.',
-      '잠시만 기다려 주세요.'
-    );
-  });
-
-  canvas.addEventListener(
-    'webglcontextrestored',
-    request
-  );
-
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) backup();
-    else request();
-  });
-
-  addEventListener('blur', backup);
-  addEventListener('pagehide', backup);
-  addEventListener('focus', request);
-  addEventListener('pageshow', request);
-
-  window.__SC_TEXTURE_RESUME = { request };
-})();
-
-
+canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();window.__bootGuard.lost=true;cancelPointer();endHug();clearAttacks();window.showGameError('3D 화면을 복구하고 있어요.','외모와 저장된 기록은 지우지 않았어요. 복구되지 않으면 화면 다시 열기를 눌러 주세요.');});
+canvas.addEventListener('webglcontextrestored',()=>{window.__bootGuard.lost=false;lastT=performance.now();scene.traverse(o=>{for(const m of(o.material?(Array.isArray(o.material)?o.material:[o.material]):[])){m.needsUpdate=true;for(const t of Object.values(m))if(t?.isTexture)t.needsUpdate=true;}});fit();$('#fallback').style.display='none';});
 window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,CARE_REPLY,startSocial,stopSocial,requestHighFive,careSay,CARE_LINES,CareVoice,poseCareArm,careFace,careIsAwkward,clearAttacks,gestureExtra,step,poseAttack,doContact,RIG,scene,camera,renderer,TOOL_SPEC,normaliseLook,randomLook,impactStopDuration,moodOf,updateVillain,liveContactPoint});
 
 
@@ -7763,8 +8011,17 @@ function updateHomerun(v, m, dt) {
   }
   canvas.addEventListener('pointerdown',e=>{
     if(G.editing||G.mode!=='hit'||!['chair','brick'].includes(G.tool)||e.button>0||e.isPrimary===false)return;
-    if (document.querySelector('.modal:not([hidden])')) return;
-    stopEvent(e);if(held||action||!G.v||G.v.state!=='stand'||G.attacks.length||throwCooldown>0)return;
+    if(!$('#settingsModal').hidden||!$('#statsModal').hidden||!$('#letterModal').hidden)return;
+    stopEvent(e);
+
+if (
+  held ||
+  action ||
+  !G.v ||
+  !['stand', 'down'].includes(G.v.state) ||
+  G.attacks.length ||
+  throwCooldown > 0
+) return;
     SFX.unlock();cancelPointer();stopSocial();
     const info=pick3D(e.clientX,e.clientY);
     held={id:e.pointerId,tool:G.tool,v:G.v,x0:e.clientX,y0:e.clientY,x:e.clientX,y:e.clientY,info,
@@ -7892,7 +8149,7 @@ function updateHomerun(v, m, dt) {
   updateIdleTool=function(dt){
     if(held||action||ownMotion(G.v))return;
     if(!G.editing&&G.mode==='hit'&&G.tool==='brick'&&G.v?.state==='stand'){
-      if (document.querySelector('.modal:not([hidden])')) return;
+      if(!$('#settingsModal').hidden||!$('#statsModal').hidden||!$('#letterModal').hidden)return;
       brickRig.visible=true;brickVisual.visible=true;
       const dock=$('.dock').getBoundingClientRect();brickRig.position.copy(planePoint(innerWidth*.82,Math.max(120,dock.top-45),.75));
       brickRig.rotation.set(-.26,-.40,.1);return;
@@ -8013,13 +8270,16 @@ function updateHomerun(v, m, dt) {
 (() => {
   if (window.__SC_PLAYER_BUBBLE_V1) return;
 
-  // 플레이어 대사: 이 문구들을 원하는 말로 바꾸면 된다.
   const LINES = [
-    '야.',
-    '장난하냐?',
-    '정신 차려.',
-    '딴 데 보지 마.',
-    '말로 할 때 듣지.'
+    '죽어',
+    '씨발아',
+    '뒤져',
+    '찐따새끼',
+    '징징대지 마',
+    '니 인생',
+    '꼴값 떨지 마',
+    '지랄하네'
+
   ];
 
   const SHOW_MS = 1700; // 말풍선 표시 시간
@@ -8143,7 +8403,11 @@ function updateHomerun(v, m, dt) {
     lastAt = now;
     lastLine = line;
 
-    text.textContent = line;
+    const name = String(G.v?.look?.name || '').trim() || '나 자신';
+
+text.textContent = Math.random() < 0.5
+  ? `${name} ${line}`
+  : line;
     el.hidden = false;
     timer = setTimeout(hide, SHOW_MS);
   }
@@ -8216,13 +8480,47 @@ function updateHomerun(v, m, dt) {
 (() => {
   if (window.__SC_CARE_SNUB_V1) return;
 
+  
+
+
   const replies = {
-    stop: ['됐고.', '그만해.', '부탁한 적 없는데.'],
-    shrug: ['그래서 어쩌라고?', '칭찬해 달랬냐?', '그게 나랑 무슨 상관인데.'],
-    brush: ['됐으니까 저리 가.', '치워.', '볼일 끝났지?'],
-    inspect: ['너 뭐 돼?', '네가 뭔데 칭찬이야.', '평가해 달랬냐?'],
-    flip: ['이거나 먹어.', '…어쩌라고.', '할 말 끝났어?']
+    // 손바닥을 내밀어 말을 끊는다.
+    stop: [
+      '너나 잘해',
+      '아 좀 하나마나한 소리 좀 하지 마'
+    ],
+
+    // 양손을 뒤집으며 "그래서?" 하는 반응.
+    shrug: [
+      '네가 뭘 알아',
+      '어쩌라고', 
+      '너한테 위로 받으니까 기분 좆같음'
+    ],
+
+    // 손으로 옆을 쓸어 치우고 고개를 돌린다.
+    brush: [
+      '꺼져'
+    ],
+
+    // 위아래로 훑어보고 턱을 든다.
+    inspect: [
+      '너 뭐 돼?',
+      '나대지 마',
+      '개깝치네',
+
+      '아 칭찬하지 마 기분 좆같게.',
+
+      '븅~신ㅋ'
+    ],
+
+    // 가운데 손가락을 내민다.
+    flip: [
+      '뻐큐',
+     '어쩌라고'
+
+    ]
   };
+
 
   const choices = {
     comfort: ['inspect', 'shrug', 'stop', 'flip'],
@@ -8251,15 +8549,7 @@ function updateHomerun(v, m, dt) {
     const different = pool.filter(k => k !== v._snubLast);
     const gesture = pick(different.length ? different : pool);
 
-    let lines = replies[gesture];
-
-    if (G.hug || group === 'hug') {
-      lines = ['놔.', '안으라고 했냐.', '붙지 마.'];
-    } else if (group === 'fiveMiss') {
-      lines = ['안 해.', '손 내려.', '누가 해 준대.'];
-    } else if (group === 'hand' && gesture === 'stop') {
-      lines = ['손 치워.', '만지지 마.'];
-    }
+    const lines = replies[gesture];
 
     const otherLines = lines.filter(s => s !== v._snubLine);
     const line = pick(otherLines.length ? otherLines : lines);
@@ -8281,7 +8571,7 @@ function updateHomerun(v, m, dt) {
     if (G.social) G.social.noEcho = true;
   };
 
-  careReplyLine = r => r.line || '…어쩌라고.';
+  careReplyLine = r => r.line || '똥싸고 있네 븅신';
 
   updateCareReply = function(dt) {
     const r = G.react;
@@ -8311,7 +8601,16 @@ function updateHomerun(v, m, dt) {
 
     if (!r.fired && r.t >= r.delay) {
       r.fired = true;
-      speak(careReplyLine(r), '', 1.8, true);
+      const line = careReplyLine(r);
+
+      // 짧은 대사는 2초, 긴 대사는 글자 수에 맞춰 더 오래 표시.
+      const duration = clamp(
+        1.4 + line.length * .09,
+        2,
+        4.2
+      );
+
+      speak(line, '', duration, true);
 
       // 민망한 홍조·자동 맞박수는 넣지 않는다.
     }
@@ -8532,6 +8831,2079 @@ function updateHomerun(v, m, dt) {
     });
   }
 })();
+
+/* ROOM_UI_V1 — 다른 패치 뒤, '시작' 주석 바로 위에 한 번만 추가 */
+(() => {
+  if (window.__SC_ROOM_UI_V1) return;
+
+  const settings = $('#settingsModal');
+  const appearance = $('#appearanceBtn');
+  const hint = $('#hint');
+
+  const css = document.createElement('style');
+
+  css.textContent = `
+    .top {
+      padding:0!important;
+      height:0;
+      pointer-events:none!important
+    }
+
+    /* 기존 카메라 코드가 참조하는 여백만 남기고, 내용은 숨긴다. */
+    .top .title-block {
+      position:absolute!important;
+      top:0;
+      left:0;
+      width:0!important;
+      height:calc(56px + var(--safe-t));
+      visibility:hidden!important;
+      overflow:hidden;
+      pointer-events:none!important
+    }
+
+    .top .logo,
+    .top .crime-tag,
+    #statsBtn {
+      display:none!important
+    }
+
+    .top-buttons {
+      position:fixed!important;
+      top:calc(8px + var(--safe-t))!important;
+      left:max(8px,env(safe-area-inset-left))!important;
+      right:max(8px,env(safe-area-inset-right))!important;
+      display:flex!important;
+      justify-content:space-between;
+      pointer-events:none!important
+    }
+
+    #settingsBtn,#nextBtn {
+      height:44px!important;
+      pointer-events:auto
+    }
+
+    #settingsBtn {
+      width:44px!important;
+      min-width:44px;
+      padding:0!important
+    }
+
+    #nextBtn {
+      width:auto!important;
+      min-width:96px;
+      padding:0 12px!important
+    }
+
+    #nextBtn .label {
+      display:inline!important
+    }
+
+    #settingsModal #appearanceBtn {
+      display:flex!important;
+      width:100%;
+      height:48px;
+      margin:0 0 12px;
+      justify-content:center;
+      gap:8px
+    }
+
+    #settingsModal #appearanceBtn .label {
+      display:inline!important
+    }
+
+    #settingsModal #appearanceBtn.locked::after {
+      display:none
+    }
+
+    .dock {
+      gap:0!important;
+      padding-bottom:calc(8px + var(--safe-b))
+    }
+
+    .dock>.panel {
+      padding:6px;
+      gap:6px
+    }
+
+    .dock .mode {
+      height:44px
+    }
+
+    /* 상시 노출되던 상품 설명·작은 조작 설명을 제거한다. */
+    #toolLabel,#hitTools .impact-skill {
+      display:none!important
+    }
+
+    #hitTools .tool {
+      min-height:60px!important;
+      padding:3px 2px!important
+    }
+
+    #hitTools .tool svg {
+      width:34px!important;
+      height:34px!important
+    }
+
+    /* 설명을 지워도 풀차지 완료 표시는 남긴다. */
+    #hitTools .tool.impact-ready::after {
+      content:'FULL';
+      position:absolute;
+      top:0;
+      right:1px;
+      padding:2px 4px;
+      border-radius:5px;
+      background:#ffd23f;
+      color:#722a1c;
+      font-size:9px;
+      font-weight:800
+    }
+
+    /* 설명은 도구함 위에 잠시 띄운다. 레이아웃 높이는 차지하지 않는다. */
+    #hint {
+      position:absolute;
+      left:50%;
+      bottom:calc(100% + 10px);
+      width:max-content;
+      max-width:calc(100% - 16px);
+      box-sizing:border-box;
+      border-radius:13px;
+      padding:9px 13px;
+      font-size:12px;
+      line-height:1.55;
+      opacity:0;
+      visibility:hidden;
+      transform:translate(-50%,5px);
+      transition:opacity .22s,transform .22s,visibility .22s;
+      pointer-events:none
+    }
+
+    #hint.help-shown {
+      opacity:1;
+      visibility:visible;
+      transform:translate(-50%,0)
+    }
+
+    /* 설명과 플레이어 대사가 서로 겹치지 않게 한다. */
+    #hint.help-shown ~ #careCaption,
+    #hint.help-shown ~ .player-bubble {
+      bottom:calc(100% + var(--help-h,70px) + 18px)!important
+    }
+
+    @media(max-width:600px) {
+      #hitTools {
+        display:flex!important;
+        gap:4px!important;
+        overflow-x:auto;
+        scrollbar-width:thin;
+        touch-action:pan-x;
+        overscroll-behavior-x:contain;
+        padding-bottom:3px
+      }
+
+      #hitTools .tool {
+        flex:0 0 64px;
+        touch-action:pan-x;
+        font-size:11px!important
+      }
+
+      #hitTools .tool .tight {
+        font-size:10px
+      }
+
+      .care-strip {
+        padding-bottom:3px
+      }
+
+      .care-strip .tool {
+        min-height:60px
+      }
+
+      .care-strip .tool svg {
+        width:34px;
+        height:34px
+      }
+    }
+
+    @media(prefers-reduced-motion:reduce) {
+      #hint {transition:none}
+    }
+  `;
+
+  document.head.append(css);
+  hint.after($('#careCaption'));
+
+  // 설정은 왼쪽, 다음 놈은 오른쪽.
+  $('.top-buttons').append($('#settingsBtn'), $('#nextBtn'));
+
+  // 기존 외모 버튼을 옮겨서 클릭 연결과 저장 기능을 보존한다.
+  const sheet = settings.querySelector('.sheet');
+  sheet.insertBefore(appearance, sheet.querySelector('.row'));
+
+  appearance.querySelector('.label').textContent = '외모 다시 바꾸기';
+  appearance.setAttribute('aria-label', '외모 다시 바꾸기');
+
+  // 외모 편집기를 열기 전에 설정창부터 닫는다.
+  appearance.addEventListener('click', () => {
+    settings.hidden = true;
+  }, true);
+
+  const look = $('#lookModal');
+
+  new MutationObserver(() => {
+    if (look.hidden && !G.editing && settings.hidden) {
+      $('#settingsBtn').focus({preventScroll:true});
+    }
+  }).observe(look, {
+    attributes:true,
+    attributeFilter:['hidden']
+  });
+
+  // 배경 포스터만 제거. 시계·바닥·방 소품은 남긴다.
+  const texture = room.userData.signTex?.t;
+
+  if (texture) {
+    for (const obj of [...room.children]) {
+      if (obj.isMesh && obj.material?.map === texture) {
+        room.remove(obj);
+      }
+    }
+  }
+
+  redrawSign = () => {};
+
+  // 설명 표시 시간 관리.
+  let timer = 0;
+  let selected = '';
+
+  const key = () =>
+    G.mode + ':' + (G.mode === 'hit' ? G.tool : G.care);
+
+  function hideHelp() {
+    clearTimeout(timer);
+    hint.classList.remove('help-shown');
+  }
+
+  function showHelp() {
+    hideHelp();
+
+    if (
+      G.editing ||
+      document.querySelector('.modal:not([hidden])')
+    ) return;
+
+    const text = hint.textContent.trim();
+    if (!text) return;
+
+    hint.classList.add('help-shown');
+
+    $('.dock').style.setProperty(
+      '--help-h',
+      hint.offsetHeight + 'px'
+    );
+
+    // 짧은 설명 4.5초, 긴 설명 최대 9.5초.
+    const duration = Math.min(
+      9500,
+      Math.max(4500, 2000 + text.length * 80)
+    );
+
+    timer = setTimeout(hideHelp, duration);
+  }
+
+  const oldHint = setHint;
+
+  setHint = function() {
+    const result = oldHint.apply(this, arguments);
+
+    // 같은 도구를 사용하는 중에는 설명 시간을 계속 연장하지 않는다.
+    if (key() !== selected) {
+      selected = key();
+      showHelp();
+    }
+
+    return result;
+  };
+
+  document.addEventListener('click', e => {
+    const b = e.target.closest?.(
+      '[data-tool],[data-care],.mode'
+    );
+
+    if (!b || b.disabled) return;
+
+    // 같은 도구를 다시 누르면 설명도 다시 보여 준다.
+    showHelp();
+
+    if (
+      b.parentElement.scrollWidth >
+      b.parentElement.clientWidth
+    ) {
+      b.scrollIntoView({
+        block:'nearest',
+        inline:'nearest',
+        behavior:'auto'
+      });
+    }
+  });
+
+  const modalWatch = new MutationObserver(() => {
+    if (document.querySelector('.modal:not([hidden])')) {
+      hideHelp();
+    }
+  });
+
+  $$('.modal').forEach(m => {
+    modalWatch.observe(m, {
+      attributes:true,
+      attributeFilter:['hidden']
+    });
+  });
+
+  addEventListener('resize', () => {
+    $('.dock').style.setProperty(
+      '--help-h',
+      hint.offsetHeight + 'px'
+    );
+  });
+
+  // 실제로 손을 문지른 거리만 새 효과음에 전달한다.
+  const oldRub = careRub;
+
+  careRub = function(P, sx, sy, e) {
+    const result = oldRub.apply(this, arguments);
+
+    if (
+      G.mode === 'care' &&
+      G.v?.state === 'stand' &&
+      P.rubbing &&
+      ['pet','wipe'].includes(P.kind)
+    ) {
+      SFX.rubStroke?.(
+        Math.hypot(sx, sy),
+        e.clientX / Math.max(1, innerWidth) * 2 - 1
+      );
+    }
+
+    return result;
+  };
+
+  const oldSound = SFX.setOn;
+
+  SFX.setOn = function(enabled) {
+    if (!enabled) SFX.rubStop();
+    return oldSound.apply(this, arguments);
+  };
+
+  addEventListener('blur', () => {
+    hideHelp();
+    SFX.rubStop();
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      hideHelp();
+      SFX.rubStop();
+    }
+  });
+
+  // 새 상·하단 여백 기준으로 전신을 맞춘다.
+  // 설명의 표시/숨김은 카메라 크기에 영향을 주지 않는다.
+  fit = function() {
+    if (G.editing) {
+      AppearanceEditor.resize();
+      return;
+    }
+
+    const W = innerWidth;
+    const H = innerHeight;
+
+    renderer.setSize(W, H, false);
+    camera.aspect = W / H;
+
+    const topH = Math.max(
+      $('#settingsBtn').getBoundingClientRect().bottom,
+      $('#nextBtn').getBoundingClientRect().bottom
+    ) + 10;
+
+    const botH = H - $('.dock').getBoundingClientRect().top + 10;
+    const avail = Math.max(100, H - topH - botH);
+    const L = G.v?.look;
+
+    const y0 = -.06;
+
+    const y1 = L
+      ? Math.max(
+          1.93,
+          1.06 * L.bodyH + .31 +
+          L.headH * (
+            HEAD_R +
+            (['spiky','mohawk'].includes(L.style) ? .17 : .07)
+          )
+        )
+      : 1.93;
+
+    const h = Math.max(
+      (y1 - y0) * H / avail,
+      1.5 / camera.aspect
+    );
+
+    G.viewH = h;
+    G.camDist = h / (
+      2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))
+    );
+
+    const aim =
+      (y0 + y1) / 2 +
+      (topH - botH) * h / (2 * H);
+
+    camBase.set(0, aim, G.camDist);
+    G.camTarget = V3(0, aim, 0);
+
+    camera.updateProjectionMatrix();
+  };
+
+  window.__SC_ROOM_UI_V1 = {showHelp, hideHelp};
+
+  if (window.__api) {
+    Object.assign(window.__api, {setHint, careRub});
+  }
+})();
+
+
+/* CARE_GRID_HEAL_V1
+ * 기존 패치들 뒤, '시작' 주석 바로 위에 한 번만 추가.
+ * 반창고의 내부 선택 키(bandage)는 입력 연결을 위해 유지한다.
+ */
+(() => {
+  if (window.__SC_CARE_GRID_HEAL_V1) return;
+
+  const USES = 15;       // 약 바르기 동작을 15번 완료하면 완전히 회복
+  const DURATION = .85;  // 한 번 약을 바르는 동작 길이
+
+  const strip = $('#careTools .care-strip');
+  const medicine = $('[data-care="bandage"]');
+  const talk = $('#careTalk');
+
+  if (!strip || !medicine || !talk) return;
+
+  // 기존 버튼을 이동해서 이벤트와 포옹의 길게 누르기를 보존한다.
+  medicine.innerHTML = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="m16 6 22 7-8 25-21-7z" fill="#e8fff3" stroke="#1f2a5c" stroke-width="2.5"/><path d="m10 30 20 7-2 6-20-7z" fill="#5db999" stroke="#1f2a5c" stroke-width="2.5"/><path d="m23 17-3 10m-3-7 10 3" fill="none" stroke="#329f7b" stroke-width="4" stroke-linecap="round"/></svg>약 바르기';
+
+  medicine.setAttribute('aria-label', '약 바르기');
+  medicine.title = `캐릭터를 눌러 약 바르기 · ${USES}회면 완전히 회복`;
+  medicine.disabled = false;
+
+  talk.className = 'tool';
+  talk.innerHTML = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M6 7h36v26H21L9 42v-9H6z" fill="#e8f8ef" stroke="#1f2a5c" stroke-width="2.5"/><path d="M14 17h20M14 24h14" stroke="#1f2a5c" stroke-width="2.5" stroke-linecap="round"/></svg>위로 한마디';
+  talk.setAttribute('aria-label', '위로 한마디');
+
+  strip.append(medicine, talk);
+
+  // 기존 코드가 조회하는 요소는 지우지 않고 화면에서만 제외한다.
+  for (const id of [
+    'careRepairs', 'careRepair', 'careVoiceToggle', 'nextBtn'
+  ]) {
+    const el = document.getElementById(id);
+
+    if (el) {
+      el.hidden = true;
+      el.tabIndex = -1;
+    }
+  }
+
+  const actions = $('#careTools .care-actions');
+  if (actions) actions.hidden = true;
+
+  const css = document.createElement('style');
+
+  css.textContent = `
+    #nextBtn,
+    #careRepairs,
+    #careRepair,
+    #careVoiceToggle,
+    #careTools .care-actions {
+      display:none!important
+    }
+
+    #careTools:not([hidden]) {
+      display:block!important
+    }
+
+    #careTools .care-strip {
+      display:grid!important;
+      grid-template-columns:repeat(8,minmax(0,1fr))!important;
+      gap:4px!important;
+      overflow:visible!important;
+      padding:0!important;
+      scroll-snap-type:none!important
+    }
+
+    #careTools .care-strip>.tool {
+      width:auto!important;
+      min-width:0!important;
+      min-height:64px!important;
+      margin:0;
+      padding:4px 1px!important;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:2px;
+      font-size:11px!important;
+      line-height:1.3;
+      letter-spacing:-.6px;
+      white-space:nowrap;
+      touch-action:manipulation
+    }
+
+    #careTools .care-strip>.tool svg {
+      width:34px!important;
+      height:34px!important
+    }
+
+    #careTools .care-strip>.hold {
+      touch-action:none
+    }
+
+    #hitTools[hidden],
+    #careTools[hidden] {
+      display:none!important
+    }
+
+    @media(max-width:600px) {
+      #hitTools:not([hidden]),
+      #careTools .care-strip {
+        display:grid!important;
+        grid-template-columns:repeat(4,minmax(0,1fr))!important;
+        overflow:visible!important;
+        gap:4px!important
+      }
+
+      #hitTools .tool {
+        min-width:0!important;
+        width:auto!important
+      }
+
+      #careTools .care-strip>.tool {
+        font-size:12px!important
+      }
+    }
+  `;
+
+  document.head.append(css);
+
+  HINTS.bandage =
+    `캐릭터를 톡: 약 바르기 · ${USES}회면 상처·이빨·안경까지 회복`;
+
+  // 반성문에서도 다음 캐릭터로 교체하지 않는다.
+  const letterNext = $('#letterNext');
+
+  if (letterNext) {
+    letterNext.textContent = '계속하기';
+
+    letterNext.addEventListener('click', e => {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      $('#letterModal').hidden = true;
+      G.lastAct = G.time;
+    }, true);
+  }
+
+  // 작은 크림 자국. 매번 만들지 않고 한 메시를 재사용한다.
+  const cream = new THREE.Mesh(
+    new THREE.SphereGeometry(1, 16, 10),
+    new THREE.MeshStandardMaterial({
+      color: '#fff8df',
+      roughness: .9,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false
+    })
+  );
+
+  cream.name = 'care-ointment';
+  cream.visible = false;
+  scene.add(cream);
+
+  let action = null;
+
+  function cancelMedicine() {
+    if (action) RIG.open[1].visible = false;
+
+    action = null;
+    cream.visible = false;
+  }
+
+  talk.addEventListener('click', cancelMedicine, true);
+
+  function reduceWounds(v, factor) {
+    for (const key of [
+      'damage', 'fear', 'noseBlood', 'lipBlood', 'tear', 'wet',
+      'noseRed', 'noseStretch', 'noseTwist', 'dizzy',
+      'eyeShut', 'squint', '_crownV2'
+    ]) {
+      if (Number.isFinite(v[key])) v[key] *= factor;
+    }
+
+    for (const b of v.bruises) b.heal *= factor;
+    for (const b of v.bumps) b.amp *= factor;
+    for (const m of v.marks) m.a *= factor;
+    for (const e of v.eyes) e.swell *= factor;
+
+    for (const l of v.lumps) {
+      l.userData.target *= factor;
+      l.userData.cur *= factor;
+    }
+
+    for (const d of v._slapDents || []) {
+      d.depth *= factor;
+    }
+
+    if (v._bodyCloth) {
+      for (const d of v._bodyCloth.dents) {
+        d.depth *= factor;
+        d.kick *= factor;
+      }
+
+      v._bodyCloth.dirty = true;
+    }
+
+    v.impacts.length = 0;
+    v.bodyImpulse.length = 0;
+    v.headDirty = v.faceDirty = true;
+
+    v.applyDeform();
+    v.paintFace();
+  }
+
+  function fullyRestore(v) {
+    // nextCrime()/newVillain()을 호출하지 않는다.
+    // 같은 외모의 깨끗한 모델로 복원해 기존 패치의 오염까지 없앤다.
+    const fresh = new Villain(
+      v.crime,
+      {...v.look},
+      v.hostScene
+    );
+
+    fresh.st = {...v.st};
+
+    // 기록과 성격·반응은 유지한다.
+    for (const key of [
+      'confessed', 'comfort', 'lettered', 'hardHits', 'crossArms',
+      'careReplies', 'lastFlip', 'flipped', '_snubLast', '_snubLine'
+    ]) {
+      if (v[key] !== undefined) fresh[key] = v[key];
+    }
+
+    fresh.state = 'stand';
+    fresh.stateT = 0;
+    fresh.animTime = v.animTime;
+
+    fresh.root.position.copy(v.root.position);
+    fresh.root.quaternion.copy(v.root.quaternion);
+
+    fresh._ointmentRestored = true;
+    fresh._ointmentHits = fresh.st.hits;
+    fresh._ointmentUses = 0;
+
+    Object.assign(fresh.mouth, {
+      open: .018,
+      smile: 0,
+      smirk: 0,
+      wide: .72,
+      shape: 'flat'
+    });
+
+    Object.assign(fresh.mouth.target, {
+      open: .018,
+      smile: 0,
+      smirk: 0,
+      wide: .72
+    });
+
+    fresh.paintMouth();
+    fresh.root.updateMatrixWorld(true);
+
+    G.v = fresh;
+    v.dispose();
+
+    // 떨어진 안경·이빨·머리카락과 이전 분출을 정리한다.
+    clearJunk();
+    HEAVY_WET.clear(fresh);
+
+    G.combo = [];
+    G.hitstop = 0;
+    G.letterTimer = 0;
+    G.lastAct = G.time;
+
+    refreshAppearanceButton();
+    updateCareButtons(true);
+
+    return fresh;
+  }
+
+  function completeMedicine(a) {
+    const v = a.v;
+    if (G.v !== v) return;
+
+    // 치료 도중 다시 맞았다면 새 치료 과정으로 시작한다.
+    if (v._ointmentHits !== v.st.hits) {
+      v._ointmentHits = v.st.hits;
+      v._ointmentUses = 0;
+    }
+
+    const before = v._ointmentUses || 0;
+    const count = Math.min(USES, before + 1);
+
+    v._ointmentUses = count;
+    v.st.medicines = (v.st.medicines || 0) + 1;
+    DAY.medicines = (DAY.medicines || 0) + 1;
+
+    if (count >= USES) {
+      fullyRestore(v);
+      popText('회복 완료', a.point, 'pat', 32);
+
+    } else {
+      reduceWounds(
+        v,
+        (USES - count) / (USES - before)
+      );
+
+      popText(`회복 ${count}/${USES}`, a.point, 'pat', 30);
+    }
+
+    G.lastAct = G.time;
+    saveDay();
+  }
+
+  // 반창고 입력 연결만 재사용하고, 붙이는 동작은 호출하지 않는다.
+  const oldCareAct = careAct;
+
+  careAct = function(kind, info, e) {
+    if (kind !== 'bandage') {
+      return oldCareAct.apply(this, arguments);
+    }
+
+    const v = G.v;
+
+    if (
+      action || !v || v.state !== 'stand' ||
+      G.mode !== 'care' || G.editing ||
+      !info || !isAttached(info.obj, v.root)
+    ) return;
+
+    if (
+      document.hidden ||
+      document.querySelector('.modal:not([hidden])')
+    ) return;
+
+    stopSocial();
+    SFX.rubStop();
+
+    v.root.updateMatrixWorld(true);
+
+    action = {
+      v,
+      info,
+      hits: v.st.hits,
+      age: 0,
+      sounded: false,
+      point: hitWorld(info).clone()
+    };
+
+    G.lastAct = G.time;
+  };
+
+  const oldCareHands = updateCareHands;
+
+  updateCareHands = function(dt) {
+    const result = oldCareHands.apply(this, arguments);
+    const a = action;
+
+    if (!a) return result;
+
+    if (
+      G.v !== a.v ||
+      G.mode !== 'care' ||
+      G.care !== 'bandage' ||
+      G.editing || G.hug || G.social ||
+      a.v.state !== 'stand' ||
+      a.v.st.hits !== a.hits ||
+      document.hidden ||
+      document.querySelector('.modal:not([hidden])') ||
+      !isAttached(a.info.obj, a.v.root)
+    ) {
+      cancelMedicine();
+      return result;
+    }
+
+    a.age += Math.max(0, Number(dt) || 0);
+
+    if (a.age >= DURATION) {
+      cancelMedicine();
+      completeMedicine(a);
+      return result;
+    }
+
+    const t = a.age;
+    const v = a.v;
+
+    v.root.updateMatrixWorld(true);
+
+    const p = hitWorld(a.info);
+    const n = hitNormal(a.info).normalize();
+
+    a.point.copy(p);
+
+    const tangent = V3(0, 1, 0).cross(n);
+
+    if (tangent.lengthSq() < .01) {
+      tangent.set(1, 0, 0);
+    }
+
+    tangent.normalize();
+
+    const blend = careWindow(
+      t, 0, .16, .62, DURATION
+    );
+
+    const stroke = Math.sin(
+      clamp((t - .16) / .46, 0, 1) * Math.PI * 2
+    ) * .045;
+
+    const hand = RIG.open[1];
+    hand.visible = true;
+
+    const target = p.clone()
+      .addScaledVector(n, .055)
+      .addScaledVector(tangent, stroke);
+
+    hand.position.copy(camRest(1, -.9))
+      .lerp(target, blend);
+
+    orient(
+      hand,
+      n.clone().negate(),
+      Math.abs(n.y) > .85 ? V3(0, 0, -1) : V3(0, 1, 0)
+    );
+
+    cream.visible = t > .16;
+    cream.position.copy(p).addScaledVector(n, .022);
+
+    orient(
+      cream,
+      n,
+      Math.abs(n.y) > .85 ? V3(0, 0, -1) : V3(0, 1, 0)
+    );
+
+    cream.scale.set(
+      .035 + Math.abs(stroke) * .4,
+      .028,
+      .006
+    );
+
+    cream.material.opacity =
+      .82 * careWindow(t, .14, .24, .50, .73);
+
+    if (!a.sounded && t > .22) {
+      a.sounded = true;
+      SFX.pat(clamp(p.x, -1, 1));
+    }
+
+    return result;
+  };
+
+  // 동작 도중 모드·도구를 바꾸면 미완료 치유는 취소한다.
+  const oldCancel = cancelPointer;
+  const oldStop = stopSocial;
+
+  cancelPointer = function() {
+    cancelMedicine();
+    return oldCancel.apply(this, arguments);
+  };
+
+  stopSocial = function() {
+    cancelMedicine();
+    return oldStop.apply(this, arguments);
+  };
+
+  // 누적 이빨 기록은 보존한다.
+  // 발음만 현재 실제로 빠진 이빨 수에 맞춘다.
+  const oldSpeak = speak;
+
+  speak = function() {
+    const v = G.v;
+
+    if (!v?._ointmentRestored) {
+      return oldSpeak.apply(this, arguments);
+    }
+
+    const total = v.st.teeth;
+
+    v.st.teeth = [
+      ...v.upper,
+      ...v.lower
+    ].filter(x => !x).length;
+
+    try {
+      return oldSpeak.apply(this, arguments);
+    } finally {
+      v.st.teeth = total;
+    }
+  };
+
+  window.__SC_CARE_GRID_HEAL_V1 = {
+    version: 1,
+    uses: USES,
+    cancelMedicine
+  };
+
+  if (window.__api) {
+    Object.assign(window.__api, {
+      careAct,
+      updateCareHands,
+      cancelPointer,
+      stopSocial,
+      speak
+    });
+  }
+
+  setTimeout(() => {
+    if (G.v && !G.editing) fit();
+  }, 0);
+})();
+
+/* CARE8_MEDICINE_V1
+ * 기존 ROOM_UI_V1 뒤, '시작' 주석 바로 위에 한 번만 추가.
+ * 기존 반창고의 입력 ID만 재사용한다. 반창고 부착 동작은 호출하지 않는다.
+ */
+(() => {
+  'use strict';
+  if (window.__SC_CARE8_MEDICINE_V1) return;
+
+  const DOSES = 4;
+
+  const strip = document.querySelector('#careTools .care-strip');
+  const medicine = document.querySelector('[data-care="bandage"]');
+  const talk = document.querySelector('#careTalk');
+
+  if (!strip || !medicine || !talk) {
+    console.error('CARE8: 달래기 버튼을 찾지 못했습니다. 적용 위치를 확인하세요.');
+    return;
+  }
+
+  const style = document.createElement('style');
+
+  style.textContent = `
+    /* 가로 배치보다 숨김 규칙을 우선한다. */
+    #hitTools[hidden],
+    #careTools[hidden] {
+      display:none!important;
+    }
+
+    #nextBtn,
+    #careTools .care-actions,
+    #careRepairs {
+      display:none!important;
+    }
+
+    #careTools:not([hidden]) {
+      display:block!important;
+    }
+
+    #careTools .care-strip {
+      display:flex;
+      flex-wrap:nowrap;
+      gap:4px;
+      margin:0;
+      padding:1px 0 3px;
+      overflow-x:auto;
+      overflow-y:hidden;
+      touch-action:pan-x;
+      overscroll-behavior-x:contain;
+      scrollbar-width:thin;
+    }
+
+    #careTools .care-strip > .tool {
+      flex:1 0 68px;
+      min-width:68px;
+      min-height:60px;
+      padding:3px 2px;
+      white-space:nowrap;
+      font-size:11px;
+      scroll-snap-align:start;
+    }
+
+    #careTools .care-strip > .tool svg {
+      width:34px;
+      height:34px;
+    }
+
+    #careTools .care-strip > .tool:not(.hold) {
+      touch-action:pan-x;
+    }
+
+    #careTools .care-strip > .tool.hold {
+      touch-action:none;
+    }
+
+    #medicineProgress {
+      right:0;
+      top:0;
+      min-width:27px;
+      font-size:10px;
+    }
+  `;
+
+  document.head.append(style);
+
+  // 기존 카메라 코드가 참조하므로 DOM은 남기고 화면에서 제거.
+  $('#nextBtn').hidden = true;
+
+  medicine.innerHTML = `
+    <svg viewBox="0 0 48 48" aria-hidden="true">
+      <path d="m12 11 11-7 17 25-11 7z"
+        fill="#fffdf4" stroke="#1f2a5c" stroke-width="2.5"/>
+      <path d="m29 36 4 6 6-4-4-6M12 11l-3-4 11-7 3 4"
+        fill="#8fdcc9" stroke="#1f2a5c" stroke-width="2.5"/>
+      <path d="m21 15 7 10m-9-2 11-7"
+        stroke="#2f9b79" stroke-width="4"/>
+      <path d="M7 34q-8 10 0 10t0-10"
+        fill="#c8f0dc" stroke="#1f2a5c" stroke-width="2"/>
+    </svg>
+    <span>약 바르기</span>
+    <span id="medicineProgress" class="badge" hidden></span>
+  `;
+
+  medicine.setAttribute('aria-label', '약 바르기');
+  medicine.title = '선택한 뒤 캐릭터를 눌러 약 바르기';
+  medicine.disabled = false;
+
+  talk.className = 'tool';
+  talk.dataset.care = 'comfort';
+  talk.setAttribute('aria-label', '위로 한마디');
+
+  talk.innerHTML = `
+    <svg viewBox="0 0 48 48" aria-hidden="true">
+      <path d="M5 7h38v26H20L8 43V33H5z"
+        fill="#fffdf4" stroke="#1f2a5c" stroke-width="3"/>
+      <path d="M13 16h22M13 24h15"
+        stroke="#2f9b79" stroke-width="3" stroke-linecap="round"/>
+    </svg>
+    <span>위로한마디</span>
+  `;
+
+  // 기존 버튼 자체를 옮겨 클릭·꾹 안기 연결을 보존한다.
+  for (const id of ['hand', 'love', 'thumb', 'clap', 'five', 'hug']) {
+    strip.append(document.querySelector(`[data-care="${id}"]`));
+  }
+
+  strip.append(medicine, talk);
+  $('#careRepairs').hidden = true;
+
+  HINTS.bandage =
+    `선택 후 캐릭터를 톡 · 한 번씩 약을 문질러 바릅니다<br>` +
+    `${DOSES}번 완료하면 상처·변형·이빨·안경까지 전체 회복`;
+
+  HINTS.comfort = '위로한마디를 누르면 말을 건넵니다';
+
+  talk.addEventListener('click', () => {
+    cancelPointer();
+    endHug();
+    stopSocial();
+    clearAttacks();
+
+    G.care = 'comfort';
+    syncCareSelection();
+    setHint();
+
+    // 기존 careTalk 클릭 코드가 이어서 실제 대사를 재생한다.
+  }, true);
+
+  const courses = new WeakMap();
+  let treatment = null;
+
+  const cream = new THREE.Mesh(
+    new THREE.SphereGeometry(.037, 14, 10),
+    new THREE.MeshStandardMaterial({
+      color: '#d5f5df',
+      roughness: .65,
+      transparent: true,
+      opacity: .86,
+      depthWrite: false
+    })
+  );
+
+  cream.name = 'medicine-cream';
+  cream.visible = false;
+  scene.add(cream);
+
+  const progress = $('#medicineProgress');
+
+  function showProgress() {
+    const n = G.v ? (courses.get(G.v) || 0) : 0;
+    progress.hidden = n === 0;
+    progress.textContent = `${n}/${DOSES}`;
+  }
+
+  function cancelTreatment() {
+    if (!treatment) return;
+
+    treatment = null;
+    cream.visible = false;
+    RIG.open[1].visible = false;
+    medicine.removeAttribute('aria-busy');
+  }
+
+  function wounded(v) {
+    return v.damage > .001 || v.glassLv > 0 || v.glassOff ||
+      v.noseBlood > .01 || v.lipBlood > .01 || v._crownV2 > .001 ||
+      v.bruises?.length || v.bumps?.length || v.lumps?.length ||
+      v.marks?.length || v._slapDents?.length ||
+      v._bodyCloth?.dents?.length ||
+      v.upper?.some(x => !x) || v.lower?.some(x => !x);
+  }
+
+  function partialHeal(v, count) {
+    const f = (DOSES - count) / (DOSES - count + 1);
+
+    for (const k of [
+      'damage', 'fear', 'noseBlood', 'lipBlood',
+      'tear', 'wet', 'noseRed', '_crownV2'
+    ]) {
+      if (Number.isFinite(v[k])) v[k] *= f;
+    }
+
+    for (const b of v.bruises || []) b.heal = (b.heal ?? 1) * f;
+    for (const b of v.bumps || []) b.amp *= f;
+    for (const m of v.marks || []) m.a *= f;
+    for (const l of v.lumps || []) l.userData.target *= f;
+    for (const e of v.eyes || []) e.swell *= f;
+    for (const d of v._slapDents || []) d.depth *= f;
+
+    const c = v._bodyCloth;
+
+    if (c) {
+      for (const d of c.dents) {
+        d.depth *= f;
+        d.kick *= f;
+      }
+      c.dirty = true;
+    }
+
+    v.tearClear = 3;
+    v.faceDirty = true;
+    v.headDirty = true;
+  }
+
+  function fullHeal(v) {
+    // 같은 이름·외모·죄목으로 손상 없는 모델을 만든다.
+    // newVillain()을 호출하지 않으므로 입장 연출·인원 집계는 발생하지 않는다.
+    // 다른 패치 내부에 남아 있는 변색·옷 얼룩도 함께 초기화한다.
+    const fresh = new Villain(
+      v.crime,
+      { ...v.look },
+      v.hostScene || scene
+    );
+
+    fresh.state = 'stand';
+    fresh.stateT = 0;
+    fresh.root.position.copy(v.root.position);
+    fresh.root.rotation.set(0, 0, 0);
+
+    // 이빨 복구 후에는 발음도 새지 않도록 한다.
+    fresh.st = { ...v.st, teeth: 0 };
+
+    for (const k of [
+      'confessed', 'lettered', 'comfort',
+      'crossArms', '_snubLast', '_snubLine'
+    ]) {
+      if (v[k] !== undefined) fresh[k] = v[k];
+    }
+
+    cancelPointer();
+    stopSocial();
+    clearAttacks();
+    clearJunk();
+
+    G.v = fresh;
+    v.dispose();
+
+    HEAVY_WET.clear(fresh);
+    G.combo = [];
+    G.lastAct = G.time;
+    courses.set(fresh, 0);
+
+    refreshAppearanceButton();
+    updateCareButtons(true);
+    updateVillain(fresh, 0);
+    fresh.root.updateMatrixWorld(true);
+
+    return fresh;
+  }
+
+  function beginMedicine(info) {
+    const v = G.v;
+
+    if (
+      treatment || G.mode !== 'care' || G.editing ||
+      G.care !== 'bandage' || !v || v.state !== 'stand' ||
+      !info?.obj || !isAttached(info.obj, v.root)
+    ) return;
+
+    if (!wounded(v) && !courses.get(v)) {
+      popText(
+        '이미 멀쩡!',
+        v.headMesh.getWorldPosition(V3()),
+        'pat',
+        28
+      );
+      return;
+    }
+
+    stopSocial();
+    G.careAnim = null;
+    SFX.rubStop();
+
+    treatment = { v, info, t: 0, contact: false };
+    medicine.setAttribute('aria-busy', 'true');
+    G.lastAct = G.time;
+  }
+
+  const oldCareAct = careAct;
+
+  careAct = function(kind, info, e) {
+    if (kind === 'bandage') return beginMedicine(info);
+    return oldCareAct.apply(this, arguments);
+  };
+
+  // 이전 코드가 직접 호출해도 반창고 대신 약 바르기로 연결.
+  placeBandage = beginMedicine;
+
+  const oldHands = updateCareHands;
+
+  updateCareHands = function(dt) {
+    const a = treatment;
+
+    if (!a) return oldHands.apply(this, arguments);
+
+    if (
+      G.v !== a.v || G.mode !== 'care' ||
+      G.care !== 'bandage' || G.editing ||
+      a.v.state !== 'stand' || document.hidden ||
+      document.querySelector('.modal:not([hidden])')
+    ) {
+      cancelTreatment();
+      return oldHands.apply(this, arguments);
+    }
+
+    a.t += clamp(Number(dt) || 0, 0, .05);
+    G.lastAct = G.time;
+
+    a.v.root.updateMatrixWorld(true);
+
+    const p = liveContactPoint(a.info);
+    const n = hitNormal(a.info).normalize();
+    const u = V3(0, 1, 0).cross(n);
+
+    if (u.lengthSq() < .01) u.set(1, 0, 0);
+    u.normalize();
+
+    const w = n.clone().cross(u).normalize();
+
+    const into = ease(clamp(a.t / .20, 0, 1));
+    const out = ease(clamp((a.t - .66) / .20, 0, 1));
+    const rub = Math.sin(
+      clamp((a.t - .20) / .46, 0, 1) * Math.PI
+    );
+
+    const target = p.clone()
+      .addScaledVector(n, .065)
+      .addScaledVector(u, Math.sin(a.t * 23) * .022 * rub)
+      .addScaledVector(w, Math.cos(a.t * 23) * .016 * rub);
+
+    const h = RIG.open[1];
+    h.visible = true;
+
+    h.position.copy(camRest(1, -.9))
+      .lerp(target, into)
+      .lerp(camRest(1, -.9), out);
+
+    orient(h, n.clone().negate(), w);
+
+    cream.visible = a.t > .20 && a.t < .78;
+    cream.position.copy(p).addScaledVector(n, .012);
+    orient(cream, n, w);
+
+    cream.scale.set(1 + rub * .6, .6, .14);
+    cream.material.opacity = .86 * (1 - out);
+
+    if (!a.contact && a.t >= .23) {
+      a.contact = true;
+      SFX.pat(clamp(p.x, -1, 1));
+    }
+
+    if (a.t < .86) return;
+
+    // 동작을 끝낸 경우만 인정. 연타·중도 취소로 횟수가 늘어나지 않는다.
+    const v = a.v;
+    const count = Math.min(
+      DOSES,
+      (courses.get(v) || 0) + 1
+    );
+
+    cancelTreatment();
+    courses.set(v, count);
+
+    if (count < DOSES) {
+      partialHeal(v, count);
+      popText(`회복 ${count}/${DOSES}`, p, 'pat', 28);
+    } else {
+      const healed = fullHeal(v);
+      popText(
+        '회복 완료!',
+        healed.headMesh.getWorldPosition(V3()),
+        'pat',
+        34
+      );
+    }
+
+    showProgress();
+  };
+
+  const oldStop = stopSocial;
+
+  stopSocial = function() {
+    cancelTreatment();
+    return oldStop.apply(this, arguments);
+  };
+
+  const oldHit = applyHit;
+
+  applyHit = function(h) {
+    const v = G.v;
+    const before = v?.st?.hits;
+
+    cancelTreatment();
+    const result = oldHit.apply(this, arguments);
+
+    if (
+      v && G.v === v && v.st.hits !== before &&
+      h?.tool !== 'tissue'
+    ) {
+      courses.delete(v);
+      showProgress();
+    }
+
+    return result;
+  };
+
+  const oldButtons = updateCareButtons;
+
+  updateCareButtons = function() {
+    const result = oldButtons.apply(this, arguments);
+    showProgress();
+    return result;
+  };
+
+  addEventListener('blur', cancelTreatment);
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) cancelTreatment();
+  });
+
+  canvas.addEventListener('webglcontextlost', cancelTreatment);
+
+  document.addEventListener('click', e => {
+    if (e.target.closest?.(
+      '[data-care], [data-mode], .top button'
+    )) {
+      cancelTreatment();
+    }
+  }, true);
+
+  window.__SC_CARE8_MEDICINE_V1 = {
+    version: 1,
+    doses: DOSES,
+    inspect: () => ({
+      active: !!treatment,
+      doses: G.v ? courses.get(G.v) || 0 : 0
+    }),
+    cancel: cancelTreatment
+  };
+
+  if (window.__api) {
+    Object.assign(window.__api, {
+      careAct,
+      placeBandage,
+      updateCareHands,
+      stopSocial,
+      applyHit,
+      updateCareButtons
+    });
+  }
+})();
+
+
+/* CARE_SCROLL_FIX_V2
+ * CARE_GRID_HEAL_V1을 포함한 기존 패치들 뒤,
+ * '시작' 주석 바로 위에 한 번만 추가.
+ */
+(() => {
+  if (window.__SC_CARE_SCROLL_FIX_V2) return;
+
+  const hit = $('#hitTools');
+  const care = $('#careTools');
+  const talk = $('#careTalk');
+  if (!hit || !care || !talk) return;
+
+  const css = document.createElement('style');
+  css.textContent = `
+    /* 두 모드 모두 한 줄. 좁으면 가로로 스크롤한다. */
+    body #hitTools:not([hidden]),
+    body #careTools .care-strip {
+      display:flex!important;
+      flex-direction:row!important;
+      flex-wrap:nowrap!important;
+      gap:4px!important;
+      overflow-x:auto!important;
+      overflow-y:hidden!important;
+      padding:2px 0 4px!important;
+      scrollbar-width:thin;
+      scroll-snap-type:x proximity!important;
+      touch-action:pan-x;
+      overscroll-behavior-x:contain;
+      min-width:0;
+    }
+
+    body #hitTools .tool,
+    body #careTools .care-strip>.tool {
+      flex:1 0 64px!important;
+      width:64px!important;
+      min-width:64px!important;
+      min-height:60px!important;
+      margin:0!important;
+      padding:3px 2px!important;
+      font-size:11px!important;
+      white-space:nowrap;
+      scroll-snap-align:start;
+      touch-action:pan-x!important;
+    }
+
+    body #hitTools .tool svg,
+    body #careTools .care-strip>.tool svg {
+      width:34px!important;
+      height:34px!important;
+    }
+
+    /* 꾹 안기는 기존 길게 누르기 입력을 유지한다. */
+    body #careTools .care-strip>.hold {
+      touch-action:none!important;
+    }
+
+    /* 중요: display:flex/grid가 숨김을 덮어쓰지 못하게 한다. */
+    body #hitTools[hidden],
+    body #careTools[hidden] {
+      display:none!important;
+    }
+
+    body #nextBtn,
+    body #careRepairs,
+    body #careRepair,
+    body #careVoiceToggle,
+    body #careTools .care-actions {
+      display:none!important;
+    }
+
+    body #careTools {
+      gap:0!important;
+    }
+  `;
+  document.head.append(css);
+
+  hit.hidden = G.mode !== 'hit';
+  care.hidden = G.mode !== 'care';
+
+  const next = $('#nextBtn');
+  if (next) {
+    next.hidden = true;
+    next.disabled = true;
+  }
+
+  // 위로 한마디도 8개 중 하나로 선택 표시와 설명을 연결한다.
+  // 기존 버튼에 연결된 위로 대사·음성은 그대로 사용한다.
+  talk.dataset.care = 'comfort';
+  talk.setAttribute('aria-pressed', 'false');
+
+  HINTS.comfort = '누르면 위로 한마디를 건넵니다';
+
+  talk.addEventListener('click', () => {
+    if (G.mode !== 'care' || G.editing) return;
+
+    cancelPointer();
+    endHug();
+    stopSocial();
+    clearAttacks();
+
+    G.care = 'comfort';
+    syncCareSelection();
+    setHint();
+  }, true);
+
+  syncCareSelection();
+
+  setTimeout(() => {
+    if (G.v && !G.editing) fit();
+  }, 0);
+
+  window.__SC_CARE_SCROLL_FIX_V2 = { version:2 };
+})();
+
+
+/* SC_FATIGUE_V1_BEGIN
+ * Insert ONCE inside gameSource, immediately before:
+ *   / * ================= 시작 ================= * /
+ * Do not add a new <script> tag. Load after the other animation patches.
+ * Inspected base: aa1455cbc6270c1db53a3078f7a93e183ab833c1.
+ * Does not change wounds, medicine or saved appearance.
+ * The accompanying speech/name fixes below do not touch player insults.
+ */
+(() => {
+  'use strict';
+  if (window.__SC_FATIGUE_V1) return;
+
+  const CFG = Object.freeze({
+    shakeAt: 55,          // 누적 데미지: 떨림 시작
+    fullShakeAt: 110,     // 여기서 떨림이 최대 세기
+    collapseAt: 180,     // 이 이상 누적된 뒤 다시 맞으면 쓰러짐
+    shakeScale: 0.5,      // 체어샷 팔 파닥임 진폭의 절반
+    restSeconds: 5,       // 마지막 실제 타격 뒤 기다리는 시간
+    riseSeconds: 3.2,     // 천천히 일어나는 시간
+    fallSeconds: 1.45,
+    floor: 0.012
+  });
+  const data = new WeakMap();
+  const clamp01 = x => Math.max(0, Math.min(1, x));
+  const smooth = x => { x = clamp01(x); return x*x*(3-2*x); };
+  const mix = (a,b,t) => a+(b-a)*t;
+  const down = new THREE.Vector3(0,-1,0);
+  const zero = () => new THREE.Vector3();
+  const tmp = zero();
+
+  function ensure(v) {
+    let f = data.get(v);
+    if (!f) {
+      f = {phase:'stand', age:0, quiet:0, cover:0, coverTo:0,
+        shake:0, pending:false, form:[0,0], from:[0,0],
+        x:0, z:0, side:1, recoil:0, legs:null, support:[]};
+      data.set(v,f);
+    }
+    return f;
+  }
+  const active = v => !!v && !!data.get(v) && data.get(v).phase!=='stand';
+  const special = v => !!(v._impactV2 || v._slapMotion) ||
+    !['stand','down'].includes(v.state);
+  const visible = (o,root) => {
+    for (let p=o;p;p=p.parent) { if (!p.visible) return false; if(p===root)return true; }
+    return false;
+  };
+
+  // Keep the existing meshes and collision targets. Bend their lower vertices
+  // about an actual knee, rather than shrinking the entire leg into the floor.
+  function prepareLegs(v,f) {
+    if (f.legs) return;
+    f.legs = v.legs.map(leg => {
+      const m = leg.children.find(o => o.isMesh && o.userData.part==='body');
+      const shoe = leg.children.find(o => o.isMesh && o!==m &&
+        o.geometry?.type==='SphereGeometry');
+      const rec = {leg,m,shoe,shoeP:shoe?.position.clone(),shoeQ:shoe?.quaternion.clone(),angle:0};
+      if (m) {
+        m.geometry = m.geometry.clone();
+        m.geometry.attributes.position.setUsage(THREE.DynamicDrawUsage);
+        rec.base = Float32Array.from(m.geometry.attributes.position.array);
+      }
+      return rec;
+    });
+    const cloth=v._bodyCloth;
+    f.support = [v.headMesh,cloth?.core,cloth?.skirt,
+      ...f.legs.flatMap(r=>[r.m,r.shoe])].filter(Boolean);
+    if (!cloth?.core) {
+      const core=v.torso.children.find(o=>o.isMesh&&o.geometry?.type==='LatheGeometry');
+      if(core)f.support.push(core);
+    }
+    v.captureResources?.();
+  }
+  function bendLeg(r,angle) {
+    if (Math.abs(angle-r.angle)<0.0005) return;
+    r.angle=angle;
+    const knee=-0.25;
+    if (r.m) {
+      const m=r.m, geo=m.geometry, p=geo.attributes.position, b=r.base;
+      for(let i=0;i<p.count;i++) {
+        const x=b[i*3], y=b[i*3+1], z=b[i*3+2];
+        const ly=y*m.scale.y+m.position.y;
+        const lz=z*m.scale.z+m.position.z;
+        const a=angle*smooth((knee+0.03-ly)/0.06);
+        const c=Math.cos(a),s=Math.sin(a),dy=ly-knee;
+        p.setXYZ(i,x,(knee+dy*c-lz*s-m.position.y)/m.scale.y,
+          (dy*s+lz*c-m.position.z)/m.scale.z);
+      }
+      p.needsUpdate=true;
+      geo.computeVertexNormals();geo.computeBoundingBox();geo.computeBoundingSphere();
+    }
+    if(r.shoe) {
+      const p=r.shoeP,dy=p.y-knee,c=Math.cos(angle),s=Math.sin(angle);
+      r.shoe.position.set(p.x,knee+dy*c-p.z*s,dy*s+p.z*c);
+      r.shoe.quaternion.setFromAxisAngle(new THREE.Vector3(1,0,0),angle)
+        .multiply(r.shoeQ);
+    }
+  }
+
+  function armLengths(v,a,L) {
+    const stretch=L/0.2,rec=v._bodyCloth?.arms.find(r=>r.a===a);
+    a.el.position.y=-L;a.hand.position.y=-L;
+    if(rec?.upper){rec.upper.position.y=-0.10*stretch;rec.upper.scale.y=stretch;}
+    if(rec?.fore){rec.fore.position.y=-0.085*stretch;rec.fore.scale.y=stretch;}
+    if(rec?.cuff)rec.cuff.position.y=-0.17*stretch;
+  }
+  // Elbows stay outside the skull. Both hands reach the back of the head,
+  // including the unusually thin-body / large-head appearance combinations.
+  function coverHead(v,a,weight) {
+    if(weight<0.001)return;
+    v.root.updateMatrixWorld(true);
+    const d=new THREE.Vector3(a.s*0.48,0.51,-0.72).normalize();
+    const p=v.surfacePoint(d,0.075);
+    const world=v.headMesh.localToWorld(p.clone());
+    const target=v.torso.worldToLocal(world);
+    const origin=a.sh.position.clone(),delta=target.clone().sub(origin);
+    const distance=delta.length();if(distance<0.001)return;
+    const axis=delta.divideScalar(distance);
+    const L=Math.max(0.20,(distance+0.026)*0.5);
+    armLengths(v,a,mix(0.20,L,weight));
+    const pole=new THREE.Vector3(a.s,0.04,-0.10).projectOnPlane(axis);
+    if(pole.lengthSq()<0.00001)pole.set(a.s,0,0).projectOnPlane(axis);
+    pole.normalize();
+    const elbow=origin.clone().addScaledVector(axis,distance*0.5)
+      .addScaledVector(pole,Math.sqrt(Math.max(0,L*L-distance*distance*0.25)));
+    const q1=new THREE.Quaternion().setFromUnitVectors(down,elbow.clone().sub(origin).normalize());
+    const fore=target.clone().sub(elbow).normalize();
+    const q2=new THREE.Quaternion().setFromUnitVectors(down,fore.clone().applyQuaternion(q1.clone().invert()));
+    a.sh.quaternion.slerp(q1,weight);a.el.quaternion.slerp(q2,weight);
+    // Palm (-Z) toward the skull; fingers (-Y) follow the forearm downward.
+    const center=v.torso.worldToLocal(v.headMesh.getWorldPosition(zero()));
+    const fingerPoint=v.torso.worldToLocal(v.headMesh.localToWorld(
+      p.clone().add(new THREE.Vector3(0,-0.12,-0.01))
+    ));
+    const y=fingerPoint.sub(target).normalize().negate();
+    const z=target.clone().sub(center).projectOnPlane(y).normalize();
+    if(z.lengthSq()>0.001) {
+      const x=y.clone().cross(z).normalize();z.copy(x.clone().cross(y).normalize());
+      const worldQ=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x,y,z));
+      const local=q1.clone().multiply(q2).invert().multiply(worldQ);
+      a.hand.quaternion.slerp(local,weight);
+    }
+  }
+
+  function floorY(v,f) {
+    v.root.updateMatrixWorld(true);
+    let low=Infinity;
+    for(const m of f.support) {
+      if(!visible(m,v.root))continue;
+      const p=m.geometry?.attributes.position;
+      if(!p)continue;
+      const e=m.matrixWorld.elements;
+      // Exact mesh vertices, not an oversized bounding box that makes the body float.
+      for(let i=0;i<p.count;i++) {
+        const y=e[1]*p.getX(i)+e[5]*p.getY(i)+e[9]*p.getZ(i)+e[13];
+        if(y<low)low=y;
+      }
+    }
+    for(const a of v.armRig) {
+      const h=a.hand.getWorldPosition(tmp);
+      low=Math.min(low,h.y-0.065*Math.max(0.3,v.look.bodyW));
+    }
+    return Number.isFinite(low)?low:CFG.floor;
+  }
+
+  function startFall(v,f,again=false) {
+    prepareLegs(v,f);
+    f.phase='fall';f.age=0;f.pending=false;
+    f.from=f.form.slice();
+    if(!again) {
+      v.root.updateMatrixWorld(true);
+      const hip=v.body.localToWorld(new THREE.Vector3(0,0.5,0));
+      f.x=hip.x;f.z=hip.z;
+      f.side=Math.sign(v.root.rotation.z)||(Math.random()<0.5?-1:1);
+      f.cover=f.coverTo=0;
+      f.from=[0,clamp01(Math.abs(v.root.rotation.z)/(Math.PI/2))];
+      f.form=f.from.slice();
+    }
+    v.state='down';v.stateT=0.35;v.root.visible=true;
+    v.downFrom={x:v.root.position.x,z:v.root.position.z,rz:v.root.rotation.z};
+    v.lieZ=f.side*Math.PI/2;
+    v._guardV2=v._wipeV2=null;
+  }
+  function advance(f,dt) {
+    f.age+=dt;f.quiet+=dt;
+    f.cover=mix(f.cover,f.coverTo,1-Math.exp(-dt*7));
+    f.recoil*=Math.exp(-dt*8);
+    if(f.phase==='fall') {
+      const c=smooth(f.age/0.70);
+      const delay=f.from[1]>0.2?0:0.52;
+      const r=smooth((f.age-delay)/(CFG.fallSeconds-delay));
+      f.form=[mix(f.from[0],1,c),mix(f.from[1],1,r)];
+      if(f.age>=CFG.fallSeconds){f.phase='rest';f.age=0;f.form=[1,1];}
+    } else if(f.phase==='rest') {
+      f.form=[1,1];
+      if(f.quiet>=CFG.restSeconds){f.phase='rise';f.age=0;}
+    } else if(f.phase==='rise') {
+      const t=clamp01(f.age/CFG.riseSeconds);
+      f.form=[1-smooth((t-0.32)/0.68),1-smooth(t/0.42)];
+      if(t>=1){f.phase='stand';f.form=[0,0];f.cover=f.coverTo=0;}
+    }
+  }
+
+
+
+
+function pose(v,f) {
+  const crouch=f.form[0], roll=f.form[1];
+  const r=f.phase==='rise'
+    ?clamp01(f.age/CFG.riseSeconds)
+    :0;
+
+  const cover=f.cover*(1-smooth(r/0.68));
+  const t=G.time;
+  const kick=Math.sin(t*38)*f.recoil;
+
+  // 상체가 앞뒤로 숙여지거나 비틀리지 않게 고정
+  v.body.position.set(0,0,0);
+  v.body.rotation.set(0,0,0);
+
+  v.torso.position.y=0.5;
+  v.torso.scale.set(1,1,1);
+  v.torso.rotation.set(0,0,0);
+
+  // 얼굴은 정면 유지. 작은 좌우 떨림만 남긴다.
+  v.head.position.y=0.31;
+  v.head.scale.set(1,1,1);
+  v.headPivot.rotation.set(
+    0,
+    0,
+    Math.sin(t*19)*0.008*crouch+kick*0.015
+  );
+
+  // 다리를 깊게 접지 않고 살짝 벌어진 자세만 유지
+  for(const [i,leg] of f.legs.entries()) {
+    leg.leg.rotation.set(
+      0,
+      0,
+      (i?1:-1)*0.05*crouch
+    );
+    bendLeg(leg,0);
+  }
+
+  // 기존 팔 자세와 머리 감싸기 동작은 유지
+  for(const a of v.armRig) {
+    armLengths(v,a,0.20);
+    a.sh.rotation.set(-0.50-0.18*crouch,0,a.s*0.24);
+    a.el.rotation.set(-0.60,0,0);
+    a.hand.rotation.set(0,a.s*0.6,0);
+  }
+
+  // 넘어지기 직전에도 앞이 아닌 옆으로만 살짝 기울인다.
+  // 완전히 쓰러졌을 때는 정확히 옆으로 90도.
+  const lean=0.045*crouch*(1-roll);
+
+  v.root.rotation.set(
+    0,
+    0,
+    f.side*(Math.PI/2*roll+lean)
+  );
+
+  // 기존 골반 기준 위치 보정
+  v.root.position.set(0,0,0);
+  v.root.updateMatrixWorld(true);
+
+  const hip=v.body.localToWorld(
+    new THREE.Vector3(0,0.5,0)
+  );
+
+  v.root.position.x=f.x-hip.x;
+  v.root.position.z=f.z-hip.z;
+  v.root.updateMatrixWorld(true);
+
+  for(const a of v.armRig) {
+    coverHead(v,a,cover*crouch);
+  }
+
+  // 몸이 바닥에 파묻히거나 뜨지 않도록 기존 보정 유지
+  v.root.position.y+=CFG.floor-floorY(v,f);
+  v.root.updateMatrixWorld(true);
+
+  v.state='down';
+  v.stateT=0.35+2.2*r;
+  v.lieZ=f.side*Math.PI/2;
+}
+
+
+
+
+
+
+  function finish(v,f) {
+    for(const leg of f.legs||[]) {bendLeg(leg,0);leg.leg.rotation.set(0,0,0);}
+    v.torso.rotation.set(0,0,0);v.torso.position.y=0.5;
+    v.body.position.set(0,0,0);v.body.rotation.set(0,0,0);
+    v.root.rotation.set(0,0,0);v.root.position.y=0;
+    v.state='stand';v.stateT=0;v.stagger=Math.max(v.stagger||0,0.7);
+    for(const a of v.armRig)armLengths(v,a,0.20);
+    v.root.updateMatrixWorld(true);
+  }
+  function tremble(v,f,dt) {
+    const eligible=G.mode==='hit' && v.state==='stand' && !special(v) &&
+      !G.social && !G.hug && !G.ptr?.grab && !G.ptr?.toolHold;
+    const want=eligible?clamp01((v.damage-CFG.shakeAt)/(CFG.fullShakeAt-CFG.shakeAt)):0;
+    f.shake=mix(f.shake,want,1-Math.exp(-dt*4));
+    if(!eligible||f.shake<0.001)return;
+    const t=G.time,k=f.shake*CFG.shakeScale;
+    for(const a of v.armRig) {
+      a.sh.rotation.z+=a.s*Math.sin(t*27+a.s)*0.16*k;
+      a.sh.rotation.x+=Math.sin(t*23+a.s)*0.05*k;
+      a.el.rotation.x+=Math.sin(t*31+a.s)*0.10*k;
+    }
+    v.body.rotation.z+=Math.sin(t*25)*0.016*k;
+    v.headPivot.rotation.z+=Math.sin(t*29+0.8)*0.022*k;
+    v.root.updateMatrixWorld(true);
+  }
+
+  const oldHit=applyHit;
+  applyHit=function(h) {
+    const v=G.v;if(!v)return oldHit.apply(this,arguments);
+    const f = ensure(v),
+      wasActive = active(v),
+      beforeHits = v.st.hits,
+      beforeDamage = marshmallowFatigue(v);
+    const throwsBefore=DAY.throws||0;
+    const out=oldHit.apply(this,arguments);
+    if(G.v!==v||v.st.hits<=beforeHits||h?.tool==='tissue'||h?.tool==='ground')return out;
+    f.quiet=0;
+    if(wasActive) {
+      f.coverTo=1;f.recoil=Math.min(1,(Number(h.power)||1)*0.30);
+      // Chair/full-bat effects still execute, but a grounded actor does not get
+      // teleported into a competing launch/recovery animation.
+      v._impactV2=null;v._slapMotion=null;v._guardV2=v._wipeV2=null;
+      const walls=scene.getObjectByName?.('chair-impact-side-walls');if(walls)walls.visible=false;
+      if(DAY.throws!==throwsBefore){DAY.throws=throwsBefore;saveDay();}
+      v.root.visible=true;
+      if(f.phase==='rise')startFall(v,f,true);
+      pose(v,f);
+    } else if(G.mode==='hit'&&beforeDamage>=CFG.collapseAt) {
+      f.pending=true;
+      // Finish an already-started chair flight / offscreen return first.
+      if(!special(v))startFall(v,f);
+    }
+    return out;
+  };
+
+  const oldUpdate=updateVillain;
+  updateVillain=function(v,dt) {
+    if(G.editing||document.hidden||document.querySelector('.modal:not([hidden])'))
+      return;
+    dt=Number.isFinite(dt)?Math.max(0,Math.min(dt,0.08)):0;
+    const f=ensure(v);
+    if (f.pending && marshmallowFatigue(v) < CFG.collapseAt) {
+  f.pending = false;
+}
+    if(f.phase==='stand') {
+      const out=oldUpdate(v,dt);
+      if(G.v!==v)return out;
+      if(f.pending&&!special(v)){startFall(v,f);pose(v,f);}
+      else tremble(v,f,dt);
+      return out;
+    }
+    if(['enter','exit'].includes(v.state)) {
+      const state=v.state,age=v.stateT;
+      f.phase='stand';finish(v,f);v.state=state;v.stateT=age;
+      return oldUpdate(v,dt);
+    }
+    // Common eye/mouth/wound updates remain alive. Only automatic down->stand
+    // and the competing full-body pose are bypassed while this pose owns down.
+    v.state='fatigue-base';
+    let out;
+    try {out=oldUpdate(v,dt);} finally {if(G.v===v)v.state='down';}
+    if(G.v!==v)return out;
+    advance(f,dt);
+    if(f.phase==='stand')finish(v,f);else pose(v,f);
+    return out;
+  };
+
+  // Dragging a downed body into the old ankle animation would steal the pose.
+  // Normal taps/swings still use the original, hittable 'down' state.
+  const oldGrab=startGrab;
+  startGrab=function(...args){if(active(G.v))return false;return oldGrab.apply(this,args);};
+
+  const oldDispose=Villain.prototype.dispose;
+  Villain.prototype.dispose=function(...args){data.delete(this);return oldDispose.apply(this,args);};
+  if(window.__api)Object.assign(window.__api,{applyHit,updateVillain,startGrab});
+  window.__SC_FATIGUE_V1={config:CFG,
+    inspect:()=>{const f=G.v&&data.get(G.v);return f?{phase:f.phase,quiet:f.quiet,cover:f.cover,pending:f.pending}:null;}
+  };
+})();
+/* SC_FATIGUE_V1_END */
+
+/* SC_DIALOGUE_NAME_V2_BEGIN */
+(() => {
+  'use strict';
+  if(window.__SC_DIALOGUE_NAME_V2)return;
+
+  // Deliberately bypass the old universal remapping / tooth-count wrapper.
+  speak=function(line,kind='',dur,force=false) {
+    const v=G.v;
+    if(!v||G.editing)return;
+    if(!force&&G.mode==='care'&&['stand','hug'].includes(v.state))return;
+    const ouch=LINES.ouch.includes(line);
+    const chosen=(ouch||G.mode==='care')?line:
+      (typeof pickCharacterLine==='function'?pickCharacterLine():pick(CHARACTER_LINES));
+    const text=String(chosen??'');
+    if(!text.trim())return;
+    const seconds=dur||clamp(0.9+text.length*0.08,1.3,3.2);
+    say(text,seconds,kind); // No lisp(): missing teeth never rewrite the words.
+    v.mouth.talk=clamp(text.length*0.07,0.3,2.2);
+    const n=clamp(Math.round(text.replace(/[^가-힣a-z]/gi,'').length*0.8),1,14);
+    if(kind==='cry')SFX.sob({pitch:v.look.pitch});
+    else SFX.babble(n,{pitch:v.look.pitch,mood:v.fear});
+    G.lastSay=G.time;
+    if(!ouch) {
+      v._mutterLeft=rnd(3,5);
+      v._characterLineUntil=G.time+Math.min(seconds,2.2);
+    }
+  };
+  // The vulnerable monologue belongs to hit mode. Care replies keep their
+  // existing insult/gesture pairing instead of being replaced by monologues.
+  if(typeof updateCharacterMutter==='function') {
+    const oldMutter=updateCharacterMutter;
+    updateCharacterMutter=function(dt){if(G.mode==='hit')return oldMutter(dt);};
+  }
+
+  const labels=new WeakMap();
+  Villain.prototype.drawName=function() {
+    const {g,t}=this.nameTex;
+    if(g.canvas.width!==640)g.canvas.width=640;
+    const W=g.canvas.width,H=g.canvas.height;
+    const chars=Array.from(String(this.look.name||'나쁜 놈').replace(/\s+/g,''));
+    if(!chars.length)chars.push('나','쁜','놈');
+    g.clearRect(0,0,W,H);
+    const size=Math.min(W*0.84,H*0.94/(chars.length*1.04));
+    const line=size*1.04,top=(H-line*chars.length)/2+line/2;
+    g.font=`${size}px "Black Han Sans","Gothic A1","Malgun Gothic",sans-serif`;
+    g.textAlign='center';g.textBaseline='middle';g.lineJoin='round';
+    g.lineWidth=Math.max(5,size*0.075);g.strokeStyle='#fffdf4';g.fillStyle='#1f2a5c';
+    chars.forEach((ch,i)=>{g.strokeText(ch,W/2,top+i*line,W-35);g.fillText(ch,W/2,top+i*line,W-35);});
+    t.needsUpdate=true;
+  };
+
+  // Cache where each label vertex sits on the actual front-facing garment
+  // triangle. Reuse the weights as cloth dents move; no per-frame raycasts.
+  function planLabel(core,uv) {
+    const p=core.geometry.attributes.position,ix=core.geometry.index;
+    const n=ix?ix.count:p.count,at=i=>ix?ix.getX(i):i;
+    const plan=[];
+    for(let q=0;q<uv.count;q++) {
+      const x=(uv.getX(q)-0.5)*0.275;
+      const y=0.035+uv.getY(q)*0.435;
+      let best=null,zBest=-Infinity;
+      for(let j=0;j<n;j+=3) {
+        const a=at(j),b=at(j+1),c=at(j+2);
+        const ax=p.getX(a),ay=p.getY(a),bx=p.getX(b),by=p.getY(b),cx=p.getX(c),cy=p.getY(c);
+        const d=(by-cy)*(ax-cx)+(cx-bx)*(ay-cy);
+        if(Math.abs(d)<1e-10)continue;
+        const u=((by-cy)*(x-cx)+(cx-bx)*(y-cy))/d;
+        const v=((cy-ay)*(x-cx)+(ax-cx)*(y-cy))/d,w=1-u-v;
+        if(u < -1e-5||v < -1e-5||w < -1e-5)continue;
+        const z=u*p.getZ(a)+v*p.getZ(b)+w*p.getZ(c);
+        if(z>zBest){zBest=z;best={a,b,c,u,v,w};}
+      }
+      plan.push(best||{x,y,z:0.18});
+    }
+    return plan;
+  }
+  function centerLabel(v) {
+    const c=v._bodyCloth,tag=c?.tag,core=c?.core;
+    if(!tag||!core)return;
+    const p=tag.geometry.attributes.position,uv=tag.geometry.attributes.uv;
+    let cache=labels.get(v);
+    if(!cache||cache.geo!==core.geometry||cache.label!==tag.geometry) {
+      cache={geo:core.geometry,label:tag.geometry,plan:planLabel(core,uv),version:-1};
+      labels.set(v,cache);
+    }
+    // followAccessories() may have rewritten the old, left-aligned positions.
+    // A version guard skips this work when neither that nor the cloth changed.
+    if(cache.version===p.version&&cache.cloth===core.geometry.attributes.position.version)return;
+    const source=core.geometry.attributes.position;
+    tag.position.set(0,0,0);tag.rotation.set(0,0,0);tag.scale.set(1,1,1);
+    for(let i=0;i<p.count;i++) {
+      const a=cache.plan[i];
+      if(a.a===undefined){p.setXYZ(i,a.x,a.y,a.z+0.012);continue;}
+      p.setXYZ(i,
+        source.getX(a.a)*a.u+source.getX(a.b)*a.v+source.getX(a.c)*a.w,
+        source.getY(a.a)*a.u+source.getY(a.b)*a.v+source.getY(a.c)*a.w,
+        source.getZ(a.a)*a.u+source.getZ(a.b)*a.v+source.getZ(a.c)*a.w+0.012);
+    }
+    p.needsUpdate=true;
+    tag.geometry.computeVertexNormals();tag.geometry.computeBoundingBox();tag.geometry.computeBoundingSphere();
+    cache.version=p.version;cache.cloth=source.version;
+    tag.renderOrder=3;tag.material.depthTest=true;
+    // Keep the tie visible but do not let it mask the central printed letters.
+    // Hands/head still write depth and correctly occlude the label.
+    v.tie?.traverse(o=>{if(o.isMesh)for(const m of (Array.isArray(o.material)?o.material:[o.material]))m.depthWrite=false;});
+  }
+  const oldBuild=Villain.prototype.build,oldLook=Villain.prototype.applyLook;
+  Villain.prototype.build=function(...args){const r=oldBuild.apply(this,args);centerLabel(this);return r;};
+  Villain.prototype.applyLook=function(...args){const r=oldLook.apply(this,args);centerLabel(this);return r;};
+  const oldUpdate=updateVillain;
+  updateVillain=function(v,dt){const r=oldUpdate(v,dt);centerLabel(v);return r;};
+  if(window.__api)Object.assign(window.__api,{speak,updateVillain});
+  window.__SC_DIALOGUE_NAME_V2={version:2};
+})();
+/* SC_DIALOGUE_NAME_V2_END */
+
+HINTS.tissue =
+  '얼굴에 톡톡 · 먹으면 체력만 회복 · 상처와 팔 떨림은 유지';
+
+const marshmallowButton = $('[data-tool="tissue"]');
+
+if (marshmallowButton) {
+  marshmallowButton.setAttribute('aria-label', '마시멜로');
+  marshmallowButton.title = HINTS.tissue;
+
+  marshmallowButton.innerHTML = `
+    <svg viewBox="0 0 48 48" aria-hidden="true">
+      <path
+        d="M23 29h4v15h-4z"
+        fill="#dfbb83"
+        stroke="#1f2a5c"
+        stroke-width="2.4"
+        stroke-linejoin="round"
+      />
+      <rect
+        x="10" y="5" width="29" height="29" rx="8"
+        fill="#fffaf3"
+        stroke="#1f2a5c"
+        stroke-width="2.6"
+      />
+      <path
+        d="M16 13q2-3 6-3"
+        fill="none"
+        stroke="#e7ddd0"
+        stroke-width="2.2"
+        stroke-linecap="round"
+      />
+    </svg>
+    <span>마시멜로</span>
+  `;
+}
 
 /* ================= 시작 ================= */
 function boot() {
