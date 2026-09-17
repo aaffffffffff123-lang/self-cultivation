@@ -1001,6 +1001,104 @@ const SFX = (() => {
     burst(o,t,{dur:.028,peak:.82,type:'bandpass',f:2130,q:.6});
     burst(o,t+.016,{dur:.18,peak:.34,type:'lowpass',f:760,f1:100});
     burst(o,t+.10,{dur:.22,peak:.16,a:.02,type:'bandpass',f:480,f1:1800,q:.8});};
+
+S.batOffscreenCrash = (pan = 0) => {
+  if (!ctx || !on || ctx.state !== 'running') return;
+
+  // 화면 밖으로 사라진 직후, 살짝 늦게 첫 충돌.
+  const t = ctx.currentTime + .065;
+  const o = out(clamp(pan, -.92, .92), .22);
+
+  // 전체 효과음 크기. 더 작게 하려면 .60 정도로.
+  o.gain.value = .74;
+
+  // 첫 번째 큰 충돌: 쾅!
+  tone(o, t, {
+    f0: 96, f1: 27,
+    dur: .34, peak: .90
+  });
+
+  tone(o, t, {
+    type: 'triangle',
+    f0: 218, f1: 56,
+    dur: .13, peak: .43
+  });
+
+  burst(o, t, {
+    dur: .045, peak: .72,
+    type: 'bandpass', f: 1250, q: .65
+  });
+
+  burst(o, t + .012, {
+    dur: .19, peak: .45,
+    type: 'lowpass', f: 820, f1: 190
+  });
+
+  // 우당탕쾅쿵: 간격과 세기가 다른 후속 충돌.
+  // 계속 작아지기만 하지 않고, 중간에 한 번 더 크게 부딪힌다.
+  const hits = [
+    [.11, .62, 148],
+    [.20, .86, 104],
+    [.31, .46, 172],
+    [.47, .60, 90],
+    [.63, .28, 136],
+    [.79, .16, 112]
+  ];
+
+  hits.forEach(([delay, strength, freq], i) => {
+    const at = t + delay;
+
+    tone(o, at, {
+      type: 'triangle',
+      f0: freq,
+      f1: 34 + i * 3,
+      dur: .15 - i * .01,
+      peak: .70 * strength
+    });
+
+    burst(o, at, {
+      dur: .045,
+      peak: .46 * strength,
+      type: 'bandpass',
+      f: 760 + i * 150,
+      q: .75
+    });
+  });
+
+  // 주변 물건이 같이 흔들리고 튕기는 짧은 달그락 소리.
+  [.08, .16, .26, .38, .53, .69, .84].forEach((delay, i) => {
+    const k = 1 / (1 + i * .60);
+
+    burst(o, t + delay, {
+      dur: .018,
+      peak: .18 * k,
+      type: 'bandpass',
+      f: R(1450, 2900),
+      q: 1.4
+    });
+
+    tone(o, t + delay + .003, {
+      type: 'triangle',
+      f0: R(420, 950),
+      f1: R(240, 390),
+      dur: .042,
+      peak: .075 * k
+    });
+  });
+
+  // 바닥에 끌리며 잦아드는 마찰음.
+  burst(o, t + .28, {
+    dur: .36,
+    a: .012,
+    peak: .095,
+    type: 'bandpass',
+    f: 900,
+    f1: 260,
+    q: .55
+  });
+};
+
+
   S.downGush=()=>{if(!ctx)return;const t=ctx.currentTime,o=out(0,.035);
     burst(o,t,{dur:.18,peak:.20,type:'bandpass',f:1800,f1:350,q:.6});
     [0,.04,.09,.15].forEach(d=>tone(o,t+d,{f0:260,f1:88,dur:.045,peak:.10}));};
@@ -1682,7 +1780,7 @@ ntag.renderOrder = 2;
     const sg = new THREE.ExtrudeGeometry(ss, { depth: 0.012, bevelEnabled: false });
     for (let i = 0; i < 4; i++) { const st = mesh(sg, new THREE.MeshStandardMaterial({ color: col('#ffd23f'), emissive: col('#ffb800'), emissiveIntensity: 0.4 }), this.stars, false); st.userData.a = i / 4 * Math.PI * 2; }
     // 손바닥 위 이빨 자리
-    this.palm = new THREE.Group(); this.armRig[1].hand.add(this.palm); this.palm.position.set(0, -0.02, 0.05);
+    this.palm = new THREE.Group(); this.armRig[1].hand.add(this.palm); this.palm.position.set(0, -0.045, -0.045);
 
     this.applyLook(L, true);
     this.root.traverse(o => { if (o.isMesh && o.userData.part === undefined) o.userData.part = null; });
@@ -4708,9 +4806,9 @@ function fixActorHandPose(v) {
     a.el.quaternion.copy(lower);
 
     // 손가락(-Y)은 전완과 같은 방향.
-    // 손목을 뒤로 꺾지 않고 손바닥(+Z)만 몸 쪽으로 정렬한다.
-    const y = foreDir.clone().negate();
-    const z = V3(-a.s * .15, 0, -1).projectOnPlane(y);
+// 손등(+Z)은 바깥쪽, 손바닥(-Z)은 몸 쪽으로 정렬한다.
+const y = foreDir.clone().negate();
+const z = V3(a.s * .15, 0, 1).projectOnPlane(y);
 
     if (z.lengthSq() < 1e-8) {
       z.copy(V3(0, 1, 0).projectOnPlane(y));
@@ -4893,9 +4991,24 @@ function updateVillain(v, dt) {
     a.sh.rotation.set(c.sx, 0, a.s * c.sz);
     a.el.rotation.set(c.ex, 0, -a.s * c.ez);
     // 손바닥 방향: 막는 자세는 앞으로, 나머지는 몸 안쪽(허벅지 쪽)으로. 엄지가 앞에 오도록.
-    const tooth = v.toothHold > 0 && a.s > 0, hy = tooth || armMode === 'guard' ? 0 : a.s * 1.4;
-    c.hy = c.hy === undefined ? hy : damp(c.hy, hy, 10, dt);
-    a.hand.rotation.set(tooth ? -1.3 : 0, c.hy, 0);
+   
+   
+   
+const tooth = v.toothHold > 0 && a.s > 0;
+
+// 이빨을 받칠 때는 손목을 접지 않고,
+// 전완 방향을 유지하면서 손바닥(-Z)이 위로 향하게 돌린다.
+const hy = tooth
+  ? Math.PI
+  : armMode === 'guard'
+    ? 0
+    : a.s * 1.4;
+
+c.hy = c.hy === undefined ? hy : damp(c.hy, hy, 10, dt);
+a.hand.rotation.set(0, c.hy, 0);
+
+
+
   }
   poseSocialActor(v,dt);
   v.toothHold = Math.max(0, (v.toothHold || 0) - dt);
@@ -7153,18 +7266,58 @@ window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,CARE_REPL
     for(const a of v.armRig){a.sh.rotation.set(-.45,0,a.s*.14);a.el.rotation.set(-1.05,0,-a.s*.35);}
     if(u>=1)finish(v);
   }
-  function updateHomerun(v,m,dt){
-    if(m.phase==='fly'){
-      tumblePose(v,m);m.pivot.addScaledVector(m.vel,dt);m.vel.y-=6*dt;m.angle+=m.spin*dt;pin(v,m);
-      if(m.side*m.pivot.x>=m.side*m.offX){m.phase='wait';m.age=0;v.root.visible=false;event('offscreen');}
-    }else if(m.phase==='wait'){
-      v.root.visible=false;
-      if(m.age>.48){
-        neutralBody(v);v.root.visible=true;m.kind='limp';m.age=0;m.returnX=m.offX;m.returnZ=0;
-        m.duration=Math.max(1.6,Math.abs(m.offX)/CFG.returnSpeed);event('limp-start');
-      }
+  
+
+
+
+function updateHomerun(v, m, dt) {
+  if (m.phase === 'fly') {
+    tumblePose(v, m);
+
+    m.pivot.addScaledVector(m.vel, dt);
+    m.vel.y -= 6 * dt;
+    m.angle += m.spin * dt;
+
+    pin(v, m);
+
+    // 완전히 화면 밖에 도달한 순간.
+    if (m.side * m.pivot.x >= m.side * m.offX) {
+      m.phase = 'wait';
+      m.age = 0;
+      v.root.visible = false;
+
+      event('offscreen');
+
+      // 날아간 방향에서 한 번만 재생.
+      SFX.batOffscreenCrash?.(m.side * .90);
+    }
+
+  } else if (m.phase === 'wait') {
+    v.root.visible = false;
+
+    // 우당탕 소리가 난 뒤에 돌아오도록,
+    // 기존 .48초보다 화면 밖 대기 시간을 늘린다.
+    if (m.age > 1.08) {
+      neutralBody(v);
+      v.root.visible = true;
+
+      m.kind = 'limp';
+      m.age = 0;
+      m.returnX = m.offX;
+      m.returnZ = 0;
+
+      m.duration = Math.max(
+        1.6,
+        Math.abs(m.offX) / CFG.returnSpeed
+      );
+
+      event('limp-start');
     }
   }
+}
+
+
+
   function pressPose(v,m,dt){
     neutralBody(v);const t=m.age,k=t<.11?1:t<.30?lerp(1,.84,(t-.11)/.19):1-ease(clamp((t-.30)/.84,0,1));
     v.head.position.y=.31-CFG.headDrop*k;v.head.scale.set(1+.11*k,1-.30*k,1+.09*k);
