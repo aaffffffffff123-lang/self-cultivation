@@ -1663,13 +1663,9 @@ function mouthRest(L, smug = false) {
 
   return m;
 }
-  const m={open:0,smile:smug?.4:0,smirk:smug?.8:0,wide:.9};
-  if(L.mouthStyle==='smile')Object.assign(m,{smile:.7,smirk:smug?.3:0});
-  if(L.mouthStyle==='frown')Object.assign(m,{smile:-.65,smirk:smug?.2:0});
-  if(L.mouthStyle==='o')Object.assign(m,{open:.36,smile:0,smirk:0,wide:.15});
-  if(L.mouthStyle==='toothy')Object.assign(m,{open:.28,smile:.55,smirk:smug?.25:0,wide:1.1});
-  return m;
-}
+
+
+
 
 const faceXY = d => [(Math.atan2(d.z, -d.x) / Math.PI) * 1024, (Math.acos(clamp(d.y, -1, 1)) / Math.PI) * 1024];
 const dirN = (x, y, z) => V3(x, y, z).normalize();
@@ -6839,13 +6835,9 @@ window.__appearanceEditor=AppearanceEditor;
       }
 
       renderer.resetState();
-
       for (const t of all) {
-        // 텍스처 객체와 원본 그림은 유지.
-        // GPU에 올라간 데이터만 다시 만든다.
-        t.dispose();
+        // 다음 렌더링에서 엔진이 종류에 맞게 다시 업로드한다.
         t.needsUpdate = true;
-        renderer.initTexture?.(t);
       }
 
       renderer.shadowMap.needsUpdate = true;
