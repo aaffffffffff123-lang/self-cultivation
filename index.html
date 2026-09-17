@@ -1328,11 +1328,89 @@ function capsuleGeo(r, len, seg = 18, n = 7) {
   for (let i = 1; i <= n; i++) { const a = (i / n) * Math.PI / 2; pts.push(new THREE.Vector2(Math.max(0.0001, Math.cos(a) * r), Math.sin(a) * r + len / 2)); }
   return new THREE.LatheGeometry(pts, seg);
 }
+
+
+const SC_CANVAS_BACKUPS = new WeakMap();
+
 function canvasTex(w, h) {
-  const c = document.createElement('canvas'); c.width = w; c.height = h;
-  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4;
-  return { c, g: c.getContext('2d'), t };
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+
+  // 3D 화면이 아니라, 표면 그림의 원본용 캔버스 설정.
+  const g = c.getContext('2d', { willReadFrequently: true });
+
+  if (!g) {
+    throw new Error('텍스처용 캔버스를 만들지 못했습니다.');
+  }
+
+  const t = new THREE.CanvasTexture(c);
+  t.encoding = THREE.sRGBEncoding;
+  t.anisotropy = 4;
+
+  let pixels = null;
+  let savedVersion = -1;
+  let lost = false;
+
+  const backup = {
+    save() {
+      if (
+        lost || g.isContextLost?.() ||
+        !c.width || !c.height
+      ) return;
+
+      if (
+        pixels && savedVersion === t.version &&
+        pixels.width === c.width &&
+        pixels.height === c.height
+      ) return;
+
+      try {
+        pixels = g.getImageData(0, 0, c.width, c.height);
+        savedVersion = t.version;
+      } catch (e) {
+        console.warn('텍스처 백업 실패:', e);
+      }
+    },
+
+    restore(force = false) {
+      if (!pixels || lost || g.isContextLost?.()) return;
+
+      if (
+        pixels.width !== c.width ||
+        pixels.height !== c.height
+      ) return;
+
+      // 백업 후 정상적으로 다시 그려진 그림은 덮어쓰지 않는다.
+      if (!force && savedVersion !== t.version) return;
+
+      g.putImageData(pixels, 0, 0);
+      t.needsUpdate = true;
+      savedVersion = t.version;
+    }
+  };
+
+  SC_CANVAS_BACKUPS.set(t, backup);
+
+  // 첫 업로드 때만 백업. 매 프레임 픽셀을 복사하지 않는다.
+  t.onUpdate = () => {
+    if (!pixels) backup.save();
+  };
+
+  // 2D 원본 손실은 WebGL 화면 손실과 별도로 처리.
+  c.addEventListener('contextlost', () => {
+    lost = true;
+  });
+
+  c.addEventListener('contextrestored', () => {
+    lost = false;
+    backup.restore(true);
+    window.__SC_TEXTURE_RESUME?.request();
+  });
+
+  return { c, g, t };
 }
+
 // 로컬 기저로 방향 맞추기 (z=forward, y=up)
 const _m4 = new THREE.Matrix4();
 function orient(obj, fwd, up) {
@@ -6692,8 +6770,153 @@ const AppearanceEditor=(()=>{
   return Object.assign(E,{open,close,resize,frame,selectTab,replaceDraft,savePreset});
 })();
 window.__appearanceEditor=AppearanceEditor;
-canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();window.__bootGuard.lost=true;cancelPointer();endHug();clearAttacks();window.showGameError('3D 화면을 복구하고 있어요.','외모와 저장된 기록은 지우지 않았어요. 복구되지 않으면 화면 다시 열기를 눌러 주세요.');});
-canvas.addEventListener('webglcontextrestored',()=>{window.__bootGuard.lost=false;lastT=performance.now();scene.traverse(o=>{for(const m of(o.material?(Array.isArray(o.material)?o.material:[o.material]):[])){m.needsUpdate=true;for(const t of Object.values(m))if(t?.isTexture)t.needsUpdate=true;}});fit();$('#fallback').style.display='none';});
+
+
+(() => {
+  let queued = 0;
+
+  function textures() {
+    const result = new Set();
+
+    const add = t => {
+      if (t?.isTexture && !t.isRenderTargetTexture) {
+        result.add(t);
+      }
+    };
+
+    // 본게임과 외모 편집기 양쪽을 모두 포함한다.
+    for (const root of [scene, AppearanceEditor.scene]) {
+      if (!root) continue;
+
+      add(root.background);
+      add(root.environment);
+
+      root.traverse(o => {
+        const materials = Array.isArray(o.material)
+          ? o.material
+          : o.material ? [o.material] : [];
+
+        for (const m of materials) {
+          for (const value of Object.values(m)) {
+            add(value);
+          }
+        }
+      });
+    }
+
+    return result;
+  }
+
+  function backup() {
+    for (const t of textures()) {
+      SC_CANVAS_BACKUPS.get(t)?.save();
+    }
+  }
+
+  function repair() {
+    queued = 0;
+
+    if (
+      document.hidden ||
+      renderer.getContext().isContextLost()
+    ) return;
+
+    try {
+      const all = textures();
+
+      for (const t of all) {
+        SC_CANVAS_BACKUPS.get(t)?.restore();
+      }
+
+      // 캐릭터를 새로 만들지 않는다.
+      // 현재 외모·상처·표정 데이터로 그림만 다시 그린다.
+      for (const v of [G.v, AppearanceEditor.model]) {
+        if (!v) continue;
+
+        v.paintFace();
+        v.paintMouth();
+        v.drawName();
+      }
+
+      renderer.resetState();
+
+      for (const t of all) {
+        // 텍스처 객체와 원본 그림은 유지.
+        // GPU에 올라간 데이터만 다시 만든다.
+        t.dispose();
+        t.needsUpdate = true;
+        renderer.initTexture?.(t);
+      }
+
+      renderer.shadowMap.needsUpdate = true;
+      lastT = performance.now();
+
+      if (G.editing && AppearanceEditor.isOpen) {
+        AppearanceEditor.resize();
+        AppearanceEditor.frame(0);
+      } else {
+        fit();
+        updateCamera(0);
+        scene.updateMatrixWorld(true);
+        renderer.render(scene, camera);
+      }
+
+      window.__bootGuard.lost = false;
+      $('#fallback').style.display = 'none';
+
+    } catch (e) {
+      console.error('화면 복구 실패:', e);
+
+      window.showGameError(
+        '화면을 복구하지 못했어요.',
+        '자동 새로고침은 하지 않았어요. ' +
+        '화면 다시 열기로 재시작할 수 있어요.'
+      );
+    }
+  }
+
+  function request() {
+    // focus·pageshow 등이 연달아 와도 한 번만 실행.
+    if (!document.hidden && !queued) {
+      queued = requestAnimationFrame(repair);
+    }
+  }
+
+  canvas.addEventListener('webglcontextlost', e => {
+    e.preventDefault();
+
+    window.__bootGuard.lost = true;
+
+    cancelPointer();
+    endHug();
+    stopSocial();
+    clearAttacks();
+
+    window.showGameError(
+      '3D 화면을 복구하고 있어요.',
+      '잠시만 기다려 주세요.'
+    );
+  });
+
+  canvas.addEventListener(
+    'webglcontextrestored',
+    request
+  );
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) backup();
+    else request();
+  });
+
+  addEventListener('blur', backup);
+  addEventListener('pagehide', backup);
+  addEventListener('focus', request);
+  addEventListener('pageshow', request);
+
+  window.__SC_TEXTURE_RESUME = { request };
+})();
+
+
 window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,CARE_REPLY,startSocial,stopSocial,requestHighFive,careSay,CARE_LINES,CareVoice,poseCareArm,careFace,careIsAwkward,clearAttacks,gestureExtra,step,poseAttack,doContact,RIG,scene,camera,renderer,TOOL_SPEC,normaliseLook,randomLook,impactStopDuration,moodOf,updateVillain,liveContactPoint});
 
 
