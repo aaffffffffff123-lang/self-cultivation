@@ -6,6 +6,8 @@
 <meta name="theme-color" content="#8fdcc9">
 <title>나쁜 놈 패기</title>
 <meta name="game-build" content="care-deadpan-20260917">
+<meta name="game-fix" content="SC_STABILITY_20260918A">
+<!-- Based on eed8691 / blob 2a5cfb8; existing gameplay patches retained. -->
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' fill='%23ffd23f' stroke='%231f2a5c' stroke-width='5'/%3E%3Cpath d='M20 26l8 4M44 26l-8 4M22 44q10-8 20 0' stroke='%231f2a5c' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1471,10 +1473,52 @@ function capsuleGeo(r, len, seg = 18, n = 7) {
   for (let i = 1; i <= n; i++) { const a = (i / n) * Math.PI / 2; pts.push(new THREE.Vector2(Math.max(0.0001, Math.cos(a) * r), Math.sin(a) * r + len / 2)); }
   return new THREE.LatheGeometry(pts, seg);
 }
+// SC_TEXTURE_BACKUP_20260918A: CPU-side source backups, keyed by texture.
+const SC_CANVAS_BACKUPS = new WeakMap();
+
 function canvasTex(w, h) {
-  const c = document.createElement('canvas'); c.width = w; c.height = h;
-  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4;
-  return { c, g: c.getContext('2d'), t };
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const g = c.getContext('2d', { willReadFrequently: true });
+  if (!g) throw new Error('텍스처용 캔버스를 만들지 못했습니다.');
+  const t = new THREE.CanvasTexture(c);
+  t.encoding = THREE.sRGBEncoding;
+  t.anisotropy = 4;
+
+  let pixels = null, savedVersion = -1, sourceLost = false;
+  const rec = {
+    save() {
+      if (sourceLost || g.isContextLost?.() || !c.width || !c.height) return;
+      if (pixels && savedVersion === t.version &&
+          pixels.width === c.width && pixels.height === c.height) return;
+      try {
+        pixels = g.getImageData(0, 0, c.width, c.height);
+        savedVersion = t.version;
+      } catch (error) {
+        console.warn('텍스처 원본 백업 실패:', error);
+      }
+    },
+    restore(force = false) {
+      if (!pixels || sourceLost || g.isContextLost?.()) return false;
+      if (pixels.width !== c.width || pixels.height !== c.height) return false;
+      // Do not overwrite a legitimately redrawn texture with an older snapshot.
+      if (!force && savedVersion !== t.version) return false;
+      g.putImageData(pixels, 0, 0);
+      t.needsUpdate = true;
+      savedVersion = t.version;
+      return true;
+    }
+  };
+  SC_CANVAS_BACKUPS.set(t, rec);
+  // Snapshot once on first upload, then refresh only when the page is left.
+  t.onUpdate = () => { if (!pixels) rec.save(); };
+  c.addEventListener('contextlost', () => { sourceLost = true; });
+  c.addEventListener('contextrestored', () => {
+    sourceLost = false;
+    rec.restore(true);
+    window.__SC_TEXTURE_RESUME?.request();
+  });
+  return { c, g, t };
 }
 // 로컬 기저로 방향 맞추기 (z=forward, y=up)
 const _m4 = new THREE.Matrix4();
@@ -2271,7 +2315,13 @@ ntag.renderOrder = 2;
     g.save();g.translate(256,112);g.scale(L.mouthWidth,L.mouthHeight);g.translate(-256,-112);
     const cx = 256, cy = 112;
     const hw = 64 + M.wide * 40;
-    const open = M.open, sm = M.smile, sk = M.smirk;
+    // SC_STABILITY_20260918A: preview choices remain editable; no in-game smile.
+    const inGame = this.hostScene === scene;
+    const open = M.open; // Keep talking, chewing and hit-reaction mouth movement.
+    const sm = inGame
+      ? Math.min(-0.35, Number.isFinite(M.smile) ? M.smile : -0.35)
+      : M.smile;
+    const sk = inGame ? 0 : M.smirk;
     const lipC = L.lipColor;
     const yl = cy - sk * 16 + sm * -14, yr = cy + sk * 6 + sm * -14;
     if(M.shape==='grit'){
@@ -4201,7 +4251,7 @@ function endToolHold(cancelled=false){
 }
 function updateIdleTool(dt){
   if(G.editing||G.mode!=='hit'||G.tool==='hand'||!G.v||G.hug||!['stand','down'].includes(G.v.state)||G.ptr?.toolHold||G.attacks.some(a=>a.k.rig==='tool'))return;
-  if(!$('#settingsModal').hidden||!$('#statsModal').hidden||!$('#letterModal').hidden)return;
+  if (document.querySelector('.modal:not([hidden])')) return;
   const r=RIG.tools[G.tool];if(!r)return;r.visible=true;
   const dock=$('.dock').getBoundingClientRect(),y=Math.min(innerHeight*.69,dock.top-35),center=planePoint(innerWidth*.82,Math.max(120,y),.68);
   const n=V3(.18,.05,1).normalize(),q=contactBasis(n,1,'bonk');r.quaternion.copy(q);
@@ -7077,7 +7127,6 @@ const AppearanceEditor=(()=>{
   function open(){
     if(E.isOpen||!G.v)return;
     if(!['stand','hug'].includes(G.v.state)){say('잠깐, 똑바로 서면 바꿔 주세요!',1.6);return;}
-    if(!$('#letterModal').hidden)return;
     SFX.unlock();endHug();cancelPointer();stopSocial();clearAttacks();G.attacks=[];G.careAnim=null;handsRoot.children.forEach(o=>o.visible=false);G.hitstop=0;G.slowmo=0;G.shake=0;
     E.draft=clone(G.v.look);E.history=[clone(E.draft)];E.at=0;E.yaw=0;E.full=false;E.expression='neutral';E.time=0;E.drag=null;E.dirty=false;
     $$('.modal:not(#lookModal)').forEach(m=>{if(m.id!=='letterModal')m.hidden=true;});
@@ -7101,7 +7150,10 @@ const AppearanceEditor=(()=>{
       fit();updateCamera(.05);scene.updateMatrixWorld(true);renderer.render(scene,camera);updateCareButtons(true);refreshAppearanceButton();$('#appearanceBtn').focus({preventScroll:true});
     }
     if(failed)say('외모 적용 중 문제가 생겨 게임 화면으로 돌아왔어요.',3);
-    else if(apply){SFX.twinkle();say(stored?'외모는 바뀌었는데, 죄목은 그대로네?':'적용했어요. 브라우저 저장은 차단되어 있어요.',stored?2:3);}
+    else if (apply) {
+      SFX.twinkle();
+      if (!stored) say('외모는 적용했지만 브라우저 저장에 실패했어요.', 3);
+    }
   }
   function thumbnail(){
     const old={w:E.w,h:E.h,full:E.full,yaw:E.yaw,expression:E.expression};
@@ -7155,8 +7207,90 @@ const AppearanceEditor=(()=>{
   return Object.assign(E,{open,close,resize,frame,selectTab,replaceDraft,savePreset});
 })();
 window.__appearanceEditor=AppearanceEditor;
-canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();window.__bootGuard.lost=true;cancelPointer();endHug();clearAttacks();window.showGameError('3D 화면을 복구하고 있어요.','외모와 저장된 기록은 지우지 않았어요. 복구되지 않으면 화면 다시 열기를 눌러 주세요.');});
-canvas.addEventListener('webglcontextrestored',()=>{window.__bootGuard.lost=false;lastT=performance.now();scene.traverse(o=>{for(const m of(o.material?(Array.isArray(o.material)?o.material:[o.material]):[])){m.needsUpdate=true;for(const t of Object.values(m))if(t?.isTexture)t.needsUpdate=true;}});fit();$('#fallback').style.display='none';});
+/* SC_TEXTURE_RESUME_20260918A_BEGIN */
+(() => {
+  let queued = 0;
+  const status = { repairs: 0, lastError: '' };
+
+  function textures() {
+    const result = new Set();
+    const add = t => {
+      if (t?.isTexture && !t.isRenderTargetTexture) result.add(t);
+    };
+    for (const root of [scene, AppearanceEditor.scene]) {
+      if (!root) continue;
+      add(root.background); add(root.environment);
+      root.traverse(o => {
+        const materials = Array.isArray(o.material)
+          ? o.material : o.material ? [o.material] : [];
+        for (const m of materials) {
+          for (const value of Object.values(m)) add(value);
+        }
+      });
+    }
+    return result;
+  }
+
+  function backup() {
+    if (!window.__bootGuard.ready || renderer.getContext().isContextLost()) return;
+    for (const t of textures()) SC_CANVAS_BACKUPS.get(t)?.save();
+  }
+
+  function repair() {
+    queued = 0;
+    // A focus/pageshow event may arrive before boot finishes.
+    if (!window.__bootGuard.ready || document.hidden ||
+        renderer.getContext().isContextLost()) return;
+    try {
+      const all = textures();
+      for (const t of all) SC_CANVAS_BACKUPS.get(t)?.restore();
+      renderer.resetState();
+      // r128 chooses 2D/cube uploads during rendering. Do not call initTexture
+      // on arbitrary texture types, and do not dispose live shared textures.
+      for (const t of all) t.needsUpdate = true;
+      renderer.shadowMap.needsUpdate = true;
+      lastT = performance.now();
+      if (G.editing && AppearanceEditor.isOpen) {
+        AppearanceEditor.resize();
+        AppearanceEditor.frame(0);
+      } else {
+        fit();
+        updateCamera(0);
+        scene.updateMatrixWorld(true);
+        renderer.render(scene, camera);
+      }
+      window.__bootGuard.lost = false;
+      $('#fallback').style.display = 'none';
+      status.repairs++;
+      status.lastError = '';
+    } catch (error) {
+      status.lastError = String(error?.message || error);
+      console.error('화면 복구 실패:', error);
+      window.showGameError('화면을 복구하지 못했어요.',
+        '자동으로 재시작하지 않았어요. 화면 다시 열기를 누르면 다시 시작합니다.');
+    }
+  }
+
+  function request() {
+    if (!document.hidden && !queued) queued = requestAnimationFrame(repair);
+  }
+  canvas.addEventListener('webglcontextlost', e => {
+    e.preventDefault();
+    window.__bootGuard.lost = true;
+    cancelPointer(); endHug(); stopSocial(); clearAttacks();
+    window.showGameError('3D 화면을 복구하고 있어요.', '잠시만 기다려 주세요.');
+  });
+  canvas.addEventListener('webglcontextrestored', request);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) backup(); else request();
+  });
+  addEventListener('blur', backup);
+  addEventListener('pagehide', backup);
+  addEventListener('focus', request);
+  addEventListener('pageshow', request);
+  window.__SC_TEXTURE_RESUME = { request, backup, status };
+})();
+/* SC_TEXTURE_RESUME_20260918A_END */
 window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,CARE_REPLY,startSocial,stopSocial,requestHighFive,careSay,CARE_LINES,CareVoice,poseCareArm,careFace,careIsAwkward,clearAttacks,gestureExtra,step,poseAttack,doContact,RIG,scene,camera,renderer,TOOL_SPEC,normaliseLook,randomLook,impactStopDuration,moodOf,updateVillain,liveContactPoint});
 
 
@@ -8011,7 +8145,7 @@ function updateHomerun(v, m, dt) {
   }
   canvas.addEventListener('pointerdown',e=>{
     if(G.editing||G.mode!=='hit'||!['chair','brick'].includes(G.tool)||e.button>0||e.isPrimary===false)return;
-    if(!$('#settingsModal').hidden||!$('#statsModal').hidden||!$('#letterModal').hidden)return;
+    if (document.querySelector('.modal:not([hidden])')) return;
     stopEvent(e);
 
 if (
@@ -8149,7 +8283,7 @@ if (
   updateIdleTool=function(dt){
     if(held||action||ownMotion(G.v))return;
     if(!G.editing&&G.mode==='hit'&&G.tool==='brick'&&G.v?.state==='stand'){
-      if(!$('#settingsModal').hidden||!$('#statsModal').hidden||!$('#letterModal').hidden)return;
+      if (document.querySelector('.modal:not([hidden])')) return;
       brickRig.visible=true;brickVisual.visible=true;
       const dock=$('.dock').getBoundingClientRect();brickRig.position.copy(planePoint(innerWidth*.82,Math.max(120,dock.top-45),.75));
       brickRig.rotation.set(-.26,-.40,.1);return;
@@ -9405,7 +9539,7 @@ text.textContent = Math.random() < 0.5
       e.preventDefault();
       e.stopImmediatePropagation();
 
-      $('#letterModal').hidden = true;
+      document.getElementById('letterModal')?.setAttribute('hidden', '');
       G.lastAct = G.time;
     }, true);
   }
@@ -9782,7 +9916,7 @@ text.textContent = Math.random() < 0.5
   'use strict';
   if (window.__SC_CARE8_MEDICINE_V1) return;
 
-  const DOSES = 4;
+  const DOSES = 15; // Match the existing 15-use medicine setting.
 
   const strip = document.querySelector('#careTools .care-strip');
   const medicine = document.querySelector('[data-care="bandage"]');
