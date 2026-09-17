@@ -949,6 +949,43 @@ const SFX = (() => {
     burst(o,t,{dur:.046,peak:.38*p,type:'bandpass',f:1700,q:.75});
     burst(o,t,{dur:.015,peak:.2*p,type:'highpass',f:3200});
     tone(o,t,{f0:360,f1:170,dur:.044,peak:.15*p});};
+  /* SC_IMPACT_V2_AUDIO_BEGIN — uses the existing mute, compressor and audio bus. */
+  S.chairMetal = (pan=0,power=1) => {
+    if(!ctx)return;const t=ctx.currentTime,o=out(pan,.19),p=Math.min(1.25,.75+power*.14),j=R(.95,1.05);
+    tone(o,t,{type:'triangle',f0:164,f1:37,dur:.23,peak:.78*p});
+    burst(o,t,{dur:.035,peak:.84*p,type:'bandpass',f:1650,q:.6});
+    [[387,.38,.45],[713,.32,.36],[1283,.24,.30],[2371,.13,.22]].forEach(([f,a,d])=>tone(o,t+.006,{f0:f*j,f1:f*.94*j,dur:d,peak:a*p}));
+    // Separate hinge rattles, not a louder frying-pan sample.
+    [0,.048,.102,.178,.274].forEach((d,i)=>{
+      burst(o,t+d,{dur:.025,peak:.29/(1+i*.32),type:'highpass',f:1300+i*170});
+      tone(o,t+d,{type:'triangle',f0:830+i*217,f1:500+i*137,dur:.06,peak:.12/(1+i*.25)});
+    });
+  };
+  S.wallCrash=(pan=0)=>{if(!ctx)return;const t=ctx.currentTime,o=out(pan,.14);
+    tone(o,t,{f0:108,f1:31,dur:.25,peak:.88});
+    burst(o,t,{dur:.10,peak:.66,type:'lowpass',f:1250,f1:230});
+    [0,.045,.105].forEach((d,i)=>burst(o,t+d,{dur:.038,peak:.30/(i+1),type:'bandpass',f:1850-i*370,q:.65}));};
+  S.floorCrash=(pan=0,soft=false)=>{if(!ctx)return;const t=ctx.currentTime,o=out(pan,.09),p=soft?.45:1;
+    tone(o,t,{type:'triangle',f0:132,f1:38,dur:.16,peak:.7*p});
+    burst(o,t,{dur:.06,peak:.48*p,type:'bandpass',f:710,q:.7});
+    burst(o,t+.055,{dur:.035,peak:.18*p,type:'highpass',f:1750});};
+  S.brickImpact=(pan=0)=>{if(!ctx)return;const t=ctx.currentTime,o=out(pan,.05);
+    tone(o,t,{type:'triangle',f0:185,f1:47,dur:.16,peak:.76});
+    burst(o,t,{dur:.029,peak:.65,type:'bandpass',f:1420,q:.8});
+    clicks(o,t+.02,5,.11,2850,.19);};
+  S.batFull=(pan=0)=>{if(!ctx)return;const t=ctx.currentTime,o=out(pan,.12);
+    tone(o,t,{f0:175,f1:27,dur:.30,peak:.90});
+    tone(o,t,{type:'triangle',f0:535,f1:125,dur:.10,peak:.52});
+    burst(o,t,{dur:.028,peak:.82,type:'bandpass',f:2130,q:.6});
+    burst(o,t+.016,{dur:.18,peak:.34,type:'lowpass',f:760,f1:100});
+    burst(o,t+.10,{dur:.22,peak:.16,a:.02,type:'bandpass',f:480,f1:1800,q:.8});};
+  S.downGush=()=>{if(!ctx)return;const t=ctx.currentTime,o=out(0,.035);
+    burst(o,t,{dur:.18,peak:.20,type:'bandpass',f:1800,f1:350,q:.6});
+    [0,.04,.09,.15].forEach(d=>tone(o,t+d,{f0:260,f1:88,dur:.045,peak:.10}));};
+  S.fullReady=()=>{if(!ctx)return;const t=ctx.currentTime,o=out(0,.06);
+    [650,975].forEach((f,i)=>tone(o,t+i*.065,{type:'triangle',f0:f,dur:.10,peak:.09}));};
+  /* SC_IMPACT_V2_AUDIO_END */
+
   S.unlock = unlock; S.setOn = setOn;
   return S;
 })();
@@ -5507,7 +5544,7 @@ const Slapstick = (() => {
   const oldHit=applyHit;
   applyHit=function(h){
     const v=G.v,r=oldHit(h);
-    if(v&&G.v===v&&h?.tool==='chair')chairLaunch(v,h,unit(h.power));
+    if(v&&G.v===v&&h?.tool==='chair'&&!h._impactV2)chairLaunch(v,h,unit(h.power));
     return r;
   };
 
@@ -6406,6 +6443,606 @@ window.__api=Object.assign(window.__api,{startSocial,stopSocial,requestHighFive,
 
 
 
+
+
+/* SC_IMPACT_V2_BEGIN
+ * self-cultivation / directional chair, brick, full-charge bat, reactive arms.
+ * Insert AFTER all previous patches, immediately BEFORE the boot section.
+ * Requires the small audio insertion and chair auto-launch guard in the installer.
+ * Animation values are fictional cartoon units, not physical injury modelling.
+ */
+(() => {
+  'use strict';
+  if(window.__SC_IMPACT_V2)return;
+  const VERSION='impact-v2-20260917';
+  const CFG={chairSideSpeed:16,wallRebound:.68,floorBounce:5.6,
+    fullBatSpeed:27,fullBatCharge:.98,returnSpeed:1.55,
+    crownDent:.080,headDrop:.225,fluidMax:128,brickMax:5};
+  const PI=Math.PI,TAU=PI*2;
+  let held=null,action=null,activeActor=null,throwCooldown=0;
+  const Q=()=>new THREE.Quaternion();
+  const down=V3(0,-1,0),up=V3(0,1,0);
+  const finiteDt=dt=>Math.min(.05,Math.max(0,Number.isFinite(dt)?dt:0));
+  const ownMotion=v=>!!v?._impactV2;
+  const visible=o=>{for(let n=o;n;n=n.parent)if(!n.visible)return false;return true;};
+  const alive=v=>v&&v===G.v&&v.root.parent;
+  const log=[];
+  function event(type,extra={}){log.push({type,time:G.time,...extra});if(log.length>70)log.shift();}
+
+  /* Sleeves have no body vertex-colour attribute. Give them a dedicated material,
+     and bind by their stable geometry positions rather than their old material. */
+  function fixSleeves(v){
+    const c=v._bodyCloth;if(!c)return;
+    if(!c.sleeveMat){c.sleeveMat=c.clothMat.clone();c.sleeveMat.vertexColors=false;}
+    c.sleeveMat.color.copy(col(v.look.shirt));c.sleeveMat.map=c.clothMat.map;
+    c.sleeveMat.roughness=c.clothMat.roughness;c.sleeveMat.needsUpdate=true;
+    const short=['tee','dress'].includes(v.look.topStyle);
+    for(const rec of c.arms){
+      const a=rec.a;
+      rec.shoulder=a.sh.children.find(m=>m.isMesh&&m.userData.part==='arm'&&Math.abs(m.position.y)<.001)||rec.shoulder;
+      rec.upper=a.sh.children.find(m=>m.isMesh&&m.userData.part==='arm'&&Math.abs(m.position.y+.1)<.001)||rec.upper;
+      rec.fore=a.el.children.find(m=>m.isMesh&&m.userData.part==='arm'&&Math.abs(m.position.y+.085)<.001)||rec.fore;
+      if(rec.shoulder)rec.shoulder.material=c.sleeveMat;
+      if(rec.short)rec.short.material=c.sleeveMat;
+      if(rec.upper)rec.upper.material=short?v.skinMat:c.sleeveMat;
+      if(rec.fore)rec.fore.material=short?v.skinMat:c.sleeveMat;
+      if(rec.cuff){rec.cuff.visible=!short;rec.cuff.material=v.look.topStyle==='shirt'?rec.cuffBase:c.trimMat;}
+    }
+    v.captureResources();
+  }
+  const oldBuild=Villain.prototype.build,oldLook=Villain.prototype.applyLook;
+  Villain.prototype.build=function(...args){const r=oldBuild.apply(this,args);fixSleeves(this);return r;};
+  Villain.prototype.applyLook=function(...args){const r=oldLook.apply(this,args);fixSleeves(this);return r;};
+
+  /* Limited, reused downward droplets; no per-frame geometries or materials. */
+  const fluid=[];let fluidBatch=null,fluidDummy=null;
+  const fluidColors=['#d94750','#9bb6df','#bdd99a'].map(c=>col(c));
+  function initFluid(){
+    if(fluidBatch)return;
+    const geo=new THREE.SphereGeometry(1,8,6),material=new THREE.MeshStandardMaterial({color:'#ffffff',roughness:.20,transparent:true,opacity:.84});
+    fluidBatch=new THREE.InstancedMesh(geo,material,CFG.fluidMax);
+    fluidBatch.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    fluidBatch.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(CFG.fluidMax*3).fill(1),3);
+    fluidBatch.instanceColor.setUsage(THREE.DynamicDrawUsage);
+    fluidBatch.count=0;fluidBatch.frustumCulled=false;fluidBatch.name='downward-cartoon-fluid-v2';scene.add(fluidBatch);
+    fluidDummy=new THREE.Object3D();
+  }
+  function emitDown(v,number){
+    initFluid();v.root.updateMatrixWorld(true);
+    for(let i=0;i<number&&fluid.length<CFG.fluidMax;i++){
+      const kind=i%5===0?0:i%3===0?2:1;
+      const source=kind===1?v.eyes[i%2].g.localToWorld(V3(0,-.04,.060)):v.noseM.localToWorld(V3(0,-.045,.075));
+      fluid.push({p:source,v:V3(rnd(-.16,.16),rnd(-7.5,-4.5),rnd(.25,.70)),r:rnd(.009,.018),kind,life:.55});
+    }
+  }
+  function updateFluid(dt){
+    if(!fluidBatch)return;let n=0;
+    for(let i=fluid.length-1;i>=0;i--){
+      const p=fluid[i];p.life-=dt;p.v.y-=10*dt;p.p.addScaledVector(p.v,dt);
+      if(p.p.y<.01||p.life<=0){
+        if(p.p.y<.01&&i%4===0)paintSplat(p.p.x,p.p.z,p.r*1.5,['#df5b61','#87b7d5','#b5ce94'][p.kind],.32);
+        fluid.splice(i,1);continue;
+      }
+      fluidDummy.position.copy(p.p);fluidDummy.quaternion.setFromUnitVectors(up,p.v.clone().normalize());
+      fluidDummy.scale.set(p.r,p.r*3.8,p.r);fluidDummy.updateMatrix();
+      fluidBatch.setMatrixAt(n,fluidDummy.matrix);fluidBatch.setColorAt(n,fluidColors[p.kind]);n++;
+    }
+    fluidBatch.count=n;if(n){fluidBatch.instanceMatrix.needsUpdate=true;fluidBatch.instanceColor.needsUpdate=true;}
+  }
+
+  /* A transient crown hollow, plus a small persistent cartoon dent. */
+  const oldOffset=Villain.prototype.offsetAt;
+  Villain.prototype.offsetAt=function(d,out){
+    oldOffset.call(this,d,out);
+    if(this._crownV2){const k=Math.exp(-Math.max(0,1-d.y)*17);out.y-=this._crownV2*k;}
+    return out;
+  };
+
+  function cameraSnapshot(){return {p:camera.position.clone(),q:camera.quaternion.clone()};}
+  function frameHalfWidth(){return Math.max(.8,Math.abs(camera.position.z)*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))*camera.aspect);}
+  function resetSprings(v){for(const k of Object.keys(v.spring))v.spring[k]=0;v.recoil.set(0,0,0);v.recoilVel.set(0,0,0);v.bodyImpulse.length=0;v.slx=v.slxv=0;}
+  function neutralBody(v){
+    v.body.position.set(0,0,0);v.body.rotation.set(0,0,0);v.torso.position.y=.5;v.torso.scale.set(1,1,1);
+    v.head.position.y=.31;v.head.scale.set(1,1,1);v.headPivot.rotation.set(0,0,0);
+  }
+  function anchor(v){
+    v.root.updateMatrixWorld(true);
+    const h=v.headMesh.getWorldPosition(V3()),f=v.legs[0].localToWorld(V3(0,-.43,0));
+    return v.root.worldToLocal(h.add(f).multiplyScalar(.5));
+  }
+  function pin(v,m){
+    v.root.rotation.set(0,0,m.angle);v.root.updateMatrixWorld(true);
+    v.root.position.add(m.pivot.clone().sub(v.root.localToWorld(m.anchor.clone())));v.root.updateMatrixWorld(true);
+  }
+  function floorSupport(v){return Slapstick.support(v);}
+  function correctFloor(v,m){const h=floorSupport(v);if(h.y<.015){m.pivot.y+=.015-h.y;pin(v,m);}return h;}
+  function finish(v){
+    if(!v)return;
+    v._impactV2=null;v._guardV2=null;v._wipeV2=null;resetArmLengths(v);neutralBody(v);resetSprings(v);
+    v.root.position.set(0,0,0);v.root.rotation.set(0,0,0);v.root.visible=true;v.state='stand';v.stateT=0;
+    v.root.updateMatrixWorld(true);hideWalls();
+    if(alive(v)){G.lastAct=G.time;event('return-complete');}
+  }
+
+  /* Physical side panels are visible at the collision plane; no invisible edge. */
+  let wallRoot=null,walls=[];
+  function showWalls(x){
+    if(!wallRoot){
+      wallRoot=new THREE.Group();wallRoot.name='chair-impact-side-walls';scene.add(wallRoot);
+      const wallMat=mat('#a8c9c0',{roughness:.94}),edgeMat=mat('#436866',{roughness:.8});
+      for(const side of [-1,1]){
+        const g=new THREE.Group();wallRoot.add(g);
+        mesh(new THREE.BoxGeometry(.095,2.35,.90),wallMat,g).position.set(0,1.175,-.24);
+        mesh(new THREE.BoxGeometry(.108,.075,.93),edgeMat,g).position.set(0,.08,-.24);walls.push(g);
+      }
+    }
+    walls[0].position.x=-x-.0475;walls[1].position.x=x+.0475;wallRoot.visible=true;
+  }
+  function hideWalls(){if(wallRoot)wallRoot.visible=false;}
+  function xLimits(v){
+    v.root.updateMatrixWorld(true);const h=v.headMesh.getWorldPosition(V3()),e=v.headMesh.matrixWorld.elements;
+    const r=(HEAD_R+.025)*Math.hypot(e[0],e[4],e[8]);let lo=h.x-r,hi=h.x+r;
+    for(const a of v.armRig){const p=a.hand.getWorldPosition(V3()),rr=.07*v.look.bodyW;lo=Math.min(lo,p.x-rr);hi=Math.max(hi,p.x+rr);}
+    for(const l of v.legs){const p=l.localToWorld(V3(0,-.48,.05));lo=Math.min(lo,p.x-.08);hi=Math.max(hi,p.x+.08);}
+    return {lo,hi};
+  }
+  function startMotion(v,kind,side=1){
+    if(v._slapMotion)Slapstick.finishMotion(v,true);
+    resetSprings(v);neutralBody(v);v._guardV2=v._wipeV2=null;
+    const m={kind,age:0,side,cam:cameraSnapshot(),angle:v.root.rotation.z,anchor:anchor(v),pivot:null,
+      vel:V3(),spin:0,wallHit:false,floorHits:0,cool:0};
+    m.pivot=v.root.localToWorld(m.anchor.clone());v._impactV2=m;v.state='impact-v2';v.stateT=0;
+    G.attackQueue=[];G.lastAct=G.time;
+    if(kind==='side'){
+      m.wall=Math.min(2.85,Math.max(1.02,frameHalfWidth()*.86));
+      m.vel.set(side*CFG.chairSideSpeed,1.25,0);m.spin=-side*8.5;showWalls(m.wall);DAY.throws++;saveDay();
+    }else if(kind==='homerun'){
+      m.offX=side*(frameHalfWidth()+2.0);m.vel.set(side*CFG.fullBatSpeed,2.0,0);m.spin=-side*10;
+      m.phase='fly';DAY.throws++;saveDay();hideWalls();
+    }else if(kind==='press'){
+      v._crownV2=Math.min(CFG.crownDent,(v._crownV2||0)+.050);v.headDirty=true;
+      m.emitT=.23;m.emitAcc=0;SFX.downGush?.();
+    }
+    correctFloor(v,m);event(kind+'-start');return m;
+  }
+  function collisionFX(v,m,type,point){
+    const pan=clamp(point.x/2,-1,1);
+    if(type==='wall'){SFX.wallCrash?.(pan);popText('우장창!!',point,'chair',48);}
+    else{SFX.floorCrash?.(pan,m.floorHits>1);popText(m.floorHits===1?'쿠당탕!!':'쿵!',point,'ground',m.floorHits===1?43:30);}
+    flash(point,.30,'#fff2b4');puff(point,9,.72);
+    G.hitstop=Math.max(G.hitstop,type==='wall'?.085:.068);shakeCam(type==='wall'?.055:.035);vib([25,12,16]);
+    event(type+'-bounce',{floorHits:m.floorHits});
+  }
+  function tumblePose(v,m){
+    neutralBody(v);
+    for(const a of v.armRig){a.sh.rotation.set(-.25,0,a.s*(1.28+Math.sin(m.age*27+a.s)*.16));a.el.rotation.set(-.32,0,0);}
+    v.legs.forEach((l,i)=>l.rotation.set(Math.sin(m.age*22+i)*.3,0,(i?1:-1)*.18));
+  }
+  function recoverStart(v,m){
+    m.kind='recover';m.age=0;m.fromAngle=m.angle;m.fromPivot=m.pivot.clone();m.rest=-m.side*PI/2;
+    m.rest=m.angle+Math.atan2(Math.sin(m.rest-m.angle),Math.cos(m.rest-m.angle));
+  }
+  function updateSide(v,m,dt){
+    tumblePose(v,m);let left=dt;
+    while(left>1e-7){
+      const h=Math.min(left,1/180);left-=h;m.vel.y-=23*h;m.pivot.addScaledVector(m.vel,h);m.angle+=m.spin*h;pin(v,m);
+      {
+        const side=Math.sign(m.vel.x)||m.side,b=xLimits(v),over=side>0?b.hi-m.wall:-m.wall-b.lo;
+        if(over>=0){
+          m.pivot.x-=side*(over+.003);m.vel.x=-side*Math.abs(m.vel.x)*(m.wallHit?.42:CFG.wallRebound);
+          if(!m.wallHit)m.vel.y=-Math.max(3.0,Math.abs(m.vel.y)+2.0);
+          m.spin*=-.65;m.wallHit=true;pin(v,m);
+          collisionFX(v,m,'wall',V3(side*m.wall,Math.max(.3,m.pivot.y),.15));return;
+        }
+      }
+      const contact=floorSupport(v);
+      if(contact.y<.015){
+        correctFloor(v,m);
+        if(m.vel.y<0&&m.cool<=0){
+          m.floorHits++;m.cool=.12;m.vel.y=m.floorHits===1?CFG.floorBounce:2.0;m.vel.x*=.40;m.spin*=-.55;
+          collisionFX(v,m,'floor',contact.point);
+          if(m.floorHits>=2)recoverStart(v,m);return;
+        }
+      }
+    }
+    if(m.age>3.5)recoverStart(v,m);
+  }
+  function updateRecover(v,m){
+    tumblePose(v,m);const t=m.age;
+    if(t<.22){m.angle=lerp(m.fromAngle,m.rest,easeOut(t/.22));m.pivot.copy(m.fromPivot);m.pivot.y=lerp(m.fromPivot.y,.22,easeOut(t/.22));}
+    else if(t<.50){m.angle=m.rest;m.pivot.y=.20;}
+    else{
+      const k=ease(clamp((t-.50)/.55,0,1));m.angle=lerp(m.rest,m.rest+Math.atan2(Math.sin(-m.rest),Math.cos(-m.rest)),k);
+      m.pivot.y=lerp(.20,m.anchor.y,k);
+    }
+    pin(v,m);correctFloor(v,m);
+    if(t>=1.05){m.kind='limp';m.age=0;m.returnX=v.root.position.x;m.returnZ=v.root.position.z;m.duration=Math.max(.8,Math.abs(m.returnX)/CFG.returnSpeed);hideWalls();event('limp-start');}
+  }
+  function limpPose(v,m){
+    neutralBody(v);const u=clamp(m.age/m.duration,0,1),phase=m.age*7.8;
+    v.root.rotation.set(0,-m.side*.14,Math.sin(phase)*.035);
+    v.root.position.set(lerp(m.returnX,0,u),Math.max(0,Math.sin(phase))*.012,lerp(m.returnZ||0,0,u));
+    v.body.rotation.z=-m.side*.07;v.headPivot.rotation.set(.18,0,-m.side*.12);
+    v.legs[0].rotation.set(Math.sin(phase)*.27,0,-.035);
+    v.legs[1].rotation.set(-Math.sin(phase)*.11,0,.035);
+    for(const a of v.armRig){a.sh.rotation.set(-.45,0,a.s*.14);a.el.rotation.set(-1.05,0,-a.s*.35);}
+    if(u>=1)finish(v);
+  }
+  function updateHomerun(v,m,dt){
+    if(m.phase==='fly'){
+      tumblePose(v,m);m.pivot.addScaledVector(m.vel,dt);m.vel.y-=6*dt;m.angle+=m.spin*dt;pin(v,m);
+      if(m.side*m.pivot.x>=m.side*m.offX){m.phase='wait';m.age=0;v.root.visible=false;event('offscreen');}
+    }else if(m.phase==='wait'){
+      v.root.visible=false;
+      if(m.age>.48){
+        neutralBody(v);v.root.visible=true;m.kind='limp';m.age=0;m.returnX=m.offX;m.returnZ=0;
+        m.duration=Math.max(1.6,Math.abs(m.offX)/CFG.returnSpeed);event('limp-start');
+      }
+    }
+  }
+  function pressPose(v,m,dt){
+    neutralBody(v);const t=m.age,k=t<.11?1:t<.30?lerp(1,.84,(t-.11)/.19):1-ease(clamp((t-.30)/.84,0,1));
+    v.head.position.y=.31-CFG.headDrop*k;v.head.scale.set(1+.11*k,1-.30*k,1+.09*k);
+    v.headPivot.rotation.set(.04*k,0,0);v.torso.position.y=.5-.048*k;
+    for(const a of v.armRig){a.sh.rotation.set(-.25*k,0,a.s*(.12+1.38*k));a.el.rotation.set(-.12,0,0);a.hand.rotation.set(0,0,0);}
+    v.legs.forEach((l,i)=>l.rotation.set(0,0,(i?1:-1)*.07*k));
+    Object.assign(v.mouth,{open:.72*k,smile:-.8*k,smirk:0,wide:.85});v.mouth.shape='o';v.mouth.talk=0;v.paintMouth();
+    v.root.updateMatrixWorld(true);
+    if(m.emitT>0){const h=Math.min(dt,m.emitT);m.emitT-=h;m.emitAcc+=h*340;const n=Math.min(16,Math.floor(m.emitAcc));m.emitAcc-=n;if(n)emitDown(v,n);}
+    if(t>=1.16){finish(v);v.guardHold=Math.max(v.guardHold,1.6);}
+  }
+
+  /* Two-link IK in torso-local space. It remains stable with nonuniform body scale. */
+  function resetArmLengths(v){
+    for(const rec of v._bodyCloth?.arms||[]){
+      rec.a.el.position.y=-.20;rec.a.hand.position.y=-.20;
+      if(rec.upper){rec.upper.position.y=-.10;rec.upper.scale.y=1;}
+      if(rec.fore){rec.fore.position.y=-.085;rec.fore.scale.y=1;}
+      if(rec.cuff)rec.cuff.position.y=-.17;
+    }
+  }
+  function reachHand(v,a,worldTarget,weight=1){
+    if(weight<=0)return;v.root.updateMatrixWorld(true);
+    const target=v.torso.worldToLocal(worldTarget.clone()),origin=a.sh.position.clone(),delta=target.sub(origin);
+    // The head is deliberately large and scale-isolated. A small temporary
+    // cartoon reach is needed; a hard .4-unit arm cannot actually touch the eye.
+    const stretch=lerp(1,clamp(delta.length()/.394,1,8),weight),L=.20*stretch;
+    const distance=clamp(delta.length(),.012,2*L-.006),axis=delta.normalize();
+    const rec=v._bodyCloth?.arms.find(r=>r.a===a);
+    a.el.position.y=-L;a.hand.position.y=-L;
+    if(rec?.upper){rec.upper.position.y=-.10*stretch;rec.upper.scale.y=stretch;}
+    if(rec?.fore){rec.fore.position.y=-.085*stretch;rec.fore.scale.y=stretch;}
+    if(rec?.cuff)rec.cuff.position.y=-.17*stretch;
+    const pole=V3(a.s*.65,-.22,.65);pole.addScaledVector(axis,-pole.dot(axis));
+    if(pole.lengthSq()<1e-6)pole.set(a.s,0,0);pole.normalize();
+    const elbow=origin.clone().addScaledVector(axis,distance*.5).addScaledVector(pole,Math.sqrt(Math.max(.0001,L*L-distance*distance*.25)));
+    const qs=Q().setFromUnitVectors(down,elbow.clone().sub(origin).normalize());
+    const qe=Q().setFromUnitVectors(down,origin.clone().addScaledVector(axis,distance).sub(elbow).normalize().applyQuaternion(qs.clone().invert()));
+    a.sh.quaternion.slerp(qs,weight);a.el.quaternion.slerp(qe,weight);a.hand.rotation.set(-.10,0,0);
+  }
+  function reactiveArms(v,dt){
+    if(v.state!=='stand'||G.mode!=='hit'||G.ptr?.grab||G.ptr?.toolHold||G.hug||G.social)return;
+    const r=v._guardV2;
+    if(r){
+      r.age+=dt;const w=Math.min(1,r.age/.09)*clamp((.95-r.age)/.22,0,1);
+      const p=v.torso.localToWorld(r.p.clone());
+      const near=v.armRig[r.side>0?1:0],other=v.armRig[r.side>0?0:1];
+      reachHand(v,near,p.clone().add(V3(r.side*.05,.005,.11)),w);
+      reachHand(v,other,p.clone().add(V3(-r.side*.10,-.09,.12)),w*.78);
+      if(r.age>=.95)v._guardV2=null;
+      return;
+    }
+    if(!v._wipeV2&&v.tear>.30&&G.time-G.lastAct>1.0&&G.time>(v._nextWipeV2||0)){
+      v._wipeV2={t:0,side:Math.random()<.5?0:1};v._nextWipeV2=G.time+4.0;
+    }
+    const w=v._wipeV2;if(!w)return;w.t+=dt;
+    const blend=Math.min(1,w.t/.23)*clamp((1.22-w.t)/.25,0,1),e=v.eyes[w.side],a=v.armRig[w.side];
+    const target=e.g.localToWorld(V3(Math.sin(w.t*11)*.023,-.02,.090));reachHand(v,a,target,blend);
+    if(w.t>=1.22)v._wipeV2=null;
+  }
+
+  /* Brick geometry is shared by the equipped model and bounded projectile pool. */
+  const brickMat=mat('#b35738',{roughness:.94}),brickEdge=mat('#733f30',{roughness:1});
+  const brickGeo=new THREE.BoxGeometry(.245,.12,.13,2,1,1);
+  const holeGeo=new THREE.CylinderGeometry(.018,.018,.002,10);
+  function brickModel(){
+    const g=new THREE.Group();mesh(brickGeo,brickMat,g);
+    for(const x of [-.073,0,.073])mesh(holeGeo,brickEdge,g,false).position.set(x,.061,0);
+    return g;
+  }
+  const brickRig=new THREE.Group(),brickVisual=brickModel(),brickHand=buildFist(false);
+  brickRig.add(brickVisual,brickHand);brickHand.scale.setScalar(.75);brickHand.position.set(.04,-.075,.025);brickHand.rotation.set(.2,0,-.65);
+  brickRig.userData={kind:'brick',L:.06,c:.08,head:brickVisual};brickRig.visible=false;handsRoot.add(brickRig);RIG.tools.brick=brickRig;
+  TOOL_SPEC.brick={power:1.95,contact:.16,dur:.42,dwell:.02,recovery:.16};TOOLPOW.brick=1.95;
+  TOOLPOP.brick=['빠각!','퍽!'];POP_COLORS.brick='#efab75';
+  SFX.brick=(pan=0)=>SFX.brickImpact?.(pan);
+  SFX.chair=(pan=0,p=1)=>SFX.chairMetal?.(pan,p);
+  const projectiles=[];
+  const projectileRay=new THREE.Raycaster();
+  function releaseBrick(h){
+    if(projectiles.length>=CFG.brickMax)return;
+    const g=brickModel();g.position.copy(brickRig.position);g.quaternion.copy(brickRig.quaternion);scene.add(g);
+    const picked=pick3D(h.x,h.y),target=picked?hitWorld(picked):planePoint(h.x,h.y,0);
+    const diff=target.clone().sub(g.position),time=clamp(diff.length()/12,.13,.38),vel=diff.divideScalar(time);vel.y+=4*time;
+    projectiles.push({g,vel,age:0,hit:false,rest:false,owner:G.v,spin:V3(8,3,-5),radius:.09});
+    throwCooldown=.32;event('brick-release');SFX.whoosh(.25,true);
+  }
+  function updateBricks(dt){
+    for(let i=projectiles.length-1;i>=0;i--){
+      const p=projectiles[i];p.age+=dt;
+      if(p.owner!==G.v||p.age>5){scene.remove(p.g);projectiles.splice(i,1);continue;}
+      if(p.rest){p.g.scale.setScalar(Math.min(1,(5-p.age)/.55));continue;}
+      let left=dt;
+      while(left>1e-7){
+        const h=Math.min(left,1/180);left-=h;const start=p.g.position.clone();p.vel.y-=8*h;
+        const end=start.clone().addScaledVector(p.vel,h),segment=end.clone().sub(start),len=segment.length();
+        if(!p.hit&&G.v&&['stand','down'].includes(G.v.state)&&len>1e-7){
+          G.v.root.updateMatrixWorld(true);projectileRay.set(start,segment.clone().normalize());projectileRay.near=0;projectileRay.far=len+p.radius;
+          const hit=projectileRay.intersectObjects(G.v.parts.filter(o=>visible(o)&&isAttached(o,G.v.root)),false)[0];
+          if(hit){
+            p.hit=true;const v=G.v,normal=hit.face?hit.face.normal.clone().transformDirection(hit.object.matrixWorld):segment.clone().negate().normalize();
+            const part=hit.object.userData.part||'body';
+            applyHit({kind:'bonk',tool:'brick',point:hit.point.clone(),normal,force:p.vel.clone().normalize(),power:1.95,side:Math.sign(p.vel.x)||1,part,dir:['head','nose'].includes(part)?v.localDir(hit.point):null});
+            p.g.position.copy(hit.point).addScaledVector(normal,p.radius+.02);p.vel.reflect(normal).multiplyScalar(.25);p.vel.y=Math.max(1.2,p.vel.y);
+            puff(hit.point,5,.25);event('brick-hit',{part});break;
+          }
+        }
+        p.g.position.copy(end);p.g.rotation.x+=p.spin.x*h;p.g.rotation.y+=p.spin.y*h;p.g.rotation.z+=p.spin.z*h;
+        if(p.g.position.y<.077){
+          p.g.position.y=.077;
+          if(Math.abs(p.vel.y)>1.1){p.vel.y=Math.abs(p.vel.y)*.26;p.vel.x*=.5;p.vel.z*=.5;SFX.floorCrash?.(clamp(p.g.position.x,-1,1),true);}
+          else{p.rest=true;p.g.rotation.set(0,p.g.rotation.y,0);}
+          p.hit=true;
+        }
+      }
+    }
+  }
+
+  /* Direct manipulation: press only picks the item up. A chair hit requires a
+     downward/sideward release gesture. Upward-only movement merely raises it. */
+  function stopEvent(e){e.preventDefault();e.stopImmediatePropagation();}
+  function cancelHeld(){
+    if(held){const id=held.id;held=null;if(G.ptr?.id===id)G.ptr=null;}
+    brickRig.visible=false;
+    if(!action)RIG.tools.chair.visible=false;
+  }
+  function holdPose(h){
+    if(!alive(h.v))return;
+    const r=h.tool==='chair'?RIG.tools.chair:brickRig;
+    const p=planePoint(h.x,h.y,.82);p.x=clamp(p.x,-frameHalfWidth()*.8,frameHalfWidth()*.8);p.y=clamp(p.y,.52,2.35);
+    if(h.tool==='chair'){
+      r.position.copy(p).add(V3(0,-.25,.02));r.quaternion.setFromEuler(new THREE.Euler(-.08,-PI/2,.25*clamp((h.x-h.x0)/150,-1,1)));
+    }else{r.position.copy(p);r.rotation.set(-.25,-.25,Math.sin(G.time*2)*.015);}
+    r.visible=true;
+  }
+  function chairSwing(h,dx,dy){
+    const isDown=dy>Math.abs(dx)*.85&&dy>24;
+    if(!isDown&&Math.abs(dx)<28)return false;
+    const side=dx>=0?-1:1;
+    const target=isDown?headTarget(0,.94):(h.info&&h.info.part==='body'?h.info:headTarget(side*.58,.02));
+    const point=hitWorld(target),normal=isDown?V3(0,1,0):hitNormal(target),r=RIG.tools.chair;
+    const q=contactBasis(normal,side,isDown?'bonk':'swing');
+    const end=point.clone().sub(V3(-r.userData.c,r.userData.L,0).applyQuaternion(q));
+    const wind=point.clone().add(isDown?V3(side*.12,1.02,.45):V3(side*.92,.20,.58));
+    const windQ=q.clone().multiply(Q().setFromAxisAngle(V3(0,0,1),-side*(isDown?1.20:1.62)));
+    action={type:'chair',v:h.v,target,isDown,side,t:0,contact:.22,duration:.68,hit:false,
+      r,start:r.position.clone(),startQ:r.quaternion.clone(),wind,windQ,end,endQ:q,point,normal};
+    h.v.root.updateMatrixWorld(true);h.v._guardV2={age:0,p:h.v.torso.worldToLocal(point.clone()),side:-side};
+    G.lastAct=G.time;SFX.whoosh(side*.35,true);event('chair-swing',{direction:isDown?'down':'side'});return true;
+  }
+  function updateAction(dt){
+    if(!action)return;const a=action;
+    if(!alive(a.v)||G.mode!=='hit'||G.tool!==(a.type==='chair'?'chair':'brick')){a.r.visible=false;action=null;return;}
+    a.t+=dt;
+    if(a.type==='throw'){
+      const u=clamp(a.t/.30,0,1);a.r.visible=true;a.r.position.copy(a.start).lerp(a.end,Math.sin(u*PI)*.45);
+      a.r.userData.head.visible=false;
+      if(u>=1){a.r.userData.head.visible=true;a.r.visible=false;action=null;}return;
+    }
+    const r=a.r,c=a.contact;let p,q;
+    if(a.t<.065){const u=easeOut(a.t/.065);p=a.start.clone().lerp(a.wind,u);q=a.startQ.clone().slerp(a.windQ,u);}
+    else if(a.t<c){const u=easeIn((a.t-.065)/(c-.065));p=a.wind.clone().lerp(a.end,u);q=a.windQ.clone().slerp(a.endQ,u);}
+    else if(a.t<c+.09){p=a.end.clone();q=a.endQ.clone();}
+    else{const u=clamp((a.t-c-.09)/(a.duration-c-.09),0,1);p=a.end.clone().lerp(camRest(a.side,-1.04),easeIn(u));q=a.endQ.clone().multiply(Q().setFromAxisAngle(V3(0,0,1),a.side*.75*Math.sin(u*PI)));}
+    r.visible=true;r.position.copy(p);r.quaternion.copy(q);
+    if(!a.hit&&a.t>=c){
+      a.hit=true;a.t=c;
+      const point=hitWorld(a.target),force=a.isDown?V3(0,-1,0):V3(-a.side,.08,-.06).normalize();
+      applyHit({kind:a.isDown?'bonk':'swing',tool:'chair',point,normal:a.normal.clone(),force,power:a.isDown?2.6:2.45,side:a.side,
+        part:a.target.part,dir:['head','nose'].includes(a.target.part)?a.v.localDir(point):null,_impactV2:true});
+    }
+    if(a.t>=a.duration){r.visible=false;action=null;}
+  }
+  canvas.addEventListener('pointerdown',e=>{
+    if(G.editing||G.mode!=='hit'||!['chair','brick'].includes(G.tool)||e.button>0||e.isPrimary===false)return;
+    if(!$('#settingsModal').hidden||!$('#statsModal').hidden||!$('#letterModal').hidden)return;
+    stopEvent(e);if(held||action||!G.v||G.v.state!=='stand'||G.attacks.length||throwCooldown>0)return;
+    SFX.unlock();cancelPointer();stopSocial();
+    const info=pick3D(e.clientX,e.clientY);
+    held={id:e.pointerId,tool:G.tool,v:G.v,x0:e.clientX,y0:e.clientY,x:e.clientX,y:e.clientY,info,
+      trail:[{x:e.clientX,y:e.clientY,t:performance.now()}]};
+    G.ptr={id:e.pointerId,kind:'impact-v2-held'};
+    try{canvas.setPointerCapture(e.pointerId);}catch(_){}
+    G.lastAct=G.time;holdPose(held);event('item-held',{tool:G.tool});
+  },true);
+  canvas.addEventListener('pointermove',e=>{
+    if(!held||held.id!==e.pointerId)return;stopEvent(e);
+    held.x=e.clientX;held.y=e.clientY;held.trail.push({x:held.x,y:held.y,t:performance.now()});
+    while(held.trail.length>2&&held.trail[0].t<performance.now()-180)held.trail.shift();
+    if(held.trail.length>32)held.trail.shift();holdPose(held);G.lastAct=G.time;
+  },true);
+  canvas.addEventListener('pointerup',e=>{
+    if(!held||held.id!==e.pointerId)return;stopEvent(e);
+    const h=held;h.x=e.clientX;h.y=e.clientY;held=null;G.ptr=null;
+    if(!alive(h.v)||G.mode!=='hit'||G.tool!==h.tool)return;
+    if(h.tool==='chair'){
+      const last=h.trail[0],rx=h.x-last.x,ry=h.y-last.y;
+      const dx=Math.hypot(rx,ry)>30?rx:h.x-h.x0,dy=Math.hypot(rx,ry)>30?ry:h.y-h.y0;
+      if(!chairSwing(h,dx,dy))RIG.tools.chair.visible=false;
+    }else{
+      releaseBrick(h);action={type:'throw',v:h.v,r:brickRig,t:0,start:brickRig.position.clone(),end:planePoint(h.x,h.y,.1)};
+    }
+  },true);
+  const cancelled=e=>{if(held&&held.id===e.pointerId){stopEvent(e);cancelHeld();}};
+  canvas.addEventListener('pointercancel',cancelled,true);
+  canvas.addEventListener('lostpointercapture',cancelled,true);
+
+  /* Full charge has its own wind-up/contact/recovery, not only a damage scalar. */
+  const oldStartAttack=startAttack;
+  startAttack=function(kind,target,side,extra={}){
+    const before=G.attacks.length,r=oldStartAttack(kind,target,side,extra);
+    if(G.attacks.length>before&&G.v&&!ownMotion(G.v)&&G.tool!=='tissue'&&target){
+      G.v.root.updateMatrixWorld(true);const point=hitWorld(target);
+      G.v._guardV2={age:0,p:G.v.torso.worldToLocal(point.clone()),side:Math.sign(point.x-G.v.root.position.x)||1};
+    }
+    if(G.tool==='bat'&&extra.charge>=CFG.fullBatCharge){
+      const a=G.attacks.slice(before).find(a=>a.toolKind==='bat');
+      if(a){a.fullV2=true;a.k.contact=.16;a.k.dur=.66;a.power=2.65;}
+    }
+    return r;
+  };
+  const oldSolidPose=poseSolidTool;
+  poseSolidTool=function(a,tgt,n){
+    if(!a.fullV2)return oldSolidPose(a,tgt,n);
+    const r=a.rig,s=a.side,c=a.k.contact;
+    const q=contactBasis(n,s,'swing'),end=tgt.clone().sub(V3(-r.userData.c,r.userData.L,0).applyQuaternion(q));
+    const wind=tgt.clone().add(V3(s*.96,.38,.56)),wq=q.clone().multiply(Q().setFromAxisAngle(V3(0,0,1),-s*1.9));
+    if(a.t<c){const u=easeIn(clamp(a.t/c,0,1));r.position.copy(a.startGrip||wind).lerp(end,u);r.quaternion.copy(a.startQuaternion||wq).slerp(q,u);}
+    else if(a.t<c+.055){r.position.copy(end);r.quaternion.copy(q);}
+    else{const u=clamp((a.t-c-.055)/(a.k.dur-c-.055),0,1);r.position.copy(end).add(V3(-s*.78*Math.sin(u*PI),-.23*Math.sin(u*PI),.13)).lerp(camRest(-s,-.95),easeIn(u));r.quaternion.copy(q).multiply(Q().setFromAxisAngle(V3(0,0,1),-s*1.4*Math.sin(u*PI)));}
+  };
+  const oldHold=updateToolHold;
+  updateToolHold=function(dt){
+    const r=oldHold(dt),P=G.ptr,H=P?.toolHold,b=$('[data-tool="bat"]');
+    if(P?.kind==='toolCharge'&&H){
+      const full=H.charge>=CFG.fullBatCharge;
+      b?.classList.toggle('impact-ready',full);
+      if(full&&!H.readyV2){H.readyV2=true;SFX.fullReady?.();vib([12,20,12]);event('full-charge-ready');}
+      if(G.charge?.el)G.charge.el.classList.toggle('impact-charge-ready',full);
+      const v=G.v,rig=RIG.tools.bat;
+      if(v){const target=v.headMesh.getWorldPosition(V3());rig.position.copy(target).add(V3(.68,.25,.63));rig.rotation.set(.2,.5,-1.18-.40*H.charge);rig.position.x+=Math.sin(G.time*55)*.006*H.charge;}
+    }else b?.classList.remove('impact-ready');
+    return r;
+  };
+  const oldHit=applyHit;
+  applyHit=function(h){
+    const v=G.v;if(!v)return;
+    const chair=h.tool==='chair',full=h.tool==='bat'&&h.charge>=CFG.fullBatCharge;
+    const input=chair?{...h,_impactV2:true}:h;
+    const oldBat=SFX.bat;
+    if(full)SFX.bat=(pan=0)=>SFX.batFull?.(pan);
+    let r;
+    try{r=oldHit(input);}finally{if(full)SFX.bat=oldBat;}
+    if(!alive(v))return r;
+    if(chair||full){
+      const side=Math.sign(h.force.x)||-(h.side||1);
+      const kind=full?'homerun':(h.kind==='bonk'||h.kind==='chop')?'press':'side';
+      startMotion(v,kind,side);
+      G.hitstop=Math.max(G.hitstop,full?.135:kind==='press'?.11:.105);shakeCam(full?.065:.052);
+      flash(h.point.clone(),full?.43:.31,full?'#ffdf72':'#fff4cf');
+      if(full){popText('콰아앙!!',h.point,'bat',57);event('full-bat-hit');}
+      // Establish the impact silhouette before the hitstop begins.
+      if(kind==='press'){pressPose(v,v._impactV2,0);emitDown(v,8);}
+      else tumblePose(v,v._impactV2);
+    }else if(h.tool!=='tissue'&&!ownMotion(v)){
+      v.root.updateMatrixWorld(true);
+      v._guardV2={age:0,p:v.torso.worldToLocal(h.point.clone()),side:Math.sign(h.point.x-v.root.position.x)||1};v._wipeV2=null;
+    }
+    return r;
+  };
+
+  const oldUpdate=updateVillain;
+  updateVillain=function(v,dt){
+    dt=finiteDt(dt);resetArmLengths(v);const r=oldUpdate(v,dt);if(!alive(v))return r;
+    const m=v._impactV2;
+    if(m){
+      m.age+=dt;m.cool=Math.max(0,m.cool-dt);G.lastAct=G.time;
+      if(m.kind==='press')pressPose(v,m,dt);
+      else if(m.kind==='side')updateSide(v,m,dt);
+      else if(m.kind==='recover')updateRecover(v,m);
+      else if(m.kind==='homerun')updateHomerun(v,m,dt);
+      else if(m.kind==='limp')limpPose(v,m);
+      v.root.updateMatrixWorld(true);
+    }else reactiveArms(v,dt);
+    return r;
+  };
+  const oldCamera=updateCamera;
+  updateCamera=function(dt){
+    const r=oldCamera(dt),m=G.v?._impactV2;
+    if(m&&!G.editing){
+      camera.position.copy(m.cam.p);camera.quaternion.copy(m.cam.q);
+      const sh=PREF.shake?Math.min(.045,G.shake):0;
+      if(sh)camera.position.add(V3(Math.sin(G.time*181)*sh,Math.cos(G.time*157)*sh*.65,0));
+      camera.updateMatrixWorld(true);
+    }
+    return r;
+  };
+  const oldIdle=updateIdleTool;
+  updateIdleTool=function(dt){
+    if(held||action||ownMotion(G.v))return;
+    if(!G.editing&&G.mode==='hit'&&G.tool==='brick'&&G.v?.state==='stand'){
+      if(!$('#settingsModal').hidden||!$('#statsModal').hidden||!$('#letterModal').hidden)return;
+      brickRig.visible=true;brickVisual.visible=true;
+      const dock=$('.dock').getBoundingClientRect();brickRig.position.copy(planePoint(innerWidth*.82,Math.max(120,dock.top-45),.75));
+      brickRig.rotation.set(-.26,-.40,.1);return;
+    }
+    return oldIdle(dt);
+  };
+  const oldStep=step;
+  step=function(dt){
+    if(G.editing)return oldStep(dt);
+    const sim=Math.max(0,finiteDt(dt)-G.hitstop)*(G.slowmo>0?.35:1),r=oldStep(dt);
+    if(activeActor!==G.v){
+      activeActor=G.v;cancelHeld();action=null;fluid.length=0;if(fluidBatch)fluidBatch.count=0;
+      for(const p of projectiles)scene.remove(p.g);projectiles.length=0;hideWalls();
+    }
+    throwCooldown=Math.max(0,throwCooldown-dt);
+    if(held){if(!alive(held.v)||G.mode!=='hit'||G.tool!==held.tool)cancelHeld();else holdPose(held);}
+    updateAction(sim);updateBricks(sim);updateFluid(sim);
+    return r;
+  };
+  const oldCancel=cancelPointer;
+  cancelPointer=function(...args){cancelHeld();if(G.v?._impactV2)finish(G.v);if(action){action.r.visible=false;if(action.r.userData.head)action.r.userData.head.visible=true;action=null;}return oldCancel(...args);};
+  function resetTransient(){cancelPointer();if(G.v?._impactV2)finish(G.v);}
+  addEventListener('blur',resetTransient);
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)resetTransient();});
+  const oldDispose=Villain.prototype.dispose;
+  Villain.prototype.dispose=function(...args){this._impactV2=null;this._guardV2=null;this._wipeV2=null;return oldDispose.apply(this,args);};
+
+  /* Controls: text + colour, not colour alone. Phone buttons keep usable widths. */
+  const brickButton=document.createElement('button');brickButton.type='button';brickButton.className='tool';brickButton.dataset.tool='brick';
+  brickButton.innerHTML='<svg viewBox="0 0 48 48" aria-hidden="true"><path d="m5 17 26-8 13 9-26 9z" fill="#d27b50" stroke="#1f2a5c" stroke-width="2.4"/><path d="M5 17v17l13 10V27m0 17 26-9V18L18 27" fill="#a95135" stroke="#1f2a5c" stroke-width="2.4"/><path d="m14 18 4-1m4-2 4-1m4-2 4-1" stroke="#56342a" stroke-width="4" stroke-linecap="round"/></svg>벽돌';
+  $('#hitTools').append(brickButton);
+  brickButton.addEventListener('click',()=>{SFX.unlock();cancelPointer();clearAttacks();G.tool='brick';G.equipTime=G.time;$$('[data-tool]').forEach(b=>b.classList.toggle('on',b===brickButton));SFX.pop();setHint();});
+  const badges={chair:'↕ ↔ 직접 스윙',bat:'꾹 · 풀차지',rope:'꾹 · 당기기',brick:'조준 · 던지기'};
+  for(const b of $$('#hitTools [data-tool]')){
+    const text=badges[b.dataset.tool],small=document.createElement('small');small.className='impact-skill';small.textContent=text||' ';b.append(small);
+    if(text){b.classList.add('impact-special');b.setAttribute('aria-label',b.textContent.trim());b.title=text;}
+  }
+  HINTS.chair='누른 채 의자 들기 · 움직여 조준<br><b class="impact-key">아래로 쓸고 놓기: 내려찍기</b> · <b class="impact-key">좌우로 쓸고 놓기: 후려치기</b>';
+  HINTS.brick='누른 채 조준 · <b class="impact-key">손을 놓으면 벽돌 던지기</b><br>허공으로 던진 벽돌은 맞지 않습니다';
+  HINTS.bat='톡: 일반 스윙 · <b class="impact-key">꾹 눌러 FULL → 놓기: 장외 홈런</b><br>카메라는 그대로 · 화면 밖으로 날아간 뒤 절뚝거리며 복귀';
+  const oldHint=setHint;
+  setHint=function(...args){const r=oldHint(...args);if(G.mode==='hit'&&G.tool==='rope')$('#hint').innerHTML='캐릭터 누르기 · <b class="impact-key">드래그: 목 전용 당기기</b> · 놓으면 풀기';return r;};
+  const css=document.createElement('style');css.textContent=`
+    #hitTools{grid-template-columns:repeat(8,minmax(0,1fr))!important;gap:3px}
+    #hitTools .tool{min-height:79px;justify-content:flex-start;padding:4px 1px}
+    #hitTools .tool svg{width:36px;height:36px;flex:none}
+    .impact-skill{display:block;min-height:14px;font-size:9px!important;line-height:1.4;letter-spacing:-.5px;font-weight:800;white-space:nowrap;color:#8f2e47}
+    .impact-key{color:#ffe269;font-weight:800}.impact-special.on{box-shadow:inset 0 -3px 0 #d9873f}
+    #hitTools .impact-ready{background:#ffe071!important;border-color:#ab261e;box-shadow:0 0 0 2px #f07c30,inset 0 -4px 0 #e99936}
+    #hitTools .impact-ready .impact-skill{font-size:0!important}#hitTools .impact-ready .impact-skill:after{content:'FULL · 놓기';font-size:10px}
+    .impact-charge-ready:after{content:'FULL';position:absolute;inset:22px 0 0;text-align:center;font:bold 14px sans-serif;color:#ffd741;text-shadow:0 2px 2px #1f2a5c}
+    @media(max-width:540px){#hitTools{grid-template-columns:repeat(4,minmax(0,1fr))!important}#hitTools .tool{min-height:73px;font-size:11px}#hitTools .tool svg{width:32px;height:32px}.impact-skill{font-size:9px!important}}
+    @media(prefers-reduced-motion:reduce){.impact-ready{animation:none!important}}
+  `;document.head.append(css);
+  window.__SC_IMPACT_V2={version:VERSION,config:CFG,events:log,fixSleeves,
+    inspect:()=>({held:held?.tool||null,action:action?.type||null,motion:G.v?._impactV2?.kind||null,
+      phase:G.v?._impactV2?.phase||null,projectiles:projectiles.length,fluid:fluid.length}),
+    cancel:resetTransient};
+  if(window.__api)Object.assign(window.__api,{applyHit,updateVillain,step,updateCamera,startAttack,updateToolHold,poseSolidTool,cancelPointer});
+})();
+/* SC_IMPACT_V2_END */
 
 
 /* ================= 시작 ================= */
