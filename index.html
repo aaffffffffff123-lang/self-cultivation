@@ -10398,37 +10398,95 @@ text.textContent = Math.random() < 0.5
       if(t>=1){f.phase='stand';f.form=[0,0];f.cover=f.coverTo=0;}
     }
   }
-  function pose(v,f) {
-    const crouch=f.form[0],roll=f.form[1];
-    const r=f.phase==='rise'?clamp01(f.age/CFG.riseSeconds):0;
-    const cover=f.cover*(1-smooth(r/0.68));
-    const t=G.time,kick=Math.sin(t*38)*f.recoil;
-    v.body.position.set(0,0,0);v.body.rotation.set(0,0,0);
-    v.torso.position.y=0.5;v.torso.scale.set(1,1,1);
-    v.torso.rotation.set((0.32+cover*0.40)*crouch+kick*0.012,0,
-      r>0?Math.sin(t*4.3)*0.04*Math.sin(r*Math.PI):0);
-    v.head.position.y=0.31;v.head.scale.set(1,1,1);
-    v.headPivot.rotation.set(0.16+0.21*crouch+kick*0.025,0,
-      Math.sin(t*19)*0.008*crouch);
-    for(const [i,leg] of f.legs.entries()) {
-      leg.leg.rotation.set(-(1.00+cover*0.35)*crouch,0,(i?1:-1)*0.08*crouch);
-      bendLeg(leg,(1.92+cover*0.35)*crouch);
-    }
-    for(const a of v.armRig) {
-      armLengths(v,a,0.20);
-      a.sh.rotation.set(-0.50-0.18*crouch,0,a.s*0.24);
-      a.el.rotation.set(-0.60,0,0);a.hand.rotation.set(0,a.s*0.6,0);
-    }
-    v.root.rotation.set(0,-f.side*0.12*roll,f.side*Math.PI/2*roll);
-    v.root.position.set(0,0,0);v.root.updateMatrixWorld(true);
-    const hip=v.body.localToWorld(new THREE.Vector3(0,0.5,0));
-    v.root.position.x=f.x-hip.x;v.root.position.z=f.z-hip.z;
-    v.root.updateMatrixWorld(true);
-    for(const a of v.armRig)coverHead(v,a,cover*crouch);
-    v.root.position.y+=CFG.floor-floorY(v,f);
-    v.root.updateMatrixWorld(true);
-    v.state='down';v.stateT=0.35+2.2*r;v.lieZ=f.side*Math.PI/2;
+
+
+
+
+function pose(v,f) {
+  const crouch=f.form[0], roll=f.form[1];
+  const r=f.phase==='rise'
+    ?clamp01(f.age/CFG.riseSeconds)
+    :0;
+
+  const cover=f.cover*(1-smooth(r/0.68));
+  const t=G.time;
+  const kick=Math.sin(t*38)*f.recoil;
+
+  // 상체가 앞뒤로 숙여지거나 비틀리지 않게 고정
+  v.body.position.set(0,0,0);
+  v.body.rotation.set(0,0,0);
+
+  v.torso.position.y=0.5;
+  v.torso.scale.set(1,1,1);
+  v.torso.rotation.set(0,0,0);
+
+  // 얼굴은 정면 유지. 작은 좌우 떨림만 남긴다.
+  v.head.position.y=0.31;
+  v.head.scale.set(1,1,1);
+  v.headPivot.rotation.set(
+    0,
+    0,
+    Math.sin(t*19)*0.008*crouch+kick*0.015
+  );
+
+  // 다리를 깊게 접지 않고 살짝 벌어진 자세만 유지
+  for(const [i,leg] of f.legs.entries()) {
+    leg.leg.rotation.set(
+      0,
+      0,
+      (i?1:-1)*0.05*crouch
+    );
+    bendLeg(leg,0);
   }
+
+  // 기존 팔 자세와 머리 감싸기 동작은 유지
+  for(const a of v.armRig) {
+    armLengths(v,a,0.20);
+    a.sh.rotation.set(-0.50-0.18*crouch,0,a.s*0.24);
+    a.el.rotation.set(-0.60,0,0);
+    a.hand.rotation.set(0,a.s*0.6,0);
+  }
+
+  // 넘어지기 직전에도 앞이 아닌 옆으로만 살짝 기울인다.
+  // 완전히 쓰러졌을 때는 정확히 옆으로 90도.
+  const lean=0.045*crouch*(1-roll);
+
+  v.root.rotation.set(
+    0,
+    0,
+    f.side*(Math.PI/2*roll+lean)
+  );
+
+  // 기존 골반 기준 위치 보정
+  v.root.position.set(0,0,0);
+  v.root.updateMatrixWorld(true);
+
+  const hip=v.body.localToWorld(
+    new THREE.Vector3(0,0.5,0)
+  );
+
+  v.root.position.x=f.x-hip.x;
+  v.root.position.z=f.z-hip.z;
+  v.root.updateMatrixWorld(true);
+
+  for(const a of v.armRig) {
+    coverHead(v,a,cover*crouch);
+  }
+
+  // 몸이 바닥에 파묻히거나 뜨지 않도록 기존 보정 유지
+  v.root.position.y+=CFG.floor-floorY(v,f);
+  v.root.updateMatrixWorld(true);
+
+  v.state='down';
+  v.stateT=0.35+2.2*r;
+  v.lieZ=f.side*Math.PI/2;
+}
+
+
+
+
+
+
   function finish(v,f) {
     for(const leg of f.legs||[]) {bendLeg(leg,0);leg.leg.rotation.set(0,0,0);}
     v.torso.rotation.set(0,0,0);v.torso.position.y=0.5;
