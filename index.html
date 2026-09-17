@@ -7414,6 +7414,210 @@ window.__api=Object.assign(window.__api,{startSocial,stopSocial,requestHighFive,
 })();
 /* SC_ROPE_AUDIO_INPUT_V1_END */
 
+
+/* PLAYER_BUBBLE_V1 */
+(() => {
+  if (window.__SC_PLAYER_BUBBLE_V1) return;
+
+  // 플레이어 대사: 이 문구들을 원하는 말로 바꾸면 된다.
+  const LINES = [
+    '야.',
+    '장난하냐?',
+    '정신 차려.',
+    '딴 데 보지 마.',
+    '말로 할 때 듣지.'
+  ];
+
+  const SHOW_MS = 1700; // 말풍선 표시 시간
+  const GAP_MS = 2600;  // 다음 말을 하기까지 최소 간격
+
+  const dock = document.querySelector('.dock');
+  if (!dock) return;
+
+  // 기존 캐릭터 말풍선과 별개의 디자인.
+  const css = document.createElement('style');
+  css.textContent = `
+    .dock > .player-bubble {
+      position: absolute;
+      right: 18px;
+      bottom: calc(100% + 20px);
+      width: max-content;
+      max-width: min(250px, calc(100% - 36px));
+      padding: 10px 14px;
+
+      border: 2.5px solid var(--ink);
+      border-radius: 17px;
+      background: #fff2b3;
+      color: var(--ink);
+      box-shadow: 0 3px 0 var(--ink);
+
+      font: 800 19px/1.35 var(--body);
+      word-break: keep-all;
+      overflow-wrap: anywhere;
+
+      pointer-events: none;
+      z-index: 1;
+      animation: playerBubbleIn .16s ease-out;
+    }
+
+    .player-bubble small {
+      display: block;
+      margin-bottom: 3px;
+      font-size: 11px;
+      color: #a33c29;
+    }
+
+    /* 화면 아래의 플레이어 쪽을 향하는 꼬리 */
+    .player-bubble::after {
+      content: '';
+      position: absolute;
+      right: 28px;
+      bottom: -10px;
+      width: 16px;
+      height: 16px;
+      background: #fff2b3;
+      border-right: 2.5px solid var(--ink);
+      border-bottom: 2.5px solid var(--ink);
+      transform: rotate(45deg);
+    }
+
+    @keyframes playerBubbleIn {
+      from {
+        opacity: 0;
+        transform: translateY(7px) scale(.96);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .dock > .player-bubble {
+        animation: none;
+      }
+    }
+  `;
+  document.head.append(css);
+
+  const el = document.createElement('div');
+  el.className = 'player-bubble';
+  el.hidden = true;
+  el.setAttribute('role', 'status');
+  el.setAttribute('aria-live', 'polite');
+  el.setAttribute('aria-atomic', 'true');
+  el.innerHTML = '<small>나</small><span></span>';
+
+  dock.append(el);
+  const text = el.querySelector('span');
+
+  let timer = 0;
+  let lastAt = -Infinity;
+  let lastLine = '';
+
+  function hide() {
+    clearTimeout(timer);
+    timer = 0;
+    el.hidden = true;
+  }
+
+  function reset() {
+    hide();
+    lastAt = -Infinity;
+    lastLine = '';
+  }
+
+  function say() {
+    // 달래기·외모 편집·설정창에서는 말하지 않는다.
+    if (
+      G.mode !== 'hit' ||
+      G.editing ||
+      !G.v ||
+      document.hidden ||
+      document.querySelector('.modal:not([hidden])')
+    ) return;
+
+    const now = performance.now();
+    if (now - lastAt < GAP_MS) return;
+
+    // 직전과 같은 대사는 피한다.
+    const pool = LINES.filter(s => s && s !== lastLine);
+    const line = pool[Math.floor(Math.random() * pool.length)]
+      || LINES[0] || '야.';
+
+    clearTimeout(timer);
+    lastAt = now;
+    lastLine = line;
+
+    text.textContent = line;
+    el.hidden = false;
+    timer = setTimeout(hide, SHOW_MS);
+  }
+
+  // 실제 타격이 기록된 경우만 연결. 허공 스윙에는 말하지 않는다.
+  const oldHit = applyHit;
+  applyHit = function(h) {
+    const v = G.v;
+    const before = v?.st?.hits || 0;
+    const result = oldHit.apply(this, arguments);
+
+    if (
+      v &&
+      G.v === v &&
+      v.st.hits > before &&
+      h?.tool !== 'tissue'
+    ) say();
+
+    return result;
+  };
+
+  // 줄넘기는 타격 대신 잡기가 시작되는 순간에 한 번.
+  const oldHold = startToolHold;
+  startToolHold = function(P, e) {
+    const before = P?.toolHold;
+    const result = oldHold.apply(this, arguments);
+
+    if (
+      P?.kind === 'ropeHold' &&
+      P.toolHold &&
+      P.toolHold !== before
+    ) say();
+
+    return result;
+  };
+
+  // 다음 캐릭터에게 이전 말풍선이 남지 않도록 초기화.
+  const oldNew = newVillain;
+  newVillain = function() {
+    reset();
+    return oldNew.apply(this, arguments);
+  };
+
+  // 모드 변경·설정·외모 편집 등을 누르면 바로 숨긴다.
+  document.addEventListener('click', e => {
+    if (
+      e.target instanceof Element &&
+      e.target.closest('[data-mode], .top button, #letterNext')
+    ) reset();
+  }, true);
+
+  addEventListener('blur', reset);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) reset();
+  });
+
+  window.__SC_PLAYER_BUBBLE_V1 = { say, hide };
+
+  if (window.__api) {
+    Object.assign(window.__api, {
+      applyHit,
+      startToolHold,
+      newVillain
+    });
+  }
+})();
+
+
 /* ================= 시작 ================= */
 function boot() {
   setHint();
