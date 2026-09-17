@@ -5206,12 +5206,10 @@ a.hand.rotation.set(0, c.hy, 0);
     G.letterTimer += dt;
     if (G.letterTimer > 1.2) showLetter();
   }
-  // 한동안 가만있으면
-  if (G.mode!=='care'&&v.state === 'stand' && G.time - G.lastAct > 8 && G.time - G.lastSay > 7) {
-    if (!v.confessed) { v.fear = Math.max(0, v.fear - 0.15); speak(v.fear < 0.22 ? pick(LINES.idle.concat(v.crime.ex)) : moodLine(v)[0]); }
-    else if (v.comfort < 1.6) speak(pick(LINES.cry), 'cry');
-    G.lastAct = G.time - 3;
-  }
+
+
+  
+
   if (!v.confessed) v.fear = Math.max(0, v.fear - dt * 0.012);
   v.blush = Math.max(0, v.blush - dt * 0.02);
   if (v.headDirty) v.applyDeform();
