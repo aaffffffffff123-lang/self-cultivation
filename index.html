@@ -911,9 +911,147 @@ const SFX = (() => {
     s.connect(f); f.connect(g); g.connect(o); s.start(t);
     loops[name] = { g, f, stop() { const n = ctx.currentTime; g.gain.cancelScheduledValues(n); g.gain.setTargetAtTime(0.0001, n, 0.04); s.stop(n + 0.3); } };
   }
-  S.rubStart = () => contLoop('rub', 650, 0.5, 0.0);
-  S.rubLevel = (v) => { const l = loops.rub; if (l && ctx) { l.g.gain.setTargetAtTime(Math.min(0.045, v * 0.045), ctx.currentTime, 0.08); l.f.frequency.setTargetAtTime(520 + v * 320, ctx.currentTime, 0.08); } };
-  S.rubStop = () => { if (loops.rub) { loops.rub.stop(); loops.rub = null; } };
+
+
+  // SOFT_RUB_V1
+  let rubOn = false, rubTravel = 0, rubLast = -10, rubBuffer = null;
+  const rubVoices = new Set();
+
+  S.rubStop = () => {
+    rubOn = false;
+    rubTravel = 0;
+    for (const v of [...rubVoices]) v.stop();
+  };
+
+  S.rubStart = () => {
+    S.rubStop();
+    rubOn = true;
+    rubLast = -10;
+  };
+
+  // 누적된 G.rub 값으로 지속 잡음을 만들지 않는다.
+  S.rubLevel = () => {};
+
+  S.rubStroke = (distance, pan = 0) => {
+    if (!rubOn || !ctx || !on || ctx.state !== 'running') return;
+    if (!Number.isFinite(distance) || distance <= 0) return;
+
+    const t = ctx.currentTime;
+    rubTravel = Math.min(35, rubTravel + distance);
+
+    if (
+      rubTravel < 10 ||
+      t - rubLast < .16 ||
+      rubVoices.size >= 2
+    ) return;
+
+    const strength = Math.min(1, rubTravel / 30);
+    rubTravel = 0;
+    rubLast = t;
+
+    // 한 번 만들어 재사용한다. 반복 재생은 하지 않는다.
+    if (!rubBuffer) {
+      rubBuffer = ctx.createBuffer(
+        1,
+        Math.ceil(ctx.sampleRate * .5),
+        ctx.sampleRate
+      );
+
+      const data = rubBuffer.getChannelData(0);
+      let smooth = 0;
+
+      for (let i = 0; i < data.length; i++) {
+        smooth = smooth * .94 + (Math.random() * 2 - 1) * .06;
+        data[i] = smooth * 2.2;
+      }
+    }
+
+    const src = ctx.createBufferSource();
+    src.buffer = rubBuffer;
+
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 95;
+
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.Q.value = .55;
+
+    const gain = ctx.createGain();
+    const nodes = [src, hp, lp, gain];
+
+    const dur = .17;
+    const peak = .075 + strength * .035;
+
+    lp.frequency.setValueAtTime(650, t);
+    lp.frequency.linearRampToValueAtTime(300, t + dur);
+
+    // 갑자기 켜지고 끊기는 대신 부드럽게 시작하고 끝낸다.
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(peak, t + .045);
+    gain.gain.linearRampToValueAtTime(peak * .45, t + .095);
+    gain.gain.linearRampToValueAtTime(0, t + dur);
+
+    src.connect(hp);
+    hp.connect(lp);
+    lp.connect(gain);
+
+    // 기존 효과음의 음소거·출력 경로를 그대로 사용한다.
+    if (ctx.createStereoPanner) {
+      const p = ctx.createStereoPanner();
+      p.pan.value = Math.max(-.6, Math.min(.6, pan));
+      gain.connect(p);
+      p.connect(bus);
+      nodes.push(p);
+    } else {
+      gain.connect(bus);
+    }
+
+    let stopped = false;
+
+    const voice = {
+      stop() {
+        if (stopped) return;
+        stopped = true;
+
+        const now = ctx.currentTime;
+        const elapsed = Math.max(0, now - t);
+
+        const level = elapsed < .045
+          ? peak * elapsed / .045
+          : elapsed < .095
+            ? peak * (1 - .55 * (elapsed - .045) / .05)
+            : elapsed < dur
+              ? peak * .45 * (dur - elapsed) / (dur - .095)
+              : 0;
+
+        if (gain.gain.cancelAndHoldAtTime) {
+          gain.gain.cancelAndHoldAtTime(now);
+        } else {
+          gain.gain.cancelScheduledValues(now);
+          gain.gain.linearRampToValueAtTime(Math.max(0, level), now);
+        }
+
+        gain.gain.linearRampToValueAtTime(0, now + .02);
+        try { src.stop(now + .025); } catch (_) {}
+      }
+    };
+
+    rubVoices.add(voice);
+
+    src.onended = () => {
+      nodes.forEach(n => {
+        try { n.disconnect(); } catch (_) {}
+      });
+      rubVoices.delete(voice);
+    };
+
+    src.start(t);
+    src.stop(t + dur + .01);
+  };
+
+
+
   S.hugStart = () => contLoop('hug',650,.8,.012);
   S.hugStop = () => { if (loops.hug) { loops.hug.stop(); loops.hug = null; } };
   S.bandage = (pan = 0) => { if (!ctx) return; S.rip(pan, 0.12); setTimeout(() => S.pat(pan), 110); };
@@ -8260,6 +8398,444 @@ function updateHomerun(v, m, dt) {
     });
   }
 })();
+
+/* ROOM_UI_V1 — 다른 패치 뒤, '시작' 주석 바로 위에 한 번만 추가 */
+(() => {
+  if (window.__SC_ROOM_UI_V1) return;
+
+  const settings = $('#settingsModal');
+  const appearance = $('#appearanceBtn');
+  const hint = $('#hint');
+
+  const css = document.createElement('style');
+
+  css.textContent = `
+    .top {
+      padding:0!important;
+      height:0;
+      pointer-events:none!important
+    }
+
+    /* 기존 카메라 코드가 참조하는 여백만 남기고, 내용은 숨긴다. */
+    .top .title-block {
+      position:absolute!important;
+      top:0;
+      left:0;
+      width:0!important;
+      height:calc(56px + var(--safe-t));
+      visibility:hidden!important;
+      overflow:hidden;
+      pointer-events:none!important
+    }
+
+    .top .logo,
+    .top .crime-tag,
+    #statsBtn {
+      display:none!important
+    }
+
+    .top-buttons {
+      position:fixed!important;
+      top:calc(8px + var(--safe-t))!important;
+      left:max(8px,env(safe-area-inset-left))!important;
+      right:max(8px,env(safe-area-inset-right))!important;
+      display:flex!important;
+      justify-content:space-between;
+      pointer-events:none!important
+    }
+
+    #settingsBtn,#nextBtn {
+      height:44px!important;
+      pointer-events:auto
+    }
+
+    #settingsBtn {
+      width:44px!important;
+      min-width:44px;
+      padding:0!important
+    }
+
+    #nextBtn {
+      width:auto!important;
+      min-width:96px;
+      padding:0 12px!important
+    }
+
+    #nextBtn .label {
+      display:inline!important
+    }
+
+    #settingsModal #appearanceBtn {
+      display:flex!important;
+      width:100%;
+      height:48px;
+      margin:0 0 12px;
+      justify-content:center;
+      gap:8px
+    }
+
+    #settingsModal #appearanceBtn .label {
+      display:inline!important
+    }
+
+    #settingsModal #appearanceBtn.locked::after {
+      display:none
+    }
+
+    .dock {
+      gap:0!important;
+      padding-bottom:calc(8px + var(--safe-b))
+    }
+
+    .dock>.panel {
+      padding:6px;
+      gap:6px
+    }
+
+    .dock .mode {
+      height:44px
+    }
+
+    /* 상시 노출되던 상품 설명·작은 조작 설명을 제거한다. */
+    #toolLabel,#hitTools .impact-skill {
+      display:none!important
+    }
+
+    #hitTools .tool {
+      min-height:60px!important;
+      padding:3px 2px!important
+    }
+
+    #hitTools .tool svg {
+      width:34px!important;
+      height:34px!important
+    }
+
+    /* 설명을 지워도 풀차지 완료 표시는 남긴다. */
+    #hitTools .tool.impact-ready::after {
+      content:'FULL';
+      position:absolute;
+      top:0;
+      right:1px;
+      padding:2px 4px;
+      border-radius:5px;
+      background:#ffd23f;
+      color:#722a1c;
+      font-size:9px;
+      font-weight:800
+    }
+
+    /* 설명은 도구함 위에 잠시 띄운다. 레이아웃 높이는 차지하지 않는다. */
+    #hint {
+      position:absolute;
+      left:50%;
+      bottom:calc(100% + 10px);
+      width:max-content;
+      max-width:calc(100% - 16px);
+      box-sizing:border-box;
+      border-radius:13px;
+      padding:9px 13px;
+      font-size:12px;
+      line-height:1.55;
+      opacity:0;
+      visibility:hidden;
+      transform:translate(-50%,5px);
+      transition:opacity .22s,transform .22s,visibility .22s;
+      pointer-events:none
+    }
+
+    #hint.help-shown {
+      opacity:1;
+      visibility:visible;
+      transform:translate(-50%,0)
+    }
+
+    /* 설명과 플레이어 대사가 서로 겹치지 않게 한다. */
+    #hint.help-shown ~ #careCaption,
+    #hint.help-shown ~ .player-bubble {
+      bottom:calc(100% + var(--help-h,70px) + 18px)!important
+    }
+
+    @media(max-width:600px) {
+      #hitTools {
+        display:flex!important;
+        gap:4px!important;
+        overflow-x:auto;
+        scrollbar-width:thin;
+        touch-action:pan-x;
+        overscroll-behavior-x:contain;
+        padding-bottom:3px
+      }
+
+      #hitTools .tool {
+        flex:0 0 64px;
+        touch-action:pan-x;
+        font-size:11px!important
+      }
+
+      #hitTools .tool .tight {
+        font-size:10px
+      }
+
+      .care-strip {
+        padding-bottom:3px
+      }
+
+      .care-strip .tool {
+        min-height:60px
+      }
+
+      .care-strip .tool svg {
+        width:34px;
+        height:34px
+      }
+    }
+
+    @media(prefers-reduced-motion:reduce) {
+      #hint {transition:none}
+    }
+  `;
+
+  document.head.append(css);
+  hint.after($('#careCaption'));
+
+  // 설정은 왼쪽, 다음 놈은 오른쪽.
+  $('.top-buttons').append($('#settingsBtn'), $('#nextBtn'));
+
+  // 기존 외모 버튼을 옮겨서 클릭 연결과 저장 기능을 보존한다.
+  const sheet = settings.querySelector('.sheet');
+  sheet.insertBefore(appearance, sheet.querySelector('.row'));
+
+  appearance.querySelector('.label').textContent = '외모 다시 바꾸기';
+  appearance.setAttribute('aria-label', '외모 다시 바꾸기');
+
+  // 외모 편집기를 열기 전에 설정창부터 닫는다.
+  appearance.addEventListener('click', () => {
+    settings.hidden = true;
+  }, true);
+
+  const look = $('#lookModal');
+
+  new MutationObserver(() => {
+    if (look.hidden && !G.editing && settings.hidden) {
+      $('#settingsBtn').focus({preventScroll:true});
+    }
+  }).observe(look, {
+    attributes:true,
+    attributeFilter:['hidden']
+  });
+
+  // 배경 포스터만 제거. 시계·바닥·방 소품은 남긴다.
+  const texture = room.userData.signTex?.t;
+
+  if (texture) {
+    for (const obj of [...room.children]) {
+      if (obj.isMesh && obj.material?.map === texture) {
+        room.remove(obj);
+      }
+    }
+  }
+
+  redrawSign = () => {};
+
+  // 설명 표시 시간 관리.
+  let timer = 0;
+  let selected = '';
+
+  const key = () =>
+    G.mode + ':' + (G.mode === 'hit' ? G.tool : G.care);
+
+  function hideHelp() {
+    clearTimeout(timer);
+    hint.classList.remove('help-shown');
+  }
+
+  function showHelp() {
+    hideHelp();
+
+    if (
+      G.editing ||
+      document.querySelector('.modal:not([hidden])')
+    ) return;
+
+    const text = hint.textContent.trim();
+    if (!text) return;
+
+    hint.classList.add('help-shown');
+
+    $('.dock').style.setProperty(
+      '--help-h',
+      hint.offsetHeight + 'px'
+    );
+
+    // 짧은 설명 4.5초, 긴 설명 최대 9.5초.
+    const duration = Math.min(
+      9500,
+      Math.max(4500, 2000 + text.length * 80)
+    );
+
+    timer = setTimeout(hideHelp, duration);
+  }
+
+  const oldHint = setHint;
+
+  setHint = function() {
+    const result = oldHint.apply(this, arguments);
+
+    // 같은 도구를 사용하는 중에는 설명 시간을 계속 연장하지 않는다.
+    if (key() !== selected) {
+      selected = key();
+      showHelp();
+    }
+
+    return result;
+  };
+
+  document.addEventListener('click', e => {
+    const b = e.target.closest?.(
+      '[data-tool],[data-care],.mode'
+    );
+
+    if (!b || b.disabled) return;
+
+    // 같은 도구를 다시 누르면 설명도 다시 보여 준다.
+    showHelp();
+
+    if (
+      b.parentElement.scrollWidth >
+      b.parentElement.clientWidth
+    ) {
+      b.scrollIntoView({
+        block:'nearest',
+        inline:'nearest',
+        behavior:'auto'
+      });
+    }
+  });
+
+  const modalWatch = new MutationObserver(() => {
+    if (document.querySelector('.modal:not([hidden])')) {
+      hideHelp();
+    }
+  });
+
+  $$('.modal').forEach(m => {
+    modalWatch.observe(m, {
+      attributes:true,
+      attributeFilter:['hidden']
+    });
+  });
+
+  addEventListener('resize', () => {
+    $('.dock').style.setProperty(
+      '--help-h',
+      hint.offsetHeight + 'px'
+    );
+  });
+
+  // 실제로 손을 문지른 거리만 새 효과음에 전달한다.
+  const oldRub = careRub;
+
+  careRub = function(P, sx, sy, e) {
+    const result = oldRub.apply(this, arguments);
+
+    if (
+      G.mode === 'care' &&
+      G.v?.state === 'stand' &&
+      P.rubbing &&
+      ['pet','wipe'].includes(P.kind)
+    ) {
+      SFX.rubStroke?.(
+        Math.hypot(sx, sy),
+        e.clientX / Math.max(1, innerWidth) * 2 - 1
+      );
+    }
+
+    return result;
+  };
+
+  const oldSound = SFX.setOn;
+
+  SFX.setOn = function(enabled) {
+    if (!enabled) SFX.rubStop();
+    return oldSound.apply(this, arguments);
+  };
+
+  addEventListener('blur', () => {
+    hideHelp();
+    SFX.rubStop();
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      hideHelp();
+      SFX.rubStop();
+    }
+  });
+
+  // 새 상·하단 여백 기준으로 전신을 맞춘다.
+  // 설명의 표시/숨김은 카메라 크기에 영향을 주지 않는다.
+  fit = function() {
+    if (G.editing) {
+      AppearanceEditor.resize();
+      return;
+    }
+
+    const W = innerWidth;
+    const H = innerHeight;
+
+    renderer.setSize(W, H, false);
+    camera.aspect = W / H;
+
+    const topH = Math.max(
+      $('#settingsBtn').getBoundingClientRect().bottom,
+      $('#nextBtn').getBoundingClientRect().bottom
+    ) + 10;
+
+    const botH = H - $('.dock').getBoundingClientRect().top + 10;
+    const avail = Math.max(100, H - topH - botH);
+    const L = G.v?.look;
+
+    const y0 = -.06;
+
+    const y1 = L
+      ? Math.max(
+          1.93,
+          1.06 * L.bodyH + .31 +
+          L.headH * (
+            HEAD_R +
+            (['spiky','mohawk'].includes(L.style) ? .17 : .07)
+          )
+        )
+      : 1.93;
+
+    const h = Math.max(
+      (y1 - y0) * H / avail,
+      1.5 / camera.aspect
+    );
+
+    G.viewH = h;
+    G.camDist = h / (
+      2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))
+    );
+
+    const aim =
+      (y0 + y1) / 2 +
+      (topH - botH) * h / (2 * H);
+
+    camBase.set(0, aim, G.camDist);
+    G.camTarget = V3(0, aim, 0);
+
+    camera.updateProjectionMatrix();
+  };
+
+  window.__SC_ROOM_UI_V1 = {showHelp, hideHelp};
+
+  if (window.__api) {
+    Object.assign(window.__api, {setHint, careRub});
+  }
+})();
+
 
 /* ================= 시작 ================= */
 function boot() {
