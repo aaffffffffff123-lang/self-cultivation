@@ -2916,11 +2916,50 @@ function sendAway() {
 }
 
 /* ================= 대사 ================= */
+
+
+// 맞는 캐릭터의 일반 대사.
+// 피격 추임새와 플레이어 쪽 대사는 이 목록으로 바꾸지 않는다.
+const CHARACTER_LINES = [
+  '아무도 내 편이 아니야',
+  '연락 오는 사람이 없어',
+  '내가 없어져도 아무도 모를 거야',
+  '대화할 사람이 없어',
+  '나 좀 알아봐 줘',
+  '잘했다고 한 번만 말해 줘',
+  '칭찬받고 싶어',
+  '사랑 받고 싶어',
+  '기대고 싶어',
+  '나는 왜 이 모양일까',
+  '나는 뭘 해도 안 돼',
+  '나 같은 게 뭘 하겠어',
+  '다들 나보다 잘나 보여',
+  '나는 쓸모가 없어',
+  '너무 힘들어',
+  '그냥 다 그만두고 싶어',
+  '버티기 힘들어',
+  '쉬고 싶어',
+  '누가 나 좀 챙겨 줘',
+  '안아 줘',
+  '옆에 있어 줘',
+  '나 혼자 두지 마',
+  '괜찮다고 말해 줘',
+  '버림받을까 봐 무서워',
+  '다들 떠날 것 같아',
+  '내일이 무서워',
+  '나는 사랑 받을 자격이 없는 거 같아'
+];
+
 function speak(line, kind = '', dur, force = false) {
   if(G.editing)return;
   const v = G.v; if (!v) return;
   if(!force&&G.mode==='care'&&['stand','hug'].includes(v.state))return;
-  const text = lisp(line, v.st.teeth);
+  // 피격 추임새는 원문 유지, 그 외 캐릭터 대사는 새 목록에서 선택.
+const spokenLine = LINES.ouch.includes(line)
+  ? line
+  : pick(CHARACTER_LINES);
+
+const text = lisp(spokenLine, v.st.teeth);
   say(text, dur || clamp(0.9 + text.length * 0.08, 1.3, 3.2), kind);
   v.mouth.talk = clamp(text.length * 0.07, 0.3, 2.2);
   const n = clamp(Math.round(text.replace(/[^가-힣a-z]/gi, '').length * 0.8), 1, 14);
@@ -7886,14 +7925,8 @@ function updateHomerun(v, m, dt) {
     '찐따새끼',
     '징징대지 마',
     '니 인생',
-
-   '아오',
-
-    '뭘 꼴아봐',
-   
     '꼴값 떨지 마',
     '지랄하네'
-
 
   ];
 
