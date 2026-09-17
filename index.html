@@ -7847,7 +7847,16 @@ function updateHomerun(v, m, dt) {
   canvas.addEventListener('pointerdown',e=>{
     if(G.editing||G.mode!=='hit'||!['chair','brick'].includes(G.tool)||e.button>0||e.isPrimary===false)return;
     if(!$('#settingsModal').hidden||!$('#statsModal').hidden||!$('#letterModal').hidden)return;
-    stopEvent(e);if(held||action||!G.v||G.v.state!=='stand'||G.attacks.length||throwCooldown>0)return;
+    stopEvent(e);
+
+if (
+  held ||
+  action ||
+  !G.v ||
+  !['stand', 'down'].includes(G.v.state) ||
+  G.attacks.length ||
+  throwCooldown > 0
+) return;
     SFX.unlock();cancelPointer();stopSocial();
     const info=pick3D(e.clientX,e.clientY);
     held={id:e.pointerId,tool:G.tool,v:G.v,x0:e.clientX,y0:e.clientY,x:e.clientX,y:e.clientY,info,
@@ -10185,6 +10194,453 @@ text.textContent = Math.random() < 0.5
 
   window.__SC_CARE_SCROLL_FIX_V2 = { version:2 };
 })();
+
+
+/* SC_FATIGUE_V1_BEGIN
+ * Insert ONCE inside gameSource, immediately before:
+ *   / * ================= 시작 ================= * /
+ * Do not add a new <script> tag. Load after the other animation patches.
+ * Inspected base: aa1455cbc6270c1db53a3078f7a93e183ab833c1.
+ * Does not change wounds, medicine or saved appearance.
+ * The accompanying speech/name fixes below do not touch player insults.
+ */
+(() => {
+  'use strict';
+  if (window.__SC_FATIGUE_V1) return;
+
+  const CFG = Object.freeze({
+    shakeAt: 55,          // 누적 데미지: 떨림 시작
+    fullShakeAt: 110,     // 여기서 떨림이 최대 세기
+    collapseAt: 180,     // 이 이상 누적된 뒤 다시 맞으면 쓰러짐
+    shakeScale: 0.5,      // 체어샷 팔 파닥임 진폭의 절반
+    restSeconds: 5,       // 마지막 실제 타격 뒤 기다리는 시간
+    riseSeconds: 3.2,     // 천천히 일어나는 시간
+    fallSeconds: 1.45,
+    floor: 0.012
+  });
+  const data = new WeakMap();
+  const clamp01 = x => Math.max(0, Math.min(1, x));
+  const smooth = x => { x = clamp01(x); return x*x*(3-2*x); };
+  const mix = (a,b,t) => a+(b-a)*t;
+  const down = new THREE.Vector3(0,-1,0);
+  const zero = () => new THREE.Vector3();
+  const tmp = zero();
+
+  function ensure(v) {
+    let f = data.get(v);
+    if (!f) {
+      f = {phase:'stand', age:0, quiet:0, cover:0, coverTo:0,
+        shake:0, pending:false, form:[0,0], from:[0,0],
+        x:0, z:0, side:1, recoil:0, legs:null, support:[]};
+      data.set(v,f);
+    }
+    return f;
+  }
+  const active = v => !!v && !!data.get(v) && data.get(v).phase!=='stand';
+  const special = v => !!(v._impactV2 || v._slapMotion) ||
+    !['stand','down'].includes(v.state);
+  const visible = (o,root) => {
+    for (let p=o;p;p=p.parent) { if (!p.visible) return false; if(p===root)return true; }
+    return false;
+  };
+
+  // Keep the existing meshes and collision targets. Bend their lower vertices
+  // about an actual knee, rather than shrinking the entire leg into the floor.
+  function prepareLegs(v,f) {
+    if (f.legs) return;
+    f.legs = v.legs.map(leg => {
+      const m = leg.children.find(o => o.isMesh && o.userData.part==='body');
+      const shoe = leg.children.find(o => o.isMesh && o!==m &&
+        o.geometry?.type==='SphereGeometry');
+      const rec = {leg,m,shoe,shoeP:shoe?.position.clone(),shoeQ:shoe?.quaternion.clone(),angle:0};
+      if (m) {
+        m.geometry = m.geometry.clone();
+        m.geometry.attributes.position.setUsage(THREE.DynamicDrawUsage);
+        rec.base = Float32Array.from(m.geometry.attributes.position.array);
+      }
+      return rec;
+    });
+    const cloth=v._bodyCloth;
+    f.support = [v.headMesh,cloth?.core,cloth?.skirt,
+      ...f.legs.flatMap(r=>[r.m,r.shoe])].filter(Boolean);
+    if (!cloth?.core) {
+      const core=v.torso.children.find(o=>o.isMesh&&o.geometry?.type==='LatheGeometry');
+      if(core)f.support.push(core);
+    }
+    v.captureResources?.();
+  }
+  function bendLeg(r,angle) {
+    if (Math.abs(angle-r.angle)<0.0005) return;
+    r.angle=angle;
+    const knee=-0.25;
+    if (r.m) {
+      const m=r.m, geo=m.geometry, p=geo.attributes.position, b=r.base;
+      for(let i=0;i<p.count;i++) {
+        const x=b[i*3], y=b[i*3+1], z=b[i*3+2];
+        const ly=y*m.scale.y+m.position.y;
+        const lz=z*m.scale.z+m.position.z;
+        const a=angle*smooth((knee+0.03-ly)/0.06);
+        const c=Math.cos(a),s=Math.sin(a),dy=ly-knee;
+        p.setXYZ(i,x,(knee+dy*c-lz*s-m.position.y)/m.scale.y,
+          (dy*s+lz*c-m.position.z)/m.scale.z);
+      }
+      p.needsUpdate=true;
+      geo.computeVertexNormals();geo.computeBoundingBox();geo.computeBoundingSphere();
+    }
+    if(r.shoe) {
+      const p=r.shoeP,dy=p.y-knee,c=Math.cos(angle),s=Math.sin(angle);
+      r.shoe.position.set(p.x,knee+dy*c-p.z*s,dy*s+p.z*c);
+      r.shoe.quaternion.setFromAxisAngle(new THREE.Vector3(1,0,0),angle)
+        .multiply(r.shoeQ);
+    }
+  }
+
+  function armLengths(v,a,L) {
+    const stretch=L/0.2,rec=v._bodyCloth?.arms.find(r=>r.a===a);
+    a.el.position.y=-L;a.hand.position.y=-L;
+    if(rec?.upper){rec.upper.position.y=-0.10*stretch;rec.upper.scale.y=stretch;}
+    if(rec?.fore){rec.fore.position.y=-0.085*stretch;rec.fore.scale.y=stretch;}
+    if(rec?.cuff)rec.cuff.position.y=-0.17*stretch;
+  }
+  // Elbows stay outside the skull. Both hands reach the back of the head,
+  // including the unusually thin-body / large-head appearance combinations.
+  function coverHead(v,a,weight) {
+    if(weight<0.001)return;
+    v.root.updateMatrixWorld(true);
+    const d=new THREE.Vector3(a.s*0.48,0.51,-0.72).normalize();
+    const p=v.surfacePoint(d,0.075);
+    const world=v.headMesh.localToWorld(p.clone());
+    const target=v.torso.worldToLocal(world);
+    const origin=a.sh.position.clone(),delta=target.clone().sub(origin);
+    const distance=delta.length();if(distance<0.001)return;
+    const axis=delta.divideScalar(distance);
+    const L=Math.max(0.20,(distance+0.026)*0.5);
+    armLengths(v,a,mix(0.20,L,weight));
+    const pole=new THREE.Vector3(a.s,0.04,-0.10).projectOnPlane(axis);
+    if(pole.lengthSq()<0.00001)pole.set(a.s,0,0).projectOnPlane(axis);
+    pole.normalize();
+    const elbow=origin.clone().addScaledVector(axis,distance*0.5)
+      .addScaledVector(pole,Math.sqrt(Math.max(0,L*L-distance*distance*0.25)));
+    const q1=new THREE.Quaternion().setFromUnitVectors(down,elbow.clone().sub(origin).normalize());
+    const fore=target.clone().sub(elbow).normalize();
+    const q2=new THREE.Quaternion().setFromUnitVectors(down,fore.clone().applyQuaternion(q1.clone().invert()));
+    a.sh.quaternion.slerp(q1,weight);a.el.quaternion.slerp(q2,weight);
+    // Palm (-Z) toward the skull; fingers (-Y) follow the forearm downward.
+    const center=v.torso.worldToLocal(v.headMesh.getWorldPosition(zero()));
+    const fingerPoint=v.torso.worldToLocal(v.headMesh.localToWorld(
+      p.clone().add(new THREE.Vector3(0,-0.12,-0.01))
+    ));
+    const y=fingerPoint.sub(target).normalize().negate();
+    const z=target.clone().sub(center).projectOnPlane(y).normalize();
+    if(z.lengthSq()>0.001) {
+      const x=y.clone().cross(z).normalize();z.copy(x.clone().cross(y).normalize());
+      const worldQ=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x,y,z));
+      const local=q1.clone().multiply(q2).invert().multiply(worldQ);
+      a.hand.quaternion.slerp(local,weight);
+    }
+  }
+
+  function floorY(v,f) {
+    v.root.updateMatrixWorld(true);
+    let low=Infinity;
+    for(const m of f.support) {
+      if(!visible(m,v.root))continue;
+      const p=m.geometry?.attributes.position;
+      if(!p)continue;
+      const e=m.matrixWorld.elements;
+      // Exact mesh vertices, not an oversized bounding box that makes the body float.
+      for(let i=0;i<p.count;i++) {
+        const y=e[1]*p.getX(i)+e[5]*p.getY(i)+e[9]*p.getZ(i)+e[13];
+        if(y<low)low=y;
+      }
+    }
+    for(const a of v.armRig) {
+      const h=a.hand.getWorldPosition(tmp);
+      low=Math.min(low,h.y-0.065*Math.max(0.3,v.look.bodyW));
+    }
+    return Number.isFinite(low)?low:CFG.floor;
+  }
+
+  function startFall(v,f,again=false) {
+    prepareLegs(v,f);
+    f.phase='fall';f.age=0;f.pending=false;
+    f.from=f.form.slice();
+    if(!again) {
+      v.root.updateMatrixWorld(true);
+      const hip=v.body.localToWorld(new THREE.Vector3(0,0.5,0));
+      f.x=hip.x;f.z=hip.z;
+      f.side=Math.sign(v.root.rotation.z)||(Math.random()<0.5?-1:1);
+      f.cover=f.coverTo=0;
+      f.from=[0,clamp01(Math.abs(v.root.rotation.z)/(Math.PI/2))];
+      f.form=f.from.slice();
+    }
+    v.state='down';v.stateT=0.35;v.root.visible=true;
+    v.downFrom={x:v.root.position.x,z:v.root.position.z,rz:v.root.rotation.z};
+    v.lieZ=f.side*Math.PI/2;
+    v._guardV2=v._wipeV2=null;
+  }
+  function advance(f,dt) {
+    f.age+=dt;f.quiet+=dt;
+    f.cover=mix(f.cover,f.coverTo,1-Math.exp(-dt*7));
+    f.recoil*=Math.exp(-dt*8);
+    if(f.phase==='fall') {
+      const c=smooth(f.age/0.70);
+      const delay=f.from[1]>0.2?0:0.52;
+      const r=smooth((f.age-delay)/(CFG.fallSeconds-delay));
+      f.form=[mix(f.from[0],1,c),mix(f.from[1],1,r)];
+      if(f.age>=CFG.fallSeconds){f.phase='rest';f.age=0;f.form=[1,1];}
+    } else if(f.phase==='rest') {
+      f.form=[1,1];
+      if(f.quiet>=CFG.restSeconds){f.phase='rise';f.age=0;}
+    } else if(f.phase==='rise') {
+      const t=clamp01(f.age/CFG.riseSeconds);
+      f.form=[1-smooth((t-0.32)/0.68),1-smooth(t/0.42)];
+      if(t>=1){f.phase='stand';f.form=[0,0];f.cover=f.coverTo=0;}
+    }
+  }
+  function pose(v,f) {
+    const crouch=f.form[0],roll=f.form[1];
+    const r=f.phase==='rise'?clamp01(f.age/CFG.riseSeconds):0;
+    const cover=f.cover*(1-smooth(r/0.68));
+    const t=G.time,kick=Math.sin(t*38)*f.recoil;
+    v.body.position.set(0,0,0);v.body.rotation.set(0,0,0);
+    v.torso.position.y=0.5;v.torso.scale.set(1,1,1);
+    v.torso.rotation.set((0.32+cover*0.40)*crouch+kick*0.012,0,
+      r>0?Math.sin(t*4.3)*0.04*Math.sin(r*Math.PI):0);
+    v.head.position.y=0.31;v.head.scale.set(1,1,1);
+    v.headPivot.rotation.set(0.16+0.21*crouch+kick*0.025,0,
+      Math.sin(t*19)*0.008*crouch);
+    for(const [i,leg] of f.legs.entries()) {
+      leg.leg.rotation.set(-(1.00+cover*0.35)*crouch,0,(i?1:-1)*0.08*crouch);
+      bendLeg(leg,(1.92+cover*0.35)*crouch);
+    }
+    for(const a of v.armRig) {
+      armLengths(v,a,0.20);
+      a.sh.rotation.set(-0.50-0.18*crouch,0,a.s*0.24);
+      a.el.rotation.set(-0.60,0,0);a.hand.rotation.set(0,a.s*0.6,0);
+    }
+    v.root.rotation.set(0,-f.side*0.12*roll,f.side*Math.PI/2*roll);
+    v.root.position.set(0,0,0);v.root.updateMatrixWorld(true);
+    const hip=v.body.localToWorld(new THREE.Vector3(0,0.5,0));
+    v.root.position.x=f.x-hip.x;v.root.position.z=f.z-hip.z;
+    v.root.updateMatrixWorld(true);
+    for(const a of v.armRig)coverHead(v,a,cover*crouch);
+    v.root.position.y+=CFG.floor-floorY(v,f);
+    v.root.updateMatrixWorld(true);
+    v.state='down';v.stateT=0.35+2.2*r;v.lieZ=f.side*Math.PI/2;
+  }
+  function finish(v,f) {
+    for(const leg of f.legs||[]) {bendLeg(leg,0);leg.leg.rotation.set(0,0,0);}
+    v.torso.rotation.set(0,0,0);v.torso.position.y=0.5;
+    v.body.position.set(0,0,0);v.body.rotation.set(0,0,0);
+    v.root.rotation.set(0,0,0);v.root.position.y=0;
+    v.state='stand';v.stateT=0;v.stagger=Math.max(v.stagger||0,0.7);
+    for(const a of v.armRig)armLengths(v,a,0.20);
+    v.root.updateMatrixWorld(true);
+  }
+  function tremble(v,f,dt) {
+    const eligible=G.mode==='hit' && v.state==='stand' && !special(v) &&
+      !G.social && !G.hug && !G.ptr?.grab && !G.ptr?.toolHold;
+    const want=eligible?clamp01((v.damage-CFG.shakeAt)/(CFG.fullShakeAt-CFG.shakeAt)):0;
+    f.shake=mix(f.shake,want,1-Math.exp(-dt*4));
+    if(!eligible||f.shake<0.001)return;
+    const t=G.time,k=f.shake*CFG.shakeScale;
+    for(const a of v.armRig) {
+      a.sh.rotation.z+=a.s*Math.sin(t*27+a.s)*0.16*k;
+      a.sh.rotation.x+=Math.sin(t*23+a.s)*0.05*k;
+      a.el.rotation.x+=Math.sin(t*31+a.s)*0.10*k;
+    }
+    v.body.rotation.z+=Math.sin(t*25)*0.016*k;
+    v.headPivot.rotation.z+=Math.sin(t*29+0.8)*0.022*k;
+    v.root.updateMatrixWorld(true);
+  }
+
+  const oldHit=applyHit;
+  applyHit=function(h) {
+    const v=G.v;if(!v)return oldHit.apply(this,arguments);
+    const f=ensure(v),wasActive=active(v),beforeHits=v.st.hits,beforeDamage=v.damage;
+    const throwsBefore=DAY.throws||0;
+    const out=oldHit.apply(this,arguments);
+    if(G.v!==v||v.st.hits<=beforeHits||h?.tool==='tissue'||h?.tool==='ground')return out;
+    f.quiet=0;
+    if(wasActive) {
+      f.coverTo=1;f.recoil=Math.min(1,(Number(h.power)||1)*0.30);
+      // Chair/full-bat effects still execute, but a grounded actor does not get
+      // teleported into a competing launch/recovery animation.
+      v._impactV2=null;v._slapMotion=null;v._guardV2=v._wipeV2=null;
+      const walls=scene.getObjectByName?.('chair-impact-side-walls');if(walls)walls.visible=false;
+      if(DAY.throws!==throwsBefore){DAY.throws=throwsBefore;saveDay();}
+      v.root.visible=true;
+      if(f.phase==='rise')startFall(v,f,true);
+      pose(v,f);
+    } else if(G.mode==='hit'&&beforeDamage>=CFG.collapseAt) {
+      f.pending=true;
+      // Finish an already-started chair flight / offscreen return first.
+      if(!special(v))startFall(v,f);
+    }
+    return out;
+  };
+
+  const oldUpdate=updateVillain;
+  updateVillain=function(v,dt) {
+    if(G.editing||document.hidden||document.querySelector('.modal:not([hidden])'))
+      return;
+    dt=Number.isFinite(dt)?Math.max(0,Math.min(dt,0.08)):0;
+    const f=ensure(v);
+    if(f.pending&&v.damage<CFG.collapseAt)f.pending=false;
+    if(f.phase==='stand') {
+      const out=oldUpdate(v,dt);
+      if(G.v!==v)return out;
+      if(f.pending&&!special(v)){startFall(v,f);pose(v,f);}
+      else tremble(v,f,dt);
+      return out;
+    }
+    if(['enter','exit'].includes(v.state)) {
+      const state=v.state,age=v.stateT;
+      f.phase='stand';finish(v,f);v.state=state;v.stateT=age;
+      return oldUpdate(v,dt);
+    }
+    // Common eye/mouth/wound updates remain alive. Only automatic down->stand
+    // and the competing full-body pose are bypassed while this pose owns down.
+    v.state='fatigue-base';
+    let out;
+    try {out=oldUpdate(v,dt);} finally {if(G.v===v)v.state='down';}
+    if(G.v!==v)return out;
+    advance(f,dt);
+    if(f.phase==='stand')finish(v,f);else pose(v,f);
+    return out;
+  };
+
+  // Dragging a downed body into the old ankle animation would steal the pose.
+  // Normal taps/swings still use the original, hittable 'down' state.
+  const oldGrab=startGrab;
+  startGrab=function(...args){if(active(G.v))return false;return oldGrab.apply(this,args);};
+
+  const oldDispose=Villain.prototype.dispose;
+  Villain.prototype.dispose=function(...args){data.delete(this);return oldDispose.apply(this,args);};
+  if(window.__api)Object.assign(window.__api,{applyHit,updateVillain,startGrab});
+  window.__SC_FATIGUE_V1={config:CFG,
+    inspect:()=>{const f=G.v&&data.get(G.v);return f?{phase:f.phase,quiet:f.quiet,cover:f.cover,pending:f.pending}:null;}
+  };
+})();
+/* SC_FATIGUE_V1_END */
+
+/* SC_DIALOGUE_NAME_V2_BEGIN */
+(() => {
+  'use strict';
+  if(window.__SC_DIALOGUE_NAME_V2)return;
+
+  // Deliberately bypass the old universal remapping / tooth-count wrapper.
+  speak=function(line,kind='',dur,force=false) {
+    const v=G.v;
+    if(!v||G.editing)return;
+    if(!force&&G.mode==='care'&&['stand','hug'].includes(v.state))return;
+    const ouch=LINES.ouch.includes(line);
+    const chosen=(ouch||G.mode==='care')?line:
+      (typeof pickCharacterLine==='function'?pickCharacterLine():pick(CHARACTER_LINES));
+    const text=String(chosen??'');
+    if(!text.trim())return;
+    const seconds=dur||clamp(0.9+text.length*0.08,1.3,3.2);
+    say(text,seconds,kind); // No lisp(): missing teeth never rewrite the words.
+    v.mouth.talk=clamp(text.length*0.07,0.3,2.2);
+    const n=clamp(Math.round(text.replace(/[^가-힣a-z]/gi,'').length*0.8),1,14);
+    if(kind==='cry')SFX.sob({pitch:v.look.pitch});
+    else SFX.babble(n,{pitch:v.look.pitch,mood:v.fear});
+    G.lastSay=G.time;
+    if(!ouch) {
+      v._mutterLeft=rnd(3,5);
+      v._characterLineUntil=G.time+Math.min(seconds,2.2);
+    }
+  };
+  // The vulnerable monologue belongs to hit mode. Care replies keep their
+  // existing insult/gesture pairing instead of being replaced by monologues.
+  if(typeof updateCharacterMutter==='function') {
+    const oldMutter=updateCharacterMutter;
+    updateCharacterMutter=function(dt){if(G.mode==='hit')return oldMutter(dt);};
+  }
+
+  const labels=new WeakMap();
+  Villain.prototype.drawName=function() {
+    const {g,t}=this.nameTex;
+    if(g.canvas.width!==640)g.canvas.width=640;
+    const W=g.canvas.width,H=g.canvas.height;
+    const chars=Array.from(String(this.look.name||'나쁜 놈').replace(/\s+/g,''));
+    if(!chars.length)chars.push('나','쁜','놈');
+    g.clearRect(0,0,W,H);
+    const size=Math.min(W*0.84,H*0.94/(chars.length*1.04));
+    const line=size*1.04,top=(H-line*chars.length)/2+line/2;
+    g.font=`${size}px "Black Han Sans","Gothic A1","Malgun Gothic",sans-serif`;
+    g.textAlign='center';g.textBaseline='middle';g.lineJoin='round';
+    g.lineWidth=Math.max(5,size*0.075);g.strokeStyle='#fffdf4';g.fillStyle='#1f2a5c';
+    chars.forEach((ch,i)=>{g.strokeText(ch,W/2,top+i*line,W-35);g.fillText(ch,W/2,top+i*line,W-35);});
+    t.needsUpdate=true;
+  };
+
+  // Cache where each label vertex sits on the actual front-facing garment
+  // triangle. Reuse the weights as cloth dents move; no per-frame raycasts.
+  function planLabel(core,uv) {
+    const p=core.geometry.attributes.position,ix=core.geometry.index;
+    const n=ix?ix.count:p.count,at=i=>ix?ix.getX(i):i;
+    const plan=[];
+    for(let q=0;q<uv.count;q++) {
+      const x=(uv.getX(q)-0.5)*0.275;
+      const y=0.035+uv.getY(q)*0.435;
+      let best=null,zBest=-Infinity;
+      for(let j=0;j<n;j+=3) {
+        const a=at(j),b=at(j+1),c=at(j+2);
+        const ax=p.getX(a),ay=p.getY(a),bx=p.getX(b),by=p.getY(b),cx=p.getX(c),cy=p.getY(c);
+        const d=(by-cy)*(ax-cx)+(cx-bx)*(ay-cy);
+        if(Math.abs(d)<1e-10)continue;
+        const u=((by-cy)*(x-cx)+(cx-bx)*(y-cy))/d;
+        const v=((cy-ay)*(x-cx)+(ax-cx)*(y-cy))/d,w=1-u-v;
+        if(u < -1e-5||v < -1e-5||w < -1e-5)continue;
+        const z=u*p.getZ(a)+v*p.getZ(b)+w*p.getZ(c);
+        if(z>zBest){zBest=z;best={a,b,c,u,v,w};}
+      }
+      plan.push(best||{x,y,z:0.18});
+    }
+    return plan;
+  }
+  function centerLabel(v) {
+    const c=v._bodyCloth,tag=c?.tag,core=c?.core;
+    if(!tag||!core)return;
+    const p=tag.geometry.attributes.position,uv=tag.geometry.attributes.uv;
+    let cache=labels.get(v);
+    if(!cache||cache.geo!==core.geometry||cache.label!==tag.geometry) {
+      cache={geo:core.geometry,label:tag.geometry,plan:planLabel(core,uv),version:-1};
+      labels.set(v,cache);
+    }
+    // followAccessories() may have rewritten the old, left-aligned positions.
+    // A version guard skips this work when neither that nor the cloth changed.
+    if(cache.version===p.version&&cache.cloth===core.geometry.attributes.position.version)return;
+    const source=core.geometry.attributes.position;
+    tag.position.set(0,0,0);tag.rotation.set(0,0,0);tag.scale.set(1,1,1);
+    for(let i=0;i<p.count;i++) {
+      const a=cache.plan[i];
+      if(a.a===undefined){p.setXYZ(i,a.x,a.y,a.z+0.012);continue;}
+      p.setXYZ(i,
+        source.getX(a.a)*a.u+source.getX(a.b)*a.v+source.getX(a.c)*a.w,
+        source.getY(a.a)*a.u+source.getY(a.b)*a.v+source.getY(a.c)*a.w,
+        source.getZ(a.a)*a.u+source.getZ(a.b)*a.v+source.getZ(a.c)*a.w+0.012);
+    }
+    p.needsUpdate=true;
+    tag.geometry.computeVertexNormals();tag.geometry.computeBoundingBox();tag.geometry.computeBoundingSphere();
+    cache.version=p.version;cache.cloth=source.version;
+    tag.renderOrder=3;tag.material.depthTest=true;
+    // Keep the tie visible but do not let it mask the central printed letters.
+    // Hands/head still write depth and correctly occlude the label.
+    v.tie?.traverse(o=>{if(o.isMesh)for(const m of (Array.isArray(o.material)?o.material:[o.material]))m.depthWrite=false;});
+  }
+  const oldBuild=Villain.prototype.build,oldLook=Villain.prototype.applyLook;
+  Villain.prototype.build=function(...args){const r=oldBuild.apply(this,args);centerLabel(this);return r;};
+  Villain.prototype.applyLook=function(...args){const r=oldLook.apply(this,args);centerLabel(this);return r;};
+  const oldUpdate=updateVillain;
+  updateVillain=function(v,dt){const r=oldUpdate(v,dt);centerLabel(v);return r;};
+  if(window.__api)Object.assign(window.__api,{speak,updateVillain});
+  window.__SC_DIALOGUE_NAME_V2={version:2};
+})();
+/* SC_DIALOGUE_NAME_V2_END */
+
 
 
 /* ================= 시작 ================= */
