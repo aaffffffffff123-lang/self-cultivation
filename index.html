@@ -1624,6 +1624,10 @@ class Villain {
       const k = Math.exp(-(1 - d.dot(b.d)) / b.w);
       if (k > 0.01) out.addScaledVector(d, b.amp * k);
     }
+
+    out.clampLength(0, 0.12);
+
+
     if (this.grabOff.lengthSq() > 1e-7) {
       const k = Math.exp(-(1 - d.dot(this.grabDir)) / 0.05);
       out.addScaledVector(this.grabOff, k);
@@ -1657,13 +1661,37 @@ class Villain {
     this.headGeo.computeBoundingSphere();this.mouthGeo.computeBoundingSphere();
     this.headDirty = false;
   }
+
+
   addBump(d, amp, w = 0.03) {
-    if (d.y < -0.25 && Math.abs(d.x) < 0.3) amp *= 0.3; // 입 주변은 덜 붓게
+    // 입 주변은 과하게 부풀지 않게 유지
+    if (d.y < -0.25 && Math.abs(d.x) < 0.3) {
+      amp *= 0.3;
+    }
+
+    // 누적 데미지에 따라 기존 0.05보다 더 부을 수 있다.
+    const limit = 0.05 + heavyWoundLevel(this) * 0.035;
     const near = this.bumps.find(b => b.d.dot(d) > 0.985);
-    if (near) near.amp = Math.min(0.05, near.amp + amp * 0.6);
-    else { this.bumps.push({ d: d.clone(), amp: Math.min(0.05, amp), w }); if (this.bumps.length > 40) this.bumps.shift(); }
+
+    if (near) {
+      near.amp = Math.min(limit, near.amp + amp * 0.6);
+    } else {
+      this.bumps.push({
+        d: d.clone(),
+        amp: Math.min(limit, amp),
+        w
+      });
+
+      if (this.bumps.length > 40) {
+        this.bumps.shift();
+      }
+    }
+
     this.headDirty = true;
   }
+
+
+
   addLump(d, size) {
     const near = this.lumps.find(l => l.userData.d.dot(d) > 0.93);
     if (near) { near.userData.target = Math.min(0.95, near.userData.target + size * 0.2); return near; }
@@ -1703,16 +1731,15 @@ class Villain {
     }
     if (L.mole) { const [x,y]=F(L.moleX,L.moleY);g.fillStyle='#4a2b22';g.beginPath();g.arc(x,y,6*L.moleSize,0,7);g.fill(); }
     if(L.freckles){const rr=seededLookRandom(L.hairSeed+29);g.fillStyle='rgba(126,65,38,.42)';for(const side of [-1,1])for(let i=0;i<16;i++){const[x,y]=F(side*(.25+rr()*.36),-.12-rr()*.20);g.beginPath();g.arc(x,y,1.8+rr()*1.8,0,7);g.fill();}}
-    // 멍
-    for (const b of this.bruises) {
-      const lv = b.lv;
-      const c = lv < 1 ? [226, 70, 96] : lv < 2 ? [150, 60, 150] : [80, 60, 150];
-      const a = clamp(0.28 + lv * 0.2, 0, 0.82) * b.heal;
-      const gr = g.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
-      gr.addColorStop(0, `rgba(${c},${a})`); gr.addColorStop(0.55, `rgba(${c},${a * 0.8})`); gr.addColorStop(1, `rgba(${c},0)`);
-      g.fillStyle = gr; g.beginPath(); g.arc(b.x, b.y, b.r, 0, 7); g.fill();
-      if (lv >= 2) { g.fillStyle = `rgba(230,200,80,${0.25 * b.heal})`; g.beginPath(); g.arc(b.x + b.r * 0.3, b.y + b.r * 0.35, b.r * 0.35, 0, 7); g.fill(); }
-    }
+    
+    
+    
+
+    // 멍과 새로 겹쳐지는 타격 흔적
+    paintHeavyBruises(g, this);
+
+
+
     // 자국 (손바닥·슬리퍼·파리채·대파·휴지)
     for (const m of this.marks) {
       g.save(); g.translate(m.x, m.y); g.rotate(m.rot); g.globalAlpha = m.a;
@@ -2201,6 +2228,9 @@ function spawnDrop(pos, vel, kind = 'blood', size = 0.012) {
 function removeParticle(i) { const p = particles[i]; scene.remove(p.obj); particles.splice(i, 1); }
 
 function updateParticles(dt, game) {
+
+  HEAVY_WET.update(dt, game);
+
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
     p.age += dt;
@@ -2648,6 +2678,413 @@ function impactStopDuration(h,P){
   const stop=h.tool==='hammer'?.044+p*.027:h.tool==='pan'?.053+p*.025:h.tool==='bat'?.055+p*.024:h.tool==='rope'?.024+p*.022:.032+p*.029;
   return Math.min(.112,stop);
 }
+
+
+/* ===== 누적 상처 / 대량 액체 이펙트 ===== */
+function heavyWoundLevel(v) {
+  const d = Math.max(0, (Number(v.damage) || 0) - 8);
+  return d / (d + 55);
+}
+
+function heavyBruise(v, x, y, power) {
+  let b = v.bruises.find(b => Math.hypot(b.x - x, b.y - y) < 55);
+  if (!b) {
+    b = { x, y, r: 42 + power * 16, lv: 0, heal: 1, fresh: [] };
+    v.bruises.push(b);
+    if (v.bruises.length > 40) v.bruises.shift();
+  }
+  b.lv += power * 0.4 / (1 + b.lv * 0.08);
+  b.r = Math.min(155, b.r + 3 + power * 2);
+  b.heal = 1;
+
+  // 맞은 순간 무늬를 저장: 얼굴을 다시 그려도 자국이 떨리지 않는다.
+  (b.fresh ||= []).push({
+    x: x - b.x + rnd(-12, 12),
+    y: y - b.y + rnd(-10, 10),
+    angle: rnd(-1.5, 1.5),
+    length: rnd(16, 32) + power * 9,
+    seed: rnd(0, 100)
+  });
+
+  if (b.fresh.length > 5) b.fresh.shift();
+  v.faceDirty = true;
+}
+
+function paintHeavyBruises(g, v) {
+  for (const b of v.bruises) {
+    const depth = b.lv / (b.lv + 3);
+    const heal = clamp(b.heal, 0, 1);
+    const c = [
+      Math.round(220 - depth * 155),
+      Math.round(78 - depth * 44),
+      125
+    ];
+    const alpha = (0.30 + depth * 0.48) * heal;
+
+    const gr = g.createRadialGradient(
+      b.x, b.y, 0, b.x, b.y, b.r
+    );
+    gr.addColorStop(0, `rgba(${c},${alpha})`);
+    gr.addColorStop(0.55, `rgba(${c},${alpha * 0.8})`);
+    gr.addColorStop(1, `rgba(${c},0)`);
+
+    g.fillStyle = gr;
+    g.beginPath();
+    g.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+    g.fill();
+
+    // 기존 멍 위에 새로운 붉은 흔적.
+    // 반창고의 heal 값도 그대로 반영한다.
+    for (const m of b.fresh || []) {
+      g.save();
+      g.translate(b.x + m.x, b.y + m.y);
+      g.rotate(m.angle);
+      g.globalAlpha = heal * (0.38 + depth * 0.42);
+      g.lineCap = 'round';
+      g.lineWidth = 3 + depth * 5;
+      g.strokeStyle = '#e74859';
+
+      for (let j = 0; j < 3; j++) {
+        const y = (j - 1) * 9;
+        g.beginPath();
+        g.moveTo(-m.length * 0.5, y);
+        g.quadraticCurveTo(
+          0, y + Math.sin(m.seed + j) * 12,
+          m.length * 0.5, y - 3
+        );
+        g.stroke();
+      }
+
+      g.fillStyle = '#bc263c';
+      for (let j = 0; j < 5; j++) {
+        g.beginPath();
+        g.arc(
+          Math.sin(m.seed + j * 7) * m.length,
+          Math.cos(m.seed + j * 11) * 24,
+          2 + depth * 3,
+          0, Math.PI * 2
+        );
+        g.fill();
+      }
+      g.restore();
+    }
+  }
+}
+
+const HEAVY_WET = (() => {
+  // 추가되는 대량 이펙트의 동시 방울 상한.
+  // 기존 눈물·이빨·안경 등은 별도다.
+  const MAX = 720;
+
+  const material = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    roughness: 0.14
+  });
+  material.userData.shared = true;
+
+  const batch = new THREE.InstancedMesh(
+    partGeo.drop, material, MAX
+  );
+  batch.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  batch.frustumCulled = false;
+  batch.castShadow = batch.receiveShadow = false;
+  batch.count = 0;
+  scene.add(batch);
+
+  // 0: 피 / 1: 침 / 2: 콧물
+  const colors = [
+    col('#e41e3a'),
+    col('#e3f4ff'),
+    col('#c8df91')
+  ];
+  const floorColors = ['#dc2540', '#a8d9ed', '#c3d78b'];
+
+  const pool = Array.from({ length: MAX }, () => ({
+    p: V3(),
+    v: V3(),
+    size: 0,
+    kind: 0,
+    life: 0,
+    stretch: 1
+  }));
+
+  const dummy = new THREE.Object3D();
+  const up = V3(0, 1, 0);
+  const direction = V3();
+
+  let cursor = 0;
+  let owner = null;
+  let tail = null;
+  let soundWait = 0;
+
+  function clear(v) {
+    for (const p of pool) p.life = 0;
+    batch.count = 0;
+    cursor = 0;
+    tail = null;
+    owner = v;
+  }
+
+  function ensure(v) {
+    if (owner !== v) clear(v);
+  }
+
+  function emit(pos, vel, kind, size, stretch = 1) {
+    const p = pool[cursor];
+    cursor = (cursor + 1) % MAX;
+
+    p.p.copy(pos);
+    p.v.copy(vel);
+    p.kind = kind;
+    p.size = size;
+    p.stretch = stretch;
+    p.life = 2;
+  }
+
+  function mouth(v) {
+    return v.mouthWorld().add(V3(0, -0.015, 0.025));
+  }
+
+  function nose(v) {
+    return v.noseM.localToWorld(V3(0, -0.05, 0.03));
+  }
+
+  function burst(pos, count, kind, force, normal, level, power) {
+    for (let i = 0; i < count; i++) {
+      const vel = normal.clone()
+        .multiplyScalar(rnd(0.5, 1.1))
+        .addScaledVector(force, rnd(0.25, 0.65))
+        .add(V3(
+          rnd(-1.2, 1.2),
+          rnd(0.4, 1.8),
+          rnd(0.25, 1.05)
+        ));
+
+      vel.multiplyScalar(0.8 + power * 0.23);
+
+      emit(
+        pos,
+        vel,
+        kind,
+        rnd(0.007, 0.014) * (1 + level * 0.9),
+        kind === 2 ? rnd(1.8, 3.3) : rnd(1, 1.8)
+      );
+    }
+  }
+
+  function hit(v, h, power, onHead) {
+    ensure(v);
+
+    const level = heavyWoundLevel(v);
+    const count = Math.round(
+      (10 + level * 120) * (0.65 + power * 0.55)
+    );
+
+    const front = V3(0, 0, 1)
+      .transformDirection(v.headMesh.matrixWorld);
+    const at = h.point.clone()
+      .addScaledVector(h.normal, 0.025);
+
+    const wetBlood = Math.max(v.noseBlood, v.lipBlood);
+    const bloodCount = v.damage > 6
+      ? Math.round(
+          count * (0.15 + level * 0.7)
+          * (onHead ? 1 : wetBlood * 0.18)
+        )
+      : 0;
+
+    burst(
+      onHead ? at : mouth(v),
+      bloodCount,
+      0,
+      h.force,
+      onHead ? h.normal : front,
+      level,
+      power
+    );
+
+    burst(
+      mouth(v),
+      Math.round(count * (onHead ? 0.48 : 0.2)),
+      1,
+      h.force,
+      front,
+      level,
+      power
+    );
+
+    burst(
+      nose(v),
+      Math.round(count * level * (onHead ? 0.32 : 0.08)),
+      2,
+      h.force,
+      front,
+      level,
+      power
+    );
+
+    // 타격 직후 잠깐 더 쏟아지는 분출.
+    // 연타해도 타이머를 무한히 쌓지는 않는다.
+    if (onHead && level > 0.15) {
+      tail = {
+        left: 0.2 + level * 0.65,
+        acc: 0,
+        level,
+        force: h.force.clone()
+      };
+    }
+  }
+
+  function drip(v, dt) {
+    ensure(v);
+    const level = heavyWoundLevel(v);
+
+    for (const [key, amount, from] of [
+      ['_heavyNoseAcc', v.noseBlood, nose],
+      ['_heavyLipAcc', v.lipBlood * 0.35, mouth]
+    ]) {
+      if (amount <= 0.05) {
+        v[key] = 0;
+        continue;
+      }
+
+      v[key] = Math.min(
+        4,
+        (v[key] || 0) + dt * amount * (3 + level * 32)
+      );
+
+      while (v[key] >= 1) {
+        v[key]--;
+
+        emit(
+          from(v),
+          V3(
+            rnd(-0.08, 0.08),
+            rnd(-0.5, -0.2),
+            rnd(0.12, 0.3)
+          ),
+          0,
+          rnd(0.007, 0.012) * (1 + level * 0.6),
+          1.25
+        );
+      }
+    }
+  }
+
+  function update(dt, game) {
+    ensure(game.v);
+    const v = game.v;
+    if (!v) return;
+
+    dt = clamp(Number(dt) || 0, 0, 0.05);
+    soundWait = Math.max(0, soundWait - dt);
+
+    // 달래기로 전환하면 뒤따르는 분출은 중지한다.
+    if (tail && game.mode !== 'hit') tail = null;
+
+    if (tail) {
+      const span = Math.min(dt, tail.left);
+      tail.left -= span;
+      tail.acc += span * (90 + tail.level * 230);
+
+      while (tail.acc >= 1) {
+        tail.acc--;
+
+        const r = Math.random();
+        const kind = r < 0.5 ? 0 : r < 0.8 ? 1 : 2;
+        const p = kind === 2 ? nose(v) : mouth(v);
+
+        const vel = tail.force.clone()
+          .multiplyScalar(0.25)
+          .add(V3(
+            rnd(-0.45, 0.45),
+            rnd(-0.6, 0.1),
+            rnd(0.25, 0.7)
+          ));
+
+        emit(
+          p,
+          vel,
+          kind,
+          rnd(0.010, 0.019) * (1 + tail.level * 0.5),
+          kind === 2 ? 2.8 : 1.5
+        );
+      }
+
+      if (tail.left <= 0) tail = null;
+    }
+
+    let n = 0;
+    let splatBudget = 8;
+
+    for (const p of pool) {
+      if (p.life <= 0) continue;
+
+      p.life -= dt;
+      p.v.y -= 9.8 * dt;
+      p.p.addScaledVector(p.v, dt);
+
+      if (p.p.y <= p.size) {
+        // 바닥 자국을 한 프레임에 너무 많이 그리지 않는다.
+        if (splatBudget-- > 0) {
+          paintSplat(
+            p.p.x,
+            p.p.z,
+            p.size * 2.3,
+            floorColors[p.kind],
+            p.kind === 0 ? 0.8 : 0.4
+          );
+
+          if (
+            p.kind === 0 &&
+            soundWait <= 0 &&
+            Math.random() < 0.18
+          ) {
+            SFX.drip(clamp(p.p.x, -1, 1));
+            soundWait = 0.18;
+          }
+        }
+
+        p.life = 0;
+        continue;
+      }
+
+      if (p.life <= 0 || p.p.z < -1.62) {
+        p.life = 0;
+        continue;
+      }
+
+      dummy.position.copy(p.p);
+      direction.copy(p.v).normalize();
+
+      if (direction.lengthSq() > 0) {
+        dummy.quaternion.setFromUnitVectors(up, direction);
+      } else {
+        dummy.quaternion.identity();
+      }
+
+      const size = p.size * Math.min(1, p.life / 0.15);
+      dummy.scale.set(size, size * p.stretch, size);
+      dummy.updateMatrix();
+
+      batch.setMatrixAt(n, dummy.matrix);
+      batch.setColorAt(n, colors[p.kind]);
+      n++;
+    }
+
+    batch.count = n;
+
+    if (n) {
+      batch.instanceMatrix.needsUpdate = true;
+      if (batch.instanceColor) {
+        batch.instanceColor.needsUpdate = true;
+      }
+    }
+  }
+
+  return { hit, drip, update, clear };
+})();
+
 function applyHit(h) {
   const v=G.v;if(!v)return;const P=clamp(Number(h.power)||.1,.05,3);
   v.st.hits++; DAY.hits++; saveDay();
@@ -2697,9 +3134,7 @@ function applyHit(h) {
     const d = h.dir;
     const [fx, fy] = faceXY(d);
     if (!soft) {
-      const near = v.bruises.find(b => Math.hypot(b.x - fx, b.y - fy) < 55);
-      if (near) { near.lv = Math.min(3.2, near.lv + P * 0.4); near.r = Math.min(120, near.r + 5); near.heal = 1; }
-      else { v.bruises.push({ x: fx, y: fy, r: 42 + P * 16, lv: P * 0.35, heal: 1 }); if (v.bruises.length > 40) v.bruises.shift(); }
+      heavyBruise(v, fx, fy, P);
       v.addBump(d, 0.005 + P * 0.006, 0.02);
       for (const e of v.eyes) if (d.dot(e.d) > 0.93) e.swell = Math.min(1, e.swell + P * 0.28);
       if (h.kind === 'flick' || h.tool === 'hammer' || h.kind === 'chop' || (d.y > 0.4 && P > 1.1)) {
@@ -2736,20 +3171,17 @@ function applyHit(h) {
       v.tieSpinV += (h.side || (Math.random() < 0.5 ? -1 : 1)) * 30 * P;
     }
   }
-  // 피·땀
+
+
+
+  // 누적 데미지에 따라 피·침·콧물 분출량 증가
   if (!soft) {
-    if (onHead && v.damage > 6 && P > 0.9 && Math.random() < 0.7) {
-      const nDrops = 3 + ((P * 5) | 0);
-      for (let i = 0; i < nDrops; i++) {
-        const vel = h.normal.clone().multiplyScalar(rnd(0.8, 1.8)).add(V3(rnd(-1, 1), rnd(0.6, 2.2), rnd(0, 1))).addScaledVector(h.force, rnd(0.3, 1));
-        spawnDrop(h.point.clone(), vel, 'blood', rnd(0.008, 0.018));
-      }
-    }
-    for (let i = 0; i < 3; i++) {
-      const side = Math.random() < 0.5 ? -1 : 1;
-      spawnDrop(v.headWorld(dirN(side * 0.8, 0.45, 0.4), 0.02), V3(side * rnd(0.6, 1.4), rnd(1, 2), rnd(0, 0.6)), 'sweat', rnd(0.008, 0.014));
-    }
+    HEAVY_WET.hit(v, h, P, onHead);
   }
+
+
+
+
   flash(h.point.clone().addScaledVector(h.normal,.06),soft?.075:h.tool==='pan'?.12+P*.035:.13+P*.055,soft?'#ffffff':h.tool==='pan'?'#d7ebff':'#fff6b0');
   popText(popWord, h.point, popKind, soft ? 30 : 36 + P * 16);
   G.hitstop=Math.max(G.hitstop,impactStopDuration(h,P));
@@ -4034,16 +4466,72 @@ function updateVillain(v, dt) {
   const after = M.open + M.smile * 3 + M.smirk * 7 + M.wide * 11;
   const teethKey = v.upper.join('') + v.lower.join('') + (v.lipBlood > 0.15 ? 1 : 0);
   if(Math.abs(after-before)>.002||teethKey!==v.teethKey||M.shape!==v.mouthDrawShape){v.teethKey=teethKey;v.mouthDrawShape=M.shape;v.paintMouth();}
-  // 눈물
-  let tearT=cf?v.tear:mood==='cry'?.9:mood==='beg'?.45:mood==='soft'?.25:0;
+  
+  
+  
+  
+  // 눈물: 수치는 계속 갱신하고, 물방울은 아래로 뚝뚝 떨어뜨린다.
+  let tearT = cf ? v.tear
+    : mood === 'cry' ? 0.9
+    : mood === 'beg' ? 0.45
+    : mood === 'soft' ? 0.25 : 0;
+
   v.tearClear = Math.max(0, (v.tearClear || 0) - dt);
   if (v.tearClear > 0) tearT = Math.min(tearT, v.tear);
-  const nt = damp(v.tear, tearT, tearT > v.tear ? 0.8 : 0.3, dt);
-  if (Math.abs(nt - v.tear) > 0.01) { v.tear = nt; v.faceDirty = true; }
-  if (!cf&&v.tear > 0.55 && Math.random() < dt * 8 * v.tear) {
-    const i = Math.random() < 0.5 ? 0 : 1, e = v.eyes[i];
-    spawnDrop(v.eyeWorld(i).add(V3(0, -0.04, 0.03)), V3(e.s * rnd(0.6, 1.6) * (mood === 'cry' ? 1.4 : 0.5), rnd(0.4, 1.6), rnd(0.4, 1)), 'tear', rnd(0.008, 0.013));
+
+  // 작은 변화도 누적되어야 눈물이 정상적으로 차오른다.
+  v.tear = damp(
+    v.tear,
+    tearT,
+    tearT > v.tear ? 0.8 : 0.3,
+    dt
+  );
+
+  // 얼굴 그림은 누적 변화가 충분할 때만 다시 그린다.
+  if (Math.abs(v.tear - (v._tearPainted ?? -1)) > 0.01) {
+    v._tearPainted = v.tear;
+    v.faceDirty = true;
   }
+
+  if (v.tear > 0.3) {
+    // 양쪽 눈을 합친 초당 방울 수. 눈물이 많을수록 더 자주 떨어진다.
+    const rate = 10 + 18 * v.tear;
+
+    v._tearDropAcc = Math.min(
+      4,
+      (v._tearDropAcc || 0) + dt * rate
+    );
+
+    while (v._tearDropAcc >= 1) {
+      v._tearDropAcc -= 1;
+
+      // 양쪽 눈에서 번갈아 떨어뜨리기
+      const i = v._tearNextEye || 0;
+      v._tearNextEye = 1 - i;
+
+      // 눈의 실제 위치를 따라가되, 눈 아래·얼굴 표면 바깥에서 생성
+      const pos = v.eyes[i].g.localToWorld(
+        V3(0, -0.04, 0.045)
+      );
+
+      spawnDrop(
+        pos,
+        V3(
+          rnd(-0.05, 0.05),   // 좌우로는 조금만 흔들리게
+          rnd(-0.45, -0.22),  // 위로 튀지 않고 바로 아래로
+          rnd(0.12, 0.22)     // 얼굴 안으로 파묻히지 않게 살짝 앞으로
+        ),
+        'tear',
+        rnd(0.010, 0.016)     // 방울 크기
+      );
+    }
+  } else {
+    v._tearDropAcc = 0;
+  }
+
+
+
+
   // 코
   v.nosev = v.nosev || 0;
   if (!(G.ptr && G.ptr.grab && G.ptr.grab.kind === 'nose')) {
@@ -4056,10 +4544,8 @@ function updateVillain(v, dt) {
   v.noseM.position.z = 0.045 + v.noseStretch * 0.05;
   v.noseRed = Math.max(0, v.noseRed - dt * 0.03);
   v.noseMat.color.copy(col(v.look.skin)).lerp(col('#ff4b5c'), v.noseRed * 0.8);
-  if (v.noseBlood > 0.25 && Math.random() < dt * 4 * v.noseBlood) {
-    const p = v.noseM.localToWorld(V3(rnd(-0.02, 0.02), -0.05, 0.02));
-    spawnDrop(p, V3(rnd(-0.2, 0.2), -0.2, rnd(0.2, 0.5)), 'blood', rnd(0.007, 0.012));
-  }
+  // 상처가 누적될수록 코·입에서 더 자주 떨어진다.
+  HEAVY_WET.drip(v, dt);
   // 콧물
   if (!cf&&mood === 'cry') {
     v.snotT += dt;
@@ -4225,6 +4711,966 @@ window.__api = { applyHit, startAttack, headTarget, loseTooth, breakGlasses, sta
  * 취소는 무변경, 적용만 살아 있는 게임 모델에 반영한다.
  * 로컬 저장소에 외모만 저장하며 게임의 상처/점수는 복제하지 않는다.
  */
+/* BODY_WARDROBE_V1_BEGIN
+ * self-cultivation / care-deadpan-20260917 compatible additive patch
+ * INSERT immediately BEFORE const APPEAR_KEY='badguy.appearance.v1';
+ * This is not a standalone script tag. Keep it in the game's existing JS scope.
+ * The installer also replaces the clothes-tab renderer (one original line).
+ */
+const BodyWardrobe = (() => {
+  'use strict';
+  const VERSION = 'body-wardrobe-20260917-v1';
+  const MAX_DENTS = 16;
+  const MAX_DEPTH = 0.064;
+  const RINGS = 42, SEGMENTS = 56;
+  const TAU = Math.PI * 2;
+  const finite = (n, fallback = 0) => Number.isFinite(n) ? n : fallback;
+  const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
+
+  // Deliberately no gender field: every top, lower garment and face can combine.
+  LOOK_OPTIONS.topStyle = [
+    ['shirt', '셔츠'], ['tee', '반팔'], ['hoodie', '후드티'],
+    ['knit', '니트'], ['dress', '원피스']
+  ];
+  LOOK_OPTIONS.bottomStyle = [['pants', '바지'], ['skirt', '치마']];
+  LOOK_DEFAULT.topStyle = 'shirt';
+  LOOK_DEFAULT.bottomStyle = 'pants';
+
+  const profiles = {
+    shirt: [[.001,-.02],[.20,-.02],[.24,.06],[.262,.20],[.25,.34],[.215,.45],[.12,.52],[.001,.535]],
+    tee: [[.001,-.03],[.222,-.03],[.247,.04],[.258,.20],[.248,.35],[.218,.45],[.115,.51],[.001,.526]],
+    hoodie: [[.001,-.035],[.22,-.035],[.266,.035],[.278,.20],[.265,.35],[.226,.46],[.116,.515],[.001,.532]],
+    knit: [[.001,-.03],[.217,-.03],[.254,.035],[.271,.20],[.255,.35],[.218,.45],[.113,.512],[.001,.529]],
+    dress: [[.001,-.315],[.325,-.315],[.300,-.23],[.260,-.12],[.219,.01],[.230,.12],[.254,.26],[.239,.36],[.208,.46],[.111,.512],[.001,.529]],
+    skirt: [[.001,-.32],[.330,-.32],[.314,-.23],[.278,-.12],[.231,-.015],[.207,.026],[.001,.027]]
+  };
+  const zRatio = .80;
+  const textureCache = new Map();
+
+  function radiusAt(profile, y) {
+    // Prefer the outer radius at duplicated cap heights.
+    if (y <= profile[0][1]) return profile[1][0];
+    for (let i = 2; i < profile.length; i++) {
+      const a = profile[i-1], b = profile[i];
+      if (y <= b[1]) {
+        const u = clamp((y-a[1]) / Math.max(1e-6,b[1]-a[1]), 0, 1);
+        return lerp(a[0], b[0], u);
+      }
+    }
+    return profile[profile.length-1][0];
+  }
+
+  function makeGarmentGeometry(kind) {
+    const profile = profiles[kind], low = profile[0][1], high = profile.at(-1)[1];
+    const pts = [new THREE.Vector2(.001, low)];
+    for (let i=0;i<=RINGS;i++) {
+      const y=lerp(low,high-.007,i/RINGS);
+      pts.push(new THREE.Vector2(radiusAt(profile,y),y));
+    }
+    pts.push(new THREE.Vector2(.001,high));
+    const geo = new THREE.LatheGeometry(pts,SEGMENTS);
+    // Move the UV seam to the back. The front is now u=.5.
+    geo.rotateY(Math.PI);
+    const p=geo.attributes.position, uv=geo.attributes.uv;
+    for(let i=0;i<p.count;i++) {
+      let x=p.getX(i), y=p.getY(i), z=p.getZ(i);
+      const phi=Math.atan2(x,z);
+      if ((kind==='skirt'||kind==='dress') && y<.015) {
+        const amount=clamp((.015-y)/.31,0,1);
+        const pleat=1+Math.cos(phi*14)*.028*amount;
+        x*=pleat;z*=pleat;
+      }
+      p.setXYZ(i,x,y,z*zRatio);
+      uv.setY(i,clamp((y-low)/(high-low),0,1));
+    }
+    geo.setAttribute('color',new THREE.BufferAttribute(new Float32Array(p.count*3).fill(1),3));
+    geo.computeVertexNormals();geo.computeBoundingBox();geo.computeBoundingSphere();
+    p.setUsage(THREE.DynamicDrawUsage);
+    geo.attributes.color.setUsage(THREE.DynamicDrawUsage);
+    return geo;
+  }
+
+  function fabric(kind) {
+    if(textureCache.has(kind))return textureCache.get(kind);
+    const t=canvasTex(512,512),g=t.g;
+    g.fillStyle='#ffffff';g.fillRect(0,0,512,512);
+    // Baked seams move WITH the deformed mesh, not as floating decals.
+    g.strokeStyle='rgba(42,48,66,.12)';g.lineWidth=2;
+    const path=(pts)=>{g.beginPath();pts.forEach(([x,y],i)=>i?g.lineTo(x,y):g.moveTo(x,y));g.stroke();};
+    if(kind==='knit') {
+      g.strokeStyle='rgba(51,46,55,.15)';g.lineWidth=1.5;
+      for(let y=0;y<512;y+=12)for(let x=0;x<512;x+=10) {
+        g.beginPath();g.moveTo(x-3,y);g.quadraticCurveTo(x-1,y+6,x,y+10);
+        g.moveTo(x+3,y);g.quadraticCurveTo(x+1,y+6,x,y+10);g.stroke();
+      }
+    } else if(kind==='hoodie') {
+      g.strokeStyle='rgba(44,47,63,.20)';g.lineWidth=3;
+      path([[222,295],[204,329],[207,391],[305,391],[308,329],[290,295]]);
+      path([[222,295],[290,295]]);
+      // Drawstrings in the texture cannot detach from a dented chest.
+      g.strokeStyle='rgba(250,250,247,.96)';g.lineWidth=6;
+      path([[247,67],[244,124],[247,172]]);path([[265,67],[269,118],[267,163]]);
+      g.strokeStyle='rgba(39,42,54,.45)';g.lineWidth=3;
+      path([[247,164],[247,176]]);path([[267,155],[267,167]]);
+    } else if(kind==='shirt') {
+      g.strokeStyle='rgba(45,47,58,.13)';g.lineWidth=1.5;
+      path([[252,60],[252,475]]);path([[260,60],[260,475]]);
+    }
+    // Hem ribbing and seam highlights are also present on plain T-shirts.
+    for(const y of [475,481]){g.strokeStyle='rgba(35,39,54,.13)';g.lineWidth=2;path([[0,y],[512,y]]);}
+    if(['hoodie','knit'].includes(kind)) {
+      g.strokeStyle='rgba(43,44,52,.16)';g.lineWidth=1;
+      for(let x=0;x<512;x+=6)path([[x,481],[x,510]]);
+    }
+    if(kind==='dress'||kind==='skirt') {
+      g.strokeStyle='rgba(35,39,54,.10)';g.lineWidth=2;
+      const from=kind==='dress'?300:60;
+      for(let i=0;i<14;i++){const x=i/14*512;path([[x,from],[x+4,471]]);}
+      if(kind==='dress'){g.lineWidth=4;path([[0,294],[512,294]]);}
+    }
+    t.t.needsUpdate=true;t.t.userData.shared=true;
+    textureCache.set(kind,t.t);return t.t;
+  }
+
+  function dropOwned(v,resource,type) {
+    if(!resource||resource.userData?.shared)return;
+    resource.dispose();v.owned?.[type]?.delete(resource);
+  }
+  function replaceGeometry(v,m,geo) {
+    const old=m.geometry;m.geometry=geo;dropOwned(v,old,'g');
+  }
+
+  function init(v) {
+    if(v._bodyCloth)return v._bodyCloth;
+    const core=v.parts.find(m=>m.parent===v.torso&&m.geometry?.type==='LatheGeometry');
+    if(!core)throw new Error('몸통 메시를 찾지 못했습니다. 패치 대상 버전을 확인하세요.');
+    const direct=v.torso.children;
+    const tag=direct.find(m=>m.material?.map===v.nameTex.t);
+    const collars=direct.filter(m=>m.isMesh&&m.geometry?.type==='ConeGeometry'&&m.material===v.shirtMat);
+    const belt=direct.find(m=>m.isMesh&&m.geometry?.type==='CylinderGeometry'&&Math.abs(m.position.y-.01)<.0001);
+    const buckle=direct.find(m=>m.isMesh&&m.geometry?.type==='BoxGeometry'&&Math.abs(m.position.y-.01)<.0001);
+    const arms=v.armRig.map(a=>({
+      a,
+      shoulder:a.sh.children.find(m=>m.isMesh&&m.material===v.shirtMat&&Math.abs(m.position.y)<.001),
+      upper:a.sh.children.find(m=>m.isMesh&&m.material===v.shirtMat&&m.position.y<-.02),
+      fore:a.el.children.find(m=>m.isMesh&&m.material===v.shirtMat),
+      cuff:a.el.children.find(m=>m.isMesh&&Math.abs(m.position.y+.17)<.002),
+      short:null
+    }));
+    const legs=v.legs.map(leg=>({leg,mesh:leg.children.find(m=>m.isMesh&&m.userData.part==='body'),shorts:null}));
+    const clothMat=mat(v.look.shirt,{roughness:.84,vertexColors:true});
+    const skirtMat=mat(v.look.pants,{roughness:.87,vertexColors:true});
+    const hoodMat=mat(v.look.shirt,{roughness:.86,side:THREE.DoubleSide});
+    const trimMat=mat(v.look.shirt,{roughness:.92});
+    const linerMat=mat('#28303d',{roughness:1,side:THREE.DoubleSide});
+    const c=v._bodyCloth={core,tag,collars,belt,buckle,arms,legs,clothMat,skirtMat,hoodMat,trimMat,linerMat,
+      skirt:null,details:null,detailGeometry:[],dents:[],surfaces:[],kind:'',bottom:'',dirty:true,animating:false};
+    core.material=clothMat;core.scale.set(1,1,1);
+    for(const a of arms) {
+      a.cuffBase=a.cuff?.material;
+      a.short=mesh(capsuleGeo(.066,.059,16,7),clothMat,a.a.sh);
+      a.short.position.y=-.039;a.short.visible=false;
+      a.short.userData.part='arm';v.parts.push(a.short);
+    }
+    for(const l of legs) {
+      // A solid inner layer remains under skirt/dress in every camera pose.
+      l.shorts=mesh(capsuleGeo(.091,.12,16,7),linerMat,l.leg);
+      l.shorts.position.y=-.12;l.shorts.visible=false;
+    }
+    return c;
+  }
+
+  function clearDetails(v,c) {
+    if(c.details?.parent)c.details.parent.remove(c.details);
+    for(const geo of c.detailGeometry)dropOwned(v,geo,'g');
+    c.detailGeometry=[];c.details=null;
+  }
+  function details(v,c,kind) {
+    clearDetails(v,c);
+    const root=c.details=new THREE.Group();v.torso.add(root);
+    const add=(geo,m,pos,scale=null)=>{
+      c.detailGeometry.push(geo);const obj=mesh(geo,m,root);obj.position.copy(pos);
+      if(scale)obj.scale.copy(scale);return obj;
+    };
+    // Circular collars, unlike the original shirt's pointed collar.
+    if(kind!=='shirt') {
+      const collar=add(new THREE.TorusGeometry(.111,kind==='knit'?.020:.012,8,40),c.trimMat,V3(0,.511,0),V3(1,1,.81));
+      collar.rotation.x=Math.PI/2;
+    }
+    if(kind==='hoodie') {
+      // Folded hood behind the neck, with a separate darker inner shell.
+      const shell=add(new THREE.SphereGeometry(.155,28,18,0,TAU,Math.PI*.18,Math.PI*.62),c.hoodMat,V3(0,.49,-.105),V3(1.14,.66,1));
+      shell.rotation.x=-.48;
+      const inside=add(new THREE.SphereGeometry(.140,26,16,0,TAU,Math.PI*.22,Math.PI*.56),c.trimMat,V3(0,.493,-.104),V3(1.14,.66,1));
+      inside.rotation.x=-.48;
+    }
+  }
+
+  function cacheSurface(m,kind) {
+    return {m,kind,base:Float32Array.from(m.geometry.attributes.position.array)};
+  }
+
+  function sync(v) {
+    const c=init(v),L=v.look;
+    const kind=LOOK_OPTIONS.topStyle.some(([id])=>id===L.topStyle)?L.topStyle:'shirt';
+    const bottom=L.bottomStyle==='skirt'?'skirt':'pants';
+    const skirted=kind==='dress'||bottom==='skirt';
+    if(c.kind!==kind) {
+      replaceGeometry(v,c.core,makeGarmentGeometry(kind));c.kind=kind;c.dirty=true;
+      c.clothMat.map=fabric(kind);c.clothMat.needsUpdate=true;
+      details(v,c,kind);
+    }
+    if(kind!=='dress'&&bottom==='skirt') {
+      if(!c.skirt) {
+        c.skirt=mesh(makeGarmentGeometry('skirt'),c.skirtMat,v.torso);
+        c.skirt.userData.part='body';v.parts.push(c.skirt);
+        c.skirtMat.map=fabric('skirt');c.skirtMat.needsUpdate=true;c.dirty=true;
+      }
+    } else if(c.skirt) {
+      const dead=c.skirt;if(dead.parent)dead.parent.remove(dead);v.parts=v.parts.filter(p=>p!==dead);
+      dropOwned(v,dead.geometry,'g');c.skirt=null;c.dirty=true;
+    }
+    c.bottom=bottom;
+    c.clothMat.color.copy(col(L.shirt));c.skirtMat.color.copy(col(L.pants));
+    c.hoodMat.color.copy(col(L.shirt));c.trimMat.color.copy(col(L.shirt)).multiplyScalar(.82);
+    c.clothMat.roughness=kind==='knit'?.98:kind==='hoodie'?.93:.82;
+    c.collars.forEach(o=>o.visible=kind==='shirt');
+    if(c.belt)c.belt.visible=kind==='shirt'&&bottom==='pants';
+    if(c.buckle)c.buckle.visible=kind==='shirt'&&bottom==='pants';
+    v.tie.visible=kind==='shirt'&&L.hasTie;
+    for(const b of v.buttons)if(b.parent===v.torso)b.visible=kind==='shirt';
+    const short=kind==='tee'||kind==='dress';
+    for(const a of c.arms) {
+      if(a.shoulder){a.shoulder.material=c.clothMat;a.shoulder.scale.setScalar(kind==='hoodie'?1.08:1);}
+      if(a.upper)a.upper.material=short?v.skinMat:c.clothMat;
+      if(a.fore)a.fore.material=short?v.skinMat:c.clothMat;
+      if(a.cuff){a.cuff.visible=!short;a.cuff.material=kind==='shirt'?a.cuffBase:c.trimMat;}
+      a.short.visible=short;
+      // Invisible short sleeves must not intercept the game's explicit hit list.
+      if(short&&!v.parts.includes(a.short))v.parts.push(a.short);
+      if(!short)v.parts=v.parts.filter(p=>p!==a.short);
+    }
+    for(const l of c.legs) {
+      if(l.mesh){l.mesh.material=skirted?v.skinMat:v.pantsMat;l.mesh.scale.x=l.mesh.scale.z=skirted?.82:1;}
+      l.shorts.visible=skirted;
+    }
+    // Cache the UNDEFORMED arrays only on a geometry change.
+    const surfaces=[c.core,...(c.skirt?[c.skirt]:[])];
+    c.surfaces=surfaces.map(m=>c.surfaces.find(s=>s.m===m&&s.geo===m.geometry)||Object.assign(cacheSurface(m,m===c.core?kind:'skirt'),{geo:m.geometry}));
+    if(c.dirty)deform(v);
+    followAccessories(v);
+    v.captureResources();
+  }
+
+  function sample(c,x,y,z) {
+    const phi=Math.atan2(x,z/zRatio),rad=Math.hypot(x,z/zRatio);
+    let push=0,shade=0,crease=0;
+    for(const d of c.dents) {
+      const tang=wrap(phi-d.phi)*Math.max(.14,rad),dy=y-d.y;
+      const q=(tang*tang+dy*dy)/(d.width*d.width);
+      if(q>3.5)continue;
+      const distance=Math.sqrt(q),weight=Math.exp(-q*3.8);
+      const transient=d.age<.65?d.kick*Math.exp(-d.age*13)*Math.cos(d.age*19):0;
+      const strength=Math.max(d.depth*.7,d.depth+transient);
+      const rim=Math.exp(-Math.pow((distance-.80)/.22,2));
+      const wrinkle=.60+.40*Math.cos(Math.atan2(dy,tang)*5+d.phase);
+      push+=-strength*weight+strength*.20*rim*wrinkle;
+      shade+=d.depth/.035*weight*.30;
+      crease+=strength*rim*wrinkle*.8;
+    }
+    const cap=Math.min(MAX_DEPTH,rad*.26);
+    return {push:clamp(push,-cap,.014),shade:clamp(shade,0,.38),crease:clamp(crease,0,.08)};
+  }
+
+  function influence(s,d) {
+    const signature=[d.phi,d.y,d.width,d.phase].join(',');
+    let entry=s.influences?.find(e=>e.d===d&&e.signature===signature);
+    if(entry)return entry;
+    const n=s.base.length/3,w=new Float32Array(n),rim=new Float32Array(n);
+    for(let i=0;i<n;i++) {
+      const x=s.base[i*3],y=s.base[i*3+1],z=s.base[i*3+2];
+      const phi=Math.atan2(x,z/zRatio),rad=Math.hypot(x,z/zRatio);
+      const tang=wrap(phi-d.phi)*Math.max(.14,rad),dy=y-d.y;
+      const q=(tang*tang+dy*dy)/(d.width*d.width);
+      if(q>3.5)continue;
+      w[i]=Math.exp(-q*3.8);
+      rim[i]=.20*Math.exp(-Math.pow((Math.sqrt(q)-.80)/.22,2))
+        *(.60+.40*Math.cos(Math.atan2(dy,tang)*5+d.phase));
+    }
+    return {d,signature,w,rim,strength:0,shade:0};
+  }
+  function deform(v) {
+    const c=v._bodyCloth;if(!c)return;
+    for(const s of c.surfaces) {
+      const geo=s.m.geometry,p=geo.attributes.position,colors=geo.attributes.color,b=s.base;
+      const low=profiles[s.kind][0][1];
+      // Compute expensive spatial falloffs only for a NEW dent/garment.
+      // Animation frames then blend cached arrays instead of doing thousands
+      // of trigonometric/exponential calculations again.
+      s.influences=c.dents.map(d=>influence(s,d));
+      if(!s.meta) {
+        s.meta=new Float32Array(p.count*4);
+        for(let i=0;i<p.count;i++) {
+          const x=b[i*3],y=b[i*3+1],z=b[i*3+2];
+          const nx=x,nz=z/(zRatio*zRatio),normal=Math.hypot(nx,nz)||1;
+          s.meta[i*4]=nx/normal;s.meta[i*4+1]=nz/normal;
+          s.meta[i*4+2]=Math.hypot(x,z)>.075?clamp((y-low)/.025,0,1)*clamp((.51-y)/.04,0,1):0;
+          s.meta[i*4+3]=Math.min(MAX_DEPTH,Math.hypot(x,z/zRatio)*.26);
+        }
+      }
+      for(const e of s.influences) {
+        const d=e.d;
+        const transient=d.age<.65?d.kick*Math.exp(-d.age*13)*Math.cos(d.age*19):0;
+        e.strength=Math.max(d.depth*.7,d.depth+transient);
+        e.shade=d.depth/.035*.30;
+      }
+      for(let i=0;i<p.count;i++) {
+        let push=0,shade=0,crease=0;
+        for(const e of s.influences) {
+          push+=e.strength*(-e.w[i]+e.rim[i]);
+          shade+=e.shade*e.w[i];crease+=e.strength*e.rim[i]*4;
+        }
+        const fade=s.meta[i*4+2],shift=clamp(push,-s.meta[i*4+3],.014)*fade;
+        p.setXYZ(i,b[i*3]+s.meta[i*4]*shift,b[i*3+1],b[i*3+2]+s.meta[i*4+1]*shift);
+        const tint=clamp(1-clamp(shade,0,.38)*fade+clamp(crease,0,.08)*fade,.58,1.07);
+        colors.setXYZ(i,tint,tint,tint);
+      }
+      p.needsUpdate=true;colors.needsUpdate=true;
+      geo.computeVertexNormals();geo.computeBoundingBox();geo.computeBoundingSphere();
+    }
+    c.dirty=false;
+    followAccessories(v);
+  }
+
+  function surfacePoint(c,phi,y,out=.004) {
+    const r=radiusAt(profiles[c.kind],y);
+    const x=Math.sin(phi)*r,z=Math.cos(phi)*r*zRatio;
+    const q=sample(c,x,y,z),nx=Math.sin(phi),nz=Math.cos(phi)/zRatio;
+    const len=Math.hypot(nx,nz)||1;
+    const fade=clamp((.51-y)/.04,0,1);
+    return V3(x+nx/len*(q.push*fade+out),y,z+nz/len*(q.push*fade+out));
+  }
+  function followAccessories(v) {
+    const c=v._bodyCloth;if(!c)return;
+    // Badge and attached buttons follow dents; dropped buttons remain untouched.
+    if(c.tag) {
+      const phi=-.46;
+      c.tag.position.copy(surfacePoint(c,phi,.34,.009));
+      c.tag.rotation.y=Math.atan2(Math.sin(phi),Math.cos(phi)/zRatio);
+    }
+    for(const b of v.buttons)if(b.parent===v.torso)b.position.copy(surfacePoint(c,0,b.position.y,.005));
+    v.tie.position.copy(surfacePoint(c,0,.475,.018));
+  }
+
+  function record(v,point,power,part,tool) {
+    const c=v._bodyCloth;
+    if(!c||part!=='body'||tool==='tissue')return false;
+    v.root.updateMatrixWorld(true);
+    const p=v.torso.worldToLocal(point.clone());
+    let kind=c.kind;
+    if(c.skirt&&p.y<.005)kind='skirt';
+    const low=profiles[kind][0][1];
+    if(p.y<low+.02||p.y>.48)return false;
+    const radius=Math.hypot(p.x,p.z/zRatio),expected=radiusAt(profiles[kind],p.y);
+    if(radius<.055||Math.abs(radius-expected)>.10)return false;
+    const phi=Math.atan2(p.x,p.z/zRatio);
+    const P=clamp(finite(Number(power),1),.05,3);
+    let d=c.dents.find(d=>Math.hypot(wrap(d.phi-phi)*expected,d.y-p.y)<.075);
+    if(!d) {
+      d={phi,y:p.y,depth:0,kick:0,width:.09,phase:Math.random()*TAU,age:0};
+      c.dents.push(d);if(c.dents.length>MAX_DENTS)c.dents.shift();
+    }
+    d.depth=Math.min(.035,d.depth+.006+P*.004);
+    d.kick=Math.min(.066,.026+P*.015);
+    d.width=Math.min(.14,.084+P*.014);
+    d.age=0;c.dirty=true;c.animating=true;
+    deform(v); // visible before the existing hit-stop freezes the frame
+    return true;
+  }
+  function update(v,dt) {
+    const c=v._bodyCloth;if(!c)return;
+    dt=clamp(finite(Number(dt)),0,.05);
+    if(c.animating&&dt>0) {
+      let active=false;
+      for(const d of c.dents){d.age+=dt;if(d.age<.65)active=true;}
+      // One last rebuild settles every transient exactly to its persistent depth.
+      c.animating=active;c.dirty=true;
+    }
+    if(c.dirty)deform(v);
+  }
+
+  // Install narrow hooks; do NOT replace the user's face/tear/HEAVY_WET patches.
+  const oldBuild=Villain.prototype.build;
+  Villain.prototype.build=function(...args){const r=oldBuild.apply(this,args);sync(this);return r;};
+  const oldApply=Villain.prototype.applyLook;
+  Villain.prototype.applyLook=function(...args){const r=oldApply.apply(this,args);if(this._bodyCloth)sync(this);return r;};
+  const oldUpdate=updateVillain;
+  updateVillain=function(v,dt){const r=oldUpdate(v,dt);if(G.v===v)update(v,dt);return r;};
+  const oldHit=applyHit;
+  applyHit=function(h){
+    const v=G.v;
+    if(v&&h?.point)record(v,h.point,h.power,h.part,h.tool);
+    return oldHit(h);
+  };
+  const oldPopButton=popButton;
+  popButton=function(...args){if(G.v?.look.topStyle==='shirt')return oldPopButton(...args);};
+  const oldRandom=randomLook;
+  randomLook=function(){
+    const L=oldRandom();L.topStyle=pick(LOOK_OPTIONS.topStyle)[0];
+    L.bottomStyle=Math.random()<.35?'skirt':'pants';return normaliseLook(L);
+  };
+  const oldDispose=Villain.prototype.dispose;
+  Villain.prototype.dispose=function(...args){
+    // The original owner releases live geometry/materials/textures. Deleted
+    // replacement geometry was removed from owned.g when it was replaced.
+    const r=oldDispose.apply(this,args);this._bodyCloth=null;return r;
+  };
+  if(window.__api)Object.assign(window.__api,{applyHit,updateVillain});
+
+  // lookIcon is a hoisted function declaration in this source file.
+  const oldIcon=lookIcon;
+  lookIcon=function(kind,value='',L=LOOK_DEFAULT){
+    if(!['topStyle','bottomStyle'].includes(kind))return oldIcon(kind,value,L);
+    const ink='#1f2a5c',color=kind==='bottomStyle'?L.pants:L.shirt;
+    let shape='',extra='';
+    if(kind==='bottomStyle') {
+      shape=value==='skirt'?'M27 14H53L67 58Q40 65 13 58Z':'M25 13H55L58 60H43L40 35L37 60H22Z';
+      if(value==='skirt')extra='<path d="M31 20 26 57M40 20v40M49 20l5 37"/>';
+    } else if(value==='dress') {
+      shape='M29 10 21 16 16 28 24 33 28 26 30 32 16 61Q40 68 64 61L50 32 52 26 56 33 64 28 59 16 51 10Q40 20 29 10Z';
+      extra='<path d="M29 32h22M32 39l-5 19M48 39l5 19"/>';
+    } else {
+      shape=value==='tee'?'M28 14 14 21 7 35 20 43 26 32V60H54V32L60 43 73 35 66 21 52 14Q40 22 28 14Z':'M28 14 16 21 7 51 20 57 27 33V61H53V33L60 57 73 51 64 21 52 14Q40 22 28 14Z';
+      if(value==='shirt')extra='<path d="m28 15 12 14 12-14M40 29v30M32 20l-4 12 12-3 12 3-4-12"/>';
+      if(value==='hoodie')extra='<path d="M28 17Q27 2 40 3T52 17M36 20l-2 17M44 20l2 17M32 43l-5 11h26l-5-11Z"/>';
+      if(value==='knit')extra='<path d="m29 34 4 6 4-6m6 0 4 6 4-6m-22 5 4 6 4-6m6 0 4 6 4-6M28 54h24"/>';
+    }
+    return `<svg viewBox="0 0 80 70" aria-hidden="true"><path d="${shape}" fill="${color}" stroke="${ink}" stroke-width="2.5" stroke-linejoin="round"/><g fill="none" stroke="${ink}" stroke-width="1.6" stroke-linecap="round">${extra}</g></svg>`;
+  };
+  return {version:VERSION,record,update,sync,MAX_DENTS,MAX_DEPTH};
+})();
+/* BODY_WARDROBE_V1_END */
+
+
+/* SLAPSTICK_V1_BEGIN
+ * Insert BEFORE const APPEAR_KEY='badguy.appearance.v1'; and AFTER BodyWardrobe.
+ * Additive patch for care-deadpan-20260917, blob 9798afa3958b23fcf4725647480e3556891e994c.
+ * Cartoon dents, folding-chair launch, ankle hold/slams, slim proportions.
+ * Existing face textures, fluids, outfits, care and storage are not replaced.
+ */
+const Slapstick = (() => {
+  'use strict';
+  const VERSION = 'slapstick-20260917-v1';
+  const CFG = Object.freeze({ minBodyW:.16, defaultBodyW:.72, maxFaceDents:12,
+    maxFaceDent:.092, maxFaceOffset:.125, arenaX:3.05, liftTime:.52,
+    slamTime:.58, floor:.015, cooldown:.23 });
+  const PI = Math.PI;
+  const safe = (n,d=0)=>Number.isFinite(n)?n:d;
+  const unit = (n,d=1)=>clamp(safe(Number(n),d),.05,3);
+  const damping = (x,k,dt)=>x*Math.exp(-k*dt);
+  const nearestAngle = (a,b)=>a+Math.atan2(Math.sin(b-a),Math.cos(b-a));
+  const customState = v=>!!v?._slapMotion && /^slap-/.test(v.state);
+  let wideMix=0, wideHeight=0, wideTop=4.25, grip=null, inputCancelled=false;
+  const residual=V3();
+
+  // Widen the editor and normalizer range BEFORE loading persisted appearances.
+  LOOK_RANGES.bodyW[0]=CFG.minBodyW;
+  LOOK_DEFAULT.bodyW=CFG.defaultBodyW;
+  const oldRandom=randomLook;
+  randomLook=function(){const L=oldRandom();L.bodyW=rnd(.48,.88);return normaliseLook(L);};
+
+  function isolateHead(v){
+    if(!v.headPivot||!v.body)return;
+    if(!v._slapHeadParent){
+      const p=v.headPivot.parent,g=new THREE.Group();
+      g.name='slapstick-head-scale-isolation';
+      g.position.copy(v.headPivot.position);p.add(g);g.add(v.headPivot);
+      v.headPivot.position.set(0,0,0);v._slapHeadParent=g;
+    }
+    // Cancel body scale BEFORE head rotation, not after it (avoids skinny-body shear).
+    const w=Math.max(CFG.minBodyW,v.look.bodyW),h=Math.max(.1,v.look.bodyH);
+    v._slapHeadParent.scale.set(1/w,1/h,1/w);
+    v.headPivot.scale.set(1,1,1);
+    v.root.updateMatrixWorld(true);
+  }
+  const oldBuild=Villain.prototype.build;
+  Villain.prototype.build=function(...args){const r=oldBuild.apply(this,args);isolateHead(this);return r;};
+  const oldLook=Villain.prototype.applyLook;
+  Villain.prototype.applyLook=function(...args){const r=oldLook.apply(this,args);isolateHead(this);return r;};
+
+  function faceDent(v,h,power){
+    if(!v||h.tool==='tissue'||!h.dir||!['head','nose'].includes(h.part))return false;
+    const dir=h.dir.clone().normalize();if(!Number.isFinite(dir.x)||dir.lengthSq()<.5)return false;
+    const dents=v._slapDents||(v._slapDents=[]),P=unit(power);
+    let d=dents.find(x=>x.dir.dot(dir)>.94);
+    if(!d){
+      const tangent=V3().crossVectors(V3(0,1,0),dir);
+      if(tangent.lengthSq()<.02)tangent.set(1,0,0);tangent.normalize();
+      d={dir,u:tangent,v:V3().crossVectors(dir,tangent).normalize(),depth:0,
+        width:h.tool==='chair'?.62:h.tool==='bat'?.36:.34,
+        height:h.tool==='bat'?.64:h.tool==='chair'?.62:.42};
+      dents.push(d);if(dents.length>CFG.maxFaceDents)dents.shift();
+    }
+    const weight=h.tool==='chair'?1.35:h.tool==='bat'?1.22:h.tool==='ground'?1.1:1;
+    const deposit=(.004+P*.004)*weight;
+    d.depth=Math.min(CFG.maxFaceDent,d.depth+deposit*(1-d.depth/CFG.maxFaceDent));
+    v.headDirty=true;return true;
+  }
+  function dentOffset(dents,dir,out){
+    out.set(0,0,0);
+    for(const d of dents||[]){
+      if(dir.dot(d.dir)<.28)continue;
+      const dx=dir.x-d.dir.x,dy=dir.y-d.dir.y,dz=dir.z-d.dir.z;
+      const a=(dx*d.u.x+dy*d.u.y+dz*d.u.z)/d.width;
+      const b=(dx*d.v.x+dy*d.v.y+dz*d.v.z)/d.height;
+      const q=a*a+b*b;if(q>3.6)continue;
+      const hollow=Math.exp(-q*2.6),rim=Math.exp(-Math.pow((Math.sqrt(q)-.98)/.25,2));
+      out.addScaledVector(d.dir,-d.depth*hollow);
+      out.addScaledVector(dir,d.depth*.13*rim);
+    }
+    return out.clampLength(0,CFG.maxFaceOffset);
+  }
+  const oldOffset=Villain.prototype.offsetAt;
+  Villain.prototype.offsetAt=function(d,out){
+    oldOffset.call(this,d,out);
+    dentOffset(this._slapDents,d,residual);
+    // Existing swelling must not cancel the new hollow at the very same spot.
+    // Keep the original hit pulse and manual cheek stretching; attenuate only bumps.
+    const hollow=clamp(-residual.dot(d)/.025,0,1);
+    if(hollow>0){
+      let swelling=0;
+      for(const b of this.bumps||[]){
+        const k=Math.exp(-(1-d.dot(b.d))/b.w);
+        if(k>.01)swelling+=b.amp*k;
+      }
+      out.addScaledVector(d,-swelling*hollow);
+    }
+    out.add(residual);return out;
+  };
+  const oldHeadWorld=Villain.prototype.headWorld;
+  Villain.prototype.headWorld=function(d,out=0){
+    if(!this._slapDents?.length)return oldHeadWorld.call(this,d,out);
+    const o=V3();this.offsetAt(d,o);
+    return this.headMesh.localToWorld(this.surfacePoint(d,out).add(o));
+  };
+  const oldDeform=Villain.prototype.applyDeform;
+  Villain.prototype.applyDeform=function(...args){
+    const r=oldDeform.apply(this,args);
+    // Deform the scalp cap too; facial anchors/mouth already use offsetAt.
+    const cap=this.cap,b=cap?.userData?.sphereBase;
+    if(b&&this._slapDents?.length){
+      const p=cap.geometry.attributes.position,d=V3(),o=V3();
+      for(let i=0;i<p.count;i++){
+        d.set(b[i*3],b[i*3+1],b[i*3+2]);d.normalize();
+        this.offsetAt(d,o);
+        p.setXYZ(i,b[i*3]*faceWidthAt(this.look.faceShape,d.y)+o.x,b[i*3+1]+o.y,b[i*3+2]+o.z);
+      }
+      p.needsUpdate=true;cap.geometry.computeVertexNormals();cap.geometry.computeBoundingSphere();
+    }
+    return r;
+  };
+  const oldImpact=impactResponse;
+  impactResponse=function(v,h,P,onHead,force){
+    const r=oldImpact(v,h,P,onHead,force);if(onHead)faceDent(v,h,P);return r;
+  };
+
+  function cylinder(parent,a,b,r,material){
+    const delta=b.clone().sub(a),obj=mesh(new THREE.CylinderGeometry(r,r,delta.length(),10),material,parent);
+    obj.position.copy(a).add(b).multiplyScalar(.5);
+    obj.quaternion.setFromUnitVectors(V3(0,1,0),delta.normalize());return obj;
+  }
+  function buildChair(){
+    const root=new THREE.Group(),steel=mat('#aebbc5',{metalness:.65,roughness:.29});
+    const pad=mat('#347b94',{roughness:.75}),rubber=mat('#27323f',{roughness:.86});
+    const frame=new THREE.Group();root.add(frame);
+    // A folded chair: rectangular back/seat panels and doubled tubular legs.
+    const back=mesh(new THREE.BoxGeometry(.062,.245,.58,2,2,2),pad,frame);back.position.set(0,.84,0);
+    const seat=mesh(new THREE.BoxGeometry(.074,.29,.56,2,2,2),pad,frame);seat.position.set(0,.49,0);
+    for(const s of [-1,1]){
+      cylinder(frame,V3(.013,-.085,s*.292),V3(.013,.94,s*.292),.019,steel);
+      cylinder(frame,V3(.060,-.10,s*.255),V3(.060,.625,s*.283),.018,steel);
+      cylinder(frame,V3(.017,-.045,s*.288),V3(.070,-.045,s*.255),.023,rubber);
+      const hinge=mesh(new THREE.SphereGeometry(.032,10,8),steel,frame);
+      hinge.scale.set(.55,1,1);hinge.position.set(.01,.33,s*.292);
+      const fist=buildFist(false);fist.scale.setScalar(.72);fist.position.set(.087,.16,s*.263);
+      fist.rotation.set(s*PI/2,0,-PI/2);root.add(fist);
+    }
+    cylinder(frame,V3(.013,.99,-.292),V3(.013,.99,.292),.019,steel);
+    cylinder(frame,V3(.013,.12,-.292),V3(.013,.12,.292),.019,steel);
+    cylinder(frame,V3(.060,.65,-.278),V3(.060,.65,.278),.018,steel);
+    root.userData={L:.52,c:.049,kind:'chair',head:frame};root.visible=false;
+    root.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=false;}});
+    handsRoot.add(root);return root;
+  }
+  TOOL_SPEC.chair={power:2.32,contact:.285,dur:.82,dwell:.048,recovery:.31};
+  TOOLPOW.chair=TOOL_SPEC.chair.power;
+  TOOLPOP.chair=['쾅!!','콰앙!'];TOOLPOP.ground=['쿵!!','쿠당탕!'];
+  POP_COLORS.chair='#b7e5ef';POP_COLORS.ground='#ffd23f';
+  SFX.chair=(pan=0,P=1)=>SFX.pan(pan,Math.min(1.5,.8+P*.22),false);
+  SFX.ground=(pan=0)=>SFX.slam(pan);
+  RIG.tools.chair=buildChair();
+  const oldToolPose=poseSolidTool;
+  poseSolidTool=function(a,tgt,n){
+    if(a.toolKind!=='chair')return oldToolPose(a,tgt,n);
+    const r=a.rig,s=a.side||1,t=a.t,c=a.k.contact,D=a.k.dur,dwell=TOOL_SPEC.chair.dwell;
+    const q=contactBasis(n,s,a.kind),contact=tgt.clone().sub(V3(-r.userData.c,r.userData.L,0).applyQuaternion(q));
+    const wind=tgt.clone().add(V3(s*(a.kind==='swing'?.87:.42),a.kind==='upswing'?-.60:.77,.76));
+    const qw=q.clone().multiply(new THREE.Quaternion().setFromAxisAngle(V3(0,0,1),-s*1.32));
+    const start=a.startGrip||camRest(s,-.98),pre=c*.38;
+    if(t<pre){const u=easeOut(t/pre);r.position.copy(start).lerp(wind,u);r.quaternion.copy(a.startQuaternion||qw).slerp(qw,u);}
+    else if(t<c){const u=easeIn((t-pre)/(c-pre));r.position.copy(wind).lerp(contact,u);r.quaternion.copy(qw).slerp(q,u);}
+    else if(t<c+dwell){r.position.copy(contact);r.quaternion.copy(q);}
+    else{
+      const u=clamp((t-c-dwell)/(D-c-dwell),0,1);
+      r.position.copy(contact).add(V3(-s*.42*Math.sin(u*PI),-.19*Math.sin(u*PI),.10*Math.sin(u*PI)))
+        .lerp(camRest(s,-1.05),easeIn(u));
+      r.quaternion.copy(q).multiply(new THREE.Quaternion().setFromAxisAngle(V3(0,0,1),s*.66*Math.sin(u*PI)));
+    }
+  };
+
+  function bodyPose(v,m){
+    // Root controls the toy's overall motion; limbs provide secondary motion.
+    // Clearing body recoil prevents a second, hidden pivot during floor contact.
+    v.body.position.set(0,0,0);v.body.rotation.set(0,0,0);
+    v.torso.position.y=.5;v.torso.scale.set(1,1,1);
+    const hanging=m.kind==='held',T=m.age;
+    v.headPivot.rotation.set(v.spring.hx*.16,0,v.spring.hz*.16);
+    v.legs.forEach((leg,i)=>{
+      leg.rotation.set(hanging&&i===m.leg?0:Math.sin(T*7+i)*.10,0,hanging&&i===m.leg?0:Math.sin(T*5+i)*.13);
+    });
+    for(const a of v.armRig){
+      // Arms trail toward the head when inverted, not straight through the floor.
+      const z=hanging?2.48:1.18;
+      a.sh.rotation.set(.08*Math.sin(T*9+a.s),0,a.s*(z+.12*Math.sin(T*8+a.s)));
+      a.el.rotation.set(-.2,0,-a.s*.2);a.hand.rotation.set(0,0,0);
+    }
+    v.root.updateMatrixWorld(true);
+  }
+  function ankleLocal(v,leg=1){
+    return v.root.worldToLocal(v.legs[leg].localToWorld(V3(0,-.39,.005)));
+  }
+  function centerLocal(v){
+    const h=v.headMesh.getWorldPosition(V3());
+    const foot=v.legs[0].localToWorld(V3(0,-.43,0));
+    return v.root.worldToLocal(h.add(foot).multiplyScalar(.5));
+  }
+  function pin(v,m){
+    v.root.rotation.set(0,0,m.angle);v.root.updateMatrixWorld(true);
+    const at=v.root.localToWorld(m.anchor.clone());
+    v.root.position.add(m.pivot.clone().sub(at));v.root.updateMatrixWorld(true);
+  }
+  function support(v){
+    v.root.updateMatrixWorld(true);
+    const c=v.headMesh.getWorldPosition(V3()),e=v.headMesh.matrixWorld.elements;
+    const radius=(HEAD_R+.026)*Math.hypot(e[1],e[5],e[9]);
+    let result={y:c.y-radius,point:V3(c.x,c.y-radius,c.z),part:'head'};
+    const consider=(p,r,part)=>{if(p.y-r<result.y)result={y:p.y-r,point:V3(p.x,p.y-r,p.z),part};};
+    for(const a of v.armRig)consider(a.hand.getWorldPosition(V3()),.070*v.look.bodyW,'body');
+    for(const leg of v.legs)consider(leg.localToWorld(V3(0,-.48,.05)),.057*v.look.bodyH,'body');
+    // Hem proxy for skirts and dresses; never expose the inside through the floor.
+    if(v.look.topStyle==='dress'||v.look.bottomStyle==='skirt'){
+      for(const s of [-1,1])consider(v.torso.localToWorld(V3(s*.28,-.30,0)),.02,'body');
+    }
+    return result;
+  }
+  function floorCorrect(v,m){
+    const hit=support(v);
+    if(hit.y<CFG.floor){m.pivot.y+=CFG.floor-hit.y;pin(v,m);}
+    return hit;
+  }
+  function handRig(){
+    if(grip)return grip;
+    grip=new THREE.Group();grip.name='ankle-grip';
+    const hand=new THREE.Group();grip.add(hand);
+    const skin=mat(MYSKIN,{roughness:.5});
+    const palm=mesh(new THREE.SphereGeometry(.063,14,10),skin,hand);palm.position.set(.050,0,.016);palm.scale.set(.65,1.2,.78);
+    for(let i=0;i<4;i++){
+      const finger=mesh(new THREE.TorusGeometry(.044,.012,6,16,PI*1.60),skin,hand);
+      finger.rotation.x=PI/2;finger.rotation.z=-.3;finger.position.y=-.044+i*.027;
+    }
+    const thumb=mesh(capsuleGeo(.019,.075,12,6),skin,hand);thumb.position.set(.015,-.004,.054);thumb.rotation.z=-.45;
+    buildSleeve(grip,V3(.55,-.15,1),1.25);
+    grip.userData.hand=hand;grip.visible=false;handsRoot.add(grip);return grip;
+  }
+  function showGrip(v,m){
+    const h=handRig();h.visible=true;h.position.copy(m.pivot);
+    h.scale.setScalar(clamp(.78*v.look.bodyW,.46,1.05));
+    h.userData.hand.rotation.z=m.angle-PI;
+  }
+  function hideGrip(){if(grip)grip.visible=false;}
+
+  function groundHit(v,hit,speed){
+    const P=clamp(speed/4.5,.75,2.65);
+    let point=hit.point.clone();point.y=CFG.floor;
+    const h={kind:'bonk',tool:'ground',point,normal:V3(0,-1,0),force:V3(0,1,0),
+      power:P,side:Math.sign(point.x)||1,part:hit.part,dir:hit.part==='head'?v.localDir(point):null};
+    applyHit(h);
+    v.dizzy=Math.max(v.dizzy||0,1.2+P*.45);
+    G.hitstop=Math.max(G.hitstop,.075+P*.014);shakeCam(.025+P*.010);
+    puff(point,8+Math.round(P*2),.7);vib([24,14,22]);
+    saveDay();
+  }
+  function newFlight(v,velocity,spin,source='drop'){
+    const previous=v._slapMotion;
+    const m={kind:'flight',age:0,angle:v.root.rotation.z,anchor:null,pivot:null,
+      vel:velocity.clone(),spin:clamp(spin,-7,7),bounces:0,cool:previous?.cool||0,
+      source,reach:previous?.reach||1.65,viewTop:previous?.viewTop||4.25};
+    bodyPose(v,m);m.anchor=centerLocal(v);m.pivot=v.root.localToWorld(m.anchor.clone());
+    v._slapMotion=m;v.state='slap-flight';v.stateT=0;hideGrip();
+    // Standing shoes can overlap the conservative floor proxy by a few mm.
+    // Resolve that BEFORE launch so the first frame is not mistaken for landing.
+    floorCorrect(v,m);
+    return m;
+  }
+  function chairLaunch(v,h,P){
+    if(customState(v))return;
+    const side=Math.sign(h.force.x)||-(h.side||1);
+    const m=newFlight(v,V3(side*(3.4+P*.5),4.0+P*.42,.12),-side*3.4,'chair');
+    m.reach=Math.max(1.5,1.1*v.look.bodyH+.5);m.viewTop=m.reach+2.1;
+    G.attackQueue=[];G.hitstop=Math.max(G.hitstop,.11);shakeCam(.055);DAY.throws++;saveDay();
+  }
+  const oldHit=applyHit;
+  applyHit=function(h){
+    const v=G.v,r=oldHit(h);
+    if(v&&G.v===v&&h?.tool==='chair')chairLaunch(v,h,unit(h.power));
+    return r;
+  };
+
+  function startAnkle(v,info,event){
+    if(!G.ptr||!v||G.mode!=='hit')return false;
+    clearAttacks();stopSocial();G.careAnim=null;
+    const leg=1,initial=v.root.rotation.z;
+    const m={kind:'held',age:0,angle:initial,anchor:null,pivot:null,leg,
+      startAngle:initial,sway:0,omega:0,cool:0,armed:true,slam:null,queued:0,
+      vel:V3(),lastPivot:null,reach:1.7,viewTop:4.3,
+      x0:event.clientX,y0:event.clientY,prevX:event.clientX,prevY:event.clientY,
+      travel:0,lastDirection:0};
+    bodyPose(v,m);m.anchor=ankleLocal(v,leg);m.pivot=v.root.localToWorld(m.anchor.clone());
+    m.startPivot=m.pivot.clone();m.baseX=m.pivot.x;
+    const head=v.headMesh.getWorldPosition(V3());m.reach=m.pivot.distanceTo(head)+HEAD_R*v.look.headH;
+    m.hangY=m.reach+.48;m.viewTop=m.reach+m.hangY+.35;m.lastPivot=m.pivot.clone();
+    const g=G.ptr.grab={kind:'ankle',info,vel:m.vel,x0:event.clientX,y0:event.clientY};
+    G.ptr.kind='grab';v._slapMotion=m;v.state='slap-held';v.stateT=0;
+    G.lastAct=G.time;v.fear=Math.max(v.fear,.35);SFX.whoosh(0,true);hideSocialHands();
+    $('#hint').textContent='몸을 좌우로 크게 쓸어 내려치기 · 가만히 들면 대롱대롱 · 손을 떼면 놓기';
+    return true;
+  }
+  const oldGrab=startGrab;
+  startGrab=function(kind,info,e){
+    if(kind==='body'&&G.v&&G.tool==='hand')return startAnkle(G.v,info,e);
+    return oldGrab(kind,info,e);
+  };
+  const oldGrabUpdate=updateGrab;
+  updateGrab=function(dt){if(G.ptr?.grab?.kind==='ankle'){G.lastAct=G.time;return;}return oldGrabUpdate(dt);};
+
+  function beginSlam(m,side){
+    m.slam={t:0,side,start:m.angle,pivot:m.pivot.clone(),hit:false};
+    m.armed=true;m.travel=0;
+    SFX.whoosh(side*.25,true);
+  }
+  function readSwing(m,dt){
+    const P=G.ptr;if(!P?.last)return;
+    const dx=P.last.x-m.prevX,dy=P.last.y-m.prevY;
+    m.prevX=P.last.x;m.prevY=P.last.y;
+    const direction=Math.sign(dx);
+    if(direction&&direction!==m.lastDirection){m.travel=0;m.lastDirection=direction;}
+    m.travel+=Math.abs(dx);
+    const gate=Math.max(44,innerWidth*.11),speed=Math.abs(dx)/Math.max(dt,.001);
+    if(m.age>CFG.liftTime && m.travel>gate && speed>180){
+      const side=direction||m.lastDirection||1;m.travel=0;
+      if(m.slam)m.queued=side;else beginSlam(m,side);
+    }
+    // A damped pendulum adds weight between deliberate swipes.
+    m.omega=clamp(m.omega-dx/Math.max(innerWidth,1)*18,-3.2,3.2);
+  }
+  function updateHeld(v,m,dt){
+    const P=G.ptr;
+    if(!P?.grab||P.grab.kind!=='ankle'){releaseAnkle(false);return;}
+    const previous=support(v),last=m.pivot.clone();
+    if(dt>0)readSwing(m,dt);
+    const dx=(P.last.x-m.x0)/Math.max(innerWidth,1),dy=(P.last.y-m.y0)/Math.max(innerHeight,1);
+    if(m.age<CFG.liftTime){
+      const u=ease(clamp(m.age/CFG.liftTime,0,1));
+      m.angle=lerp(m.startAngle,nearestAngle(m.startAngle,PI),u);
+      m.pivot.copy(m.startPivot).lerp(V3(m.baseX,m.hangY,0),u);
+    }else if(m.slam){
+      const s=m.slam;s.t+=dt;
+      const u=clamp(s.t/CFG.slamTime,0,1),wind=s.side*.20;
+      if(u<.40){
+        const k=easeOut(u/.40);m.angle=lerp(s.start,wind,k);
+        m.pivot.copy(s.pivot).lerp(V3(s.side*.08,m.hangY*.88,0),k);
+      }else if(u<.85){
+        const k=easeIn((u-.40)/.45);m.angle=lerp(wind,-s.side*1.97,k);
+        m.pivot.set(s.side*(.08+.16*k),lerp(m.hangY*.88,.48,k),0);
+      }else{
+        m.angle=-s.side*1.97;m.pivot.set(s.side*.24,.48,0);
+      }
+      if(u>=1){
+        const next=m.queued;m.queued=0;m.slam=null;m.returnFrom={angle:m.angle,pivot:m.pivot.clone(),t:0};
+        if(next)beginSlam(m,next);
+      }
+    }else if(m.returnFrom){
+      const r=m.returnFrom;r.t+=dt;const u=easeOut(clamp(r.t/.42,0,1));
+      m.angle=lerp(r.angle,nearestAngle(r.angle,PI),u);
+      m.pivot.copy(r.pivot).lerp(V3(clamp(m.baseX+dx*2.4,-1.45,1.45),clamp(m.hangY-dy*3,.75,m.hangY+.8),0),u);
+      if(u>=1)m.returnFrom=null;
+    }else{
+      let left=dt;while(left>1e-7){const h=Math.min(left,1/120);m.omega+=-10*m.sway*h;m.omega=damping(m.omega,2.3,h);m.sway=clamp(m.sway+m.omega*h,-.42,.42);left-=h;}
+      m.angle=PI+m.sway;
+      m.pivot.x=damp(m.pivot.x,clamp(m.baseX+dx*2.4,-1.45,1.45),15,dt);
+      m.pivot.y=damp(m.pivot.y,clamp(m.hangY-dy*3,.52,m.hangY+.8),15,dt);
+      m.pivot.z=0;
+    }
+    pin(v,m);const raw=support(v);
+    const speed=dt>0?Math.max(0,(previous.y-raw.y)/dt):0;
+    const collision=raw.y<=CFG.floor&&m.age>CFG.liftTime;
+    floorCorrect(v,m);
+    if(m.returnFrom&&m.returnFrom.t===0)m.returnFrom.pivot.copy(m.pivot);
+    if(raw.y>.17&&m.cool<=0)m.armed=true;
+    if(collision&&speed>1.3&&m.armed&&m.cool<=0&&!m.slam?.hit){
+      m.armed=false;m.cool=CFG.cooldown;if(m.slam)m.slam.hit=true;
+      groundHit(v,raw,speed);
+    }
+    if(dt>0)m.vel.copy(m.pivot).sub(last).divideScalar(dt).clampLength(0,8);
+    showGrip(v,m);
+  }
+  function recover(v,m){
+    m.kind='recover';m.age=0;m.fromAngle=m.angle;m.fromPivot=m.pivot.clone();
+    const s=Math.sign(m.vel?.x)||-Math.sign(Math.sin(m.angle))||1;
+    m.restAngle=nearestAngle(m.angle,-s*PI/2);v.state='slap-recover';hideGrip();
+  }
+  function updateFlight(v,m,dt){
+    let left=dt;
+    while(left>1e-7){
+      const h=Math.min(left,1/120);left-=h;
+      m.vel.y-=9.8*h;m.pivot.addScaledVector(m.vel,h);m.angle+=m.spin*h;
+      if(Math.abs(m.pivot.x)>CFG.arenaX){m.pivot.x=clamp(m.pivot.x,-CFG.arenaX,CFG.arenaX);m.vel.x*=-.30;m.spin*=-.40;}
+      m.pivot.z=clamp(m.pivot.z,-.75,.8);pin(v,m);
+      const hit=support(v);
+      if(hit.y<CFG.floor){
+        const speed=Math.max(0,-m.vel.y)+Math.abs(m.spin)*.20;
+        floorCorrect(v,m);
+        if(speed>1.3&&m.cool<=0){groundHit(v,hit,speed);m.cool=CFG.cooldown;m.bounces++;}
+        m.vel.y=Math.max(0,-m.vel.y*.20);m.vel.x*=.60;m.vel.z*=.50;
+        // Tip onto the side after an upside-down landing, rather than balancing on the head.
+        m.spin=Math.abs(m.spin)<.6?(Math.sign(m.vel.x)||1)*1.8:m.spin*.45;
+        if(m.bounces>=2||m.age>.85||speed<1.3){recover(v,m);return;}
+        if(G.hitstop>0)return; // preserve the collision pose on the contact frame
+      }
+    }
+    if(m.age>3.5)recover(v,m);
+  }
+  function updateRecover(v,m,dt){
+    const t=m.age;
+    if(t<.40){const u=easeOut(t/.40);m.angle=lerp(m.fromAngle,m.restAngle,u);m.pivot.copy(m.fromPivot);m.pivot.y=lerp(m.fromPivot.y,.12,u);}
+    else if(t<.85){m.angle=m.restAngle;m.pivot.y=.12;}
+    else{
+      const u=ease((t-.85)/.85>1?1:(t-.85)/.85);
+      m.angle=lerp(m.restAngle,nearestAngle(m.restAngle,0),u);
+      m.pivot.x=lerp(m.fromPivot.x,0,u);m.pivot.y=lerp(.12,m.anchor.y,u);m.pivot.z=lerp(m.fromPivot.z,0,u);
+    }
+    pin(v,m);floorCorrect(v,m);
+    if(t>=1.70){finishMotion(v,true);}
+  }
+  function finishMotion(v,upright){
+    if(!v)return;
+    v._slapMotion=null;hideGrip();
+    if(upright){v.root.rotation.set(0,0,0);v.root.position.set(0,0,0);v.body.position.set(0,0,0);v.body.rotation.set(0,0,0);v.state='stand';v.stateT=0;}
+    v.root.updateMatrixWorld(true);
+    if(G.ptr?.grab?.kind==='ankle')G.ptr.grab=null;
+    if(upright&&G.v===v)setHint();
+  }
+  function releaseAnkle(cancelled=false){
+    const v=G.v,m=v?._slapMotion;
+    if(!m||m.kind!=='held')return false;
+    if(G.ptr)G.ptr.grab=null;
+    if(cancelled){finishMotion(v,true);return true;}
+    const moving=m.vel.length()>1.2;
+    const velocity=moving?m.vel.clone().clampLength(0,6):V3();
+    newFlight(v,velocity,moving?clamp(m.omega,-3,3):0,'drop');
+    DAY.throws++;saveDay();G.lastAct=G.time;setHint();return true;
+  }
+  const oldRelease=releaseGrab;
+  releaseGrab=function(){if(releaseAnkle(inputCancelled))return;return oldRelease();};
+  const oldCancel=cancelPointer;
+  cancelPointer=function(...args){
+    inputCancelled=true;
+    try{if(G.v?._slapMotion)finishMotion(G.v,true);return oldCancel(...args);}finally{inputCancelled=false;}
+  };
+  // Pointer cancellation must never be interpreted as an intentional throw.
+  const lost=e=>{if(G.ptr?.grab?.kind==='ankle'&&(!e.pointerId||e.pointerId===G.ptr.id))releaseAnkle(true);};
+  canvas.addEventListener('pointercancel',lost,true);
+  canvas.addEventListener('lostpointercapture',lost,true);
+  addEventListener('blur',()=>{if(G.v?._slapMotion)cancelPointer();});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden&&G.v?._slapMotion)cancelPointer();});
+
+  const oldUpdate=updateVillain;
+  updateVillain=function(v,dt){
+    const m=v._slapMotion;
+    if(m&&!/^slap-/.test(v.state))finishMotion(v,false);
+    const r=oldUpdate(v,dt);
+    if(G.v!==v||!customState(v))return r;
+    const active=v._slapMotion,h=clamp(safe(Number(dt)),0,.05);
+    active.age+=h;active.cool=Math.max(0,active.cool-h);bodyPose(v,active);
+    if(active.kind==='held')updateHeld(v,active,h);
+    else if(active.kind==='flight')updateFlight(v,active,h);
+    else if(active.kind==='recover')updateRecover(v,active,h);
+    return r;
+  };
+  const oldIdle=updateIdleTool;
+  updateIdleTool=function(dt){if(customState(G.v))return;return oldIdle(dt);};
+  const oldCamera=updateCamera;
+  updateCamera=function(dt){
+    oldCamera(dt);
+    if(G.editing){wideMix=0;wideHeight=0;return;}
+    const m=customState(G.v)?G.v._slapMotion:null;
+    wideMix=damp(wideMix,m?1:0,m?6:4,clamp(safe(Number(dt)),0,.05));
+    if(wideMix<.001){wideHeight=0;return;}
+    const W=innerWidth,H=innerHeight,top=$('.title-block').getBoundingClientRect().bottom+14;
+    const bottom=H-$('.dock').getBoundingClientRect().top+18,avail=Math.max(120,H-top-bottom);
+    if(m){
+      // Holding needs less lateral space than a chair launch. Keep the toy readable
+      // on portrait phones, and ease out farther only for free flight/recovery.
+      const topWorld=Math.max(4.25,m.viewTop||4.25),width=m.kind==='held'?4.8:8.2;
+      const desired=Math.max(topWorld*H/avail,width/(W/H));
+      wideHeight=wideHeight?damp(wideHeight,desired,6,dt):desired;
+      wideTop=damp(wideTop,topWorld,6,dt);
+    }
+    const worldH=wideHeight||G.viewH;
+    const dist=worldH/(2*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)))+.8;
+    const aim=wideTop*.5+(top-bottom)*worldH/(2*H);
+    camera.position.lerp(V3(0,aim,Math.max(G.camDist,dist)),wideMix);
+    camera.lookAt(lerp(G.camTarget.x,0,wideMix),lerp(G.camTarget.y,aim,wideMix),0);
+    camera.updateMatrixWorld(true);
+  };
+  const oldDispose=Villain.prototype.dispose;
+  Villain.prototype.dispose=function(...args){
+    this._slapMotion=null;this._slapDents=null;if(G.v===this){hideGrip();wideMix=0;wideHeight=0;}
+    return oldDispose.apply(this,args);
+  };
+
+  // Existing buttons were bound before this block, so bind only the new button.
+  const hitTools=$('#hitTools'),chairButton=document.createElement('button');
+  chairButton.className='tool';chairButton.dataset.tool='chair';chairButton.setAttribute('aria-label','접이식 의자');
+  chairButton.innerHTML='<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M12 3h24v14H12zM12 23h24v11H12z" fill="#65aeca" stroke="#1f2a5c" stroke-width="2.5"/><path d="M10 4v39m28-39v39M10 20h28M10 38h28m-25 5 4-24m18 24-4-24" fill="none" stroke="#1f2a5c" stroke-width="3" stroke-linecap="round"/></svg>의자';
+  hitTools.append(chairButton);
+  chairButton.addEventListener('click',()=>{
+    SFX.unlock();cancelPointer();clearAttacks();G.tool='chair';G.equipTime=G.time;
+    $$('[data-tool]').forEach(b=>b.classList.toggle('on',b===chairButton));SFX.pop(0);setHint();
+  });
+  if(typeof HINTS==='object'){
+    HINTS.chair='누르거나 쓸어서 체어샷 · 큰 준비동작 뒤에 통째로 날리기';
+    HINTS.hand=(HINTS.hand||'').replace('몸통 꾹 잡아 던지기','몸통 꾹 발목 잡기 · 좌우로 크게 쓸어 내려치기');
+  }
+  const style=document.createElement('style');style.textContent='#hitTools{grid-template-columns:repeat(7,minmax(0,1fr))!important}#hitTools .tool{min-width:0}@media(max-width:420px){#hitTools .tool svg{width:34px;height:34px}#hitTools .tool{font-size:10px}}';document.head.append(style);
+  if(window.__api)Object.assign(window.__api,{applyHit,updateVillain,startGrab,releaseGrab,updateCamera,randomLook});
+  const api={version:VERSION,config:CFG,faceDent,dentOffset,startAnkle,releaseAnkle,finishMotion,
+    support,chairLaunch,beginSlam,updateHeld,updateFlight,updateRecover,isolateHead,customState};
+  window.__slapstick=api;return api;
+})();
+/* SLAPSTICK_V1_END */
+
+
 const APPEAR_KEY='badguy.appearance.v1';
 const APPEAR=(()=>{
   const s=store.get(APPEAR_KEY,{}),r=s&&typeof s==='object'?s:{};
@@ -4327,7 +5773,19 @@ const AppearanceEditor=(()=>{
     if(E.tab==='mouth')s=intro('말하지 않아도 보이는 성격','기본 인상은 고정하고, 말하기·울기 표정은 그대로 살아 있어요.')+choices('mouthStyle','기본 입 모양')+colours('lipColor','입술 색')+sliders([['mouthWidth','입 너비'],['mouthHeight','입 두께·높이'],['mouthY','입 위치']]);
     if(E.tab==='glasses')s=intro('안경도 벗겨 보자','고른 안경에도 기존의 파손·수리 반응이 적용됩니다.')+choices('glassesStyle','안경 모양')+(L.glassesStyle==='none'?'':colours('frame','테 색')+sliders([['glassSize','안경 크기'],['glassY','안경 높이']]));
     if(E.tab==='details')s=intro('작은 차이가 만드는 개성','수염, 점, 주근깨를 조합해 보세요.')+choices('stacheStyle','수염 모양')+`<section class="look-section">${check('stubble','까슬까슬한 수염자국')}${check('freckles','주근깨')}${check('mole','얼굴에 점 찍기')}</section>`+(L.mole?sliders([['moleX','점 좌우 위치'],['moleY','점 높이'],['moleSize','점 크기']]):'')+`<p class="look-section-note">수염 색은 머리색을 따라갑니다.</p>`;
-    if(E.tab==='clothes')s=intro('마지막은 옷차림','「전신 보기」에서 체형과 옷 색을 함께 확인해 보세요.')+colours('shirt','셔츠 색')+colours('pants','바지 색')+check('hasTie','넥타이 착용')+(L.hasTie?colours('tie','넥타이 색'):'')+sliders([['bodyH','키'],['bodyW','체형 너비']]);
+    if(E.tab==='clothes'){
+      s=intro('옷도 취향대로','얼굴·체형에 관계없이 자유롭게 조합해 보세요.')
+        +choices('topStyle','상의 · 원피스')
+        +(L.topStyle==='dress'
+          ?'<p class="look-section-note">원피스는 상·하의가 이어진 한 벌입니다.</p>'
+          :choices('bottomStyle','하의'))
+        +colours('shirt',L.topStyle==='dress'?'원피스 색':'상의 색')
+        +(L.topStyle==='dress'?'':colours('pants','하의 색'))
+        +(L.topStyle==='shirt'
+          ?check('hasTie','넥타이 착용')+(L.hasTie?colours('tie','넥타이 색'):'')
+          :'')
+        +sliders([['bodyH','키'],['bodyW','체형 너비']]);
+    }
     if(E.tab==='saved')s=intro('내 외모 보관함','별명을 적고 「보관하기」를 누르면 이 기기에 저장됩니다.')+'<div id="lookSaveSlot"></div>'+`<p class="look-infotag">${APPEAR.presets.length} / 12 보관 중 · 카드 선택으로 불러오기</p>`+(APPEAR.presets.length?`<div class="look-presets">${APPEAR.presets.map(p=>`<div class="look-preset"><button class="look-preset-load" data-look-load="${esc(p.id)}" aria-label="${esc(p.name)} 불러오기">${p.thumb?`<img src="${p.thumb}" alt="${esc(p.name)} 외모" width="160" height="160">`:lookIcon('face',p.look.faceShape,p.look)}<span>${esc(p.name)}</span></button><button class="look-preset-delete" data-look-delete="${esc(p.id)}" aria-label="${esc(p.name)} 삭제">×</button></div>`).join('')}</div>`:`<div class="look-empty">${lookIcon('saved')}<br>아직 보관한 외모가 없어요.<br>마음에 드는 얼굴을 만든 뒤<br><b>「보관하기」</b>를 눌러 주세요.</div>`);
     $('#lookSaveParking').append(savedSettings);el.innerHTML=s;el.dataset.tab=E.tab;if(E.tab==='saved')$('#lookSaveSlot').append(savedSettings);el.setAttribute('aria-labelledby','look-tab-'+E.tab);el.scrollTop=scroll;updateRangeFill();
   }
