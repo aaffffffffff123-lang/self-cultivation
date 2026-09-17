@@ -8082,13 +8082,47 @@ function updateHomerun(v, m, dt) {
 (() => {
   if (window.__SC_CARE_SNUB_V1) return;
 
+  
+
+
   const replies = {
-    stop: ['됐고.', '그만해.', '부탁한 적 없는데.'],
-    shrug: ['그래서 어쩌라고?', '칭찬해 달랬냐?', '그게 나랑 무슨 상관인데.'],
-    brush: ['됐으니까 저리 가.', '치워.', '볼일 끝났지?'],
-    inspect: ['너 뭐 돼?', '네가 뭔데 칭찬이야.', '평가해 달랬냐?'],
-    flip: ['이거나 먹어.', '…어쩌라고.', '할 말 끝났어?']
+    // 손바닥을 내밀어 말을 끊는다.
+    stop: [
+      '너나 잘해',
+      '아 좀 하나마나한 소리 좀 하지 마'
+    ],
+
+    // 양손을 뒤집으며 "그래서?" 하는 반응.
+    shrug: [
+      '네가 뭘 알아',
+      '어쩌라고', 
+      '너한테 위로 받으니까 기분 좆같음'
+    ],
+
+    // 손으로 옆을 쓸어 치우고 고개를 돌린다.
+    brush: [
+      '꺼져'
+    ],
+
+    // 위아래로 훑어보고 턱을 든다.
+    inspect: [
+      '너 뭐 돼?',
+      '나대지 마',
+      '개깝치네',
+
+      '아 칭찬하지 마 기분 좆같게.',
+
+      '븅~신ㅋ'
+    ],
+
+    // 가운데 손가락을 내민다.
+    flip: [
+      '뻐큐',
+     '어쩌라고'
+
+    ]
   };
+
 
   const choices = {
     comfort: ['inspect', 'shrug', 'stop', 'flip'],
@@ -8117,15 +8151,7 @@ function updateHomerun(v, m, dt) {
     const different = pool.filter(k => k !== v._snubLast);
     const gesture = pick(different.length ? different : pool);
 
-    let lines = replies[gesture];
-
-    if (G.hug || group === 'hug') {
-      lines = ['놔.', '안으라고 했냐.', '붙지 마.'];
-    } else if (group === 'fiveMiss') {
-      lines = ['안 해.', '손 내려.', '누가 해 준대.'];
-    } else if (group === 'hand' && gesture === 'stop') {
-      lines = ['손 치워.', '만지지 마.'];
-    }
+    const lines = replies[gesture];
 
     const otherLines = lines.filter(s => s !== v._snubLine);
     const line = pick(otherLines.length ? otherLines : lines);
@@ -8147,7 +8173,7 @@ function updateHomerun(v, m, dt) {
     if (G.social) G.social.noEcho = true;
   };
 
-  careReplyLine = r => r.line || '…어쩌라고.';
+  careReplyLine = r => r.line || '똥싸고 있네 븅신';
 
   updateCareReply = function(dt) {
     const r = G.react;
@@ -8177,7 +8203,16 @@ function updateHomerun(v, m, dt) {
 
     if (!r.fired && r.t >= r.delay) {
       r.fired = true;
-      speak(careReplyLine(r), '', 1.8, true);
+      const line = careReplyLine(r);
+
+      // 짧은 대사는 2초, 긴 대사는 글자 수에 맞춰 더 오래 표시.
+      const duration = clamp(
+        1.4 + line.length * .09,
+        2,
+        4.2
+      );
+
+      speak(line, '', duration, true);
 
       // 민망한 홍조·자동 맞박수는 넣지 않는다.
     }
@@ -8844,7 +8879,7 @@ function updateHomerun(v, m, dt) {
 (() => {
   if (window.__SC_CARE_GRID_HEAL_V1) return;
 
-  const USES = 3;        // 완전히 낫는 데 필요한 횟수
+  const USES = 15;       // 약 바르기 동작을 15번 완료하면 완전히 회복
   const DURATION = .85;  // 한 번 약을 바르는 동작 길이
 
   const strip = $('#careTools .care-strip');
@@ -9341,6 +9376,591 @@ function updateHomerun(v, m, dt) {
   }, 0);
 })();
 
+/* CARE8_MEDICINE_V1
+ * 기존 ROOM_UI_V1 뒤, '시작' 주석 바로 위에 한 번만 추가.
+ * 기존 반창고의 입력 ID만 재사용한다. 반창고 부착 동작은 호출하지 않는다.
+ */
+(() => {
+  'use strict';
+  if (window.__SC_CARE8_MEDICINE_V1) return;
+
+  const DOSES = 4;
+
+  const strip = document.querySelector('#careTools .care-strip');
+  const medicine = document.querySelector('[data-care="bandage"]');
+  const talk = document.querySelector('#careTalk');
+
+  if (!strip || !medicine || !talk) {
+    console.error('CARE8: 달래기 버튼을 찾지 못했습니다. 적용 위치를 확인하세요.');
+    return;
+  }
+
+  const style = document.createElement('style');
+
+  style.textContent = `
+    /* 가로 배치보다 숨김 규칙을 우선한다. */
+    #hitTools[hidden],
+    #careTools[hidden] {
+      display:none!important;
+    }
+
+    #nextBtn,
+    #careTools .care-actions,
+    #careRepairs {
+      display:none!important;
+    }
+
+    #careTools:not([hidden]) {
+      display:block!important;
+    }
+
+    #careTools .care-strip {
+      display:flex;
+      flex-wrap:nowrap;
+      gap:4px;
+      margin:0;
+      padding:1px 0 3px;
+      overflow-x:auto;
+      overflow-y:hidden;
+      touch-action:pan-x;
+      overscroll-behavior-x:contain;
+      scrollbar-width:thin;
+    }
+
+    #careTools .care-strip > .tool {
+      flex:1 0 68px;
+      min-width:68px;
+      min-height:60px;
+      padding:3px 2px;
+      white-space:nowrap;
+      font-size:11px;
+      scroll-snap-align:start;
+    }
+
+    #careTools .care-strip > .tool svg {
+      width:34px;
+      height:34px;
+    }
+
+    #careTools .care-strip > .tool:not(.hold) {
+      touch-action:pan-x;
+    }
+
+    #careTools .care-strip > .tool.hold {
+      touch-action:none;
+    }
+
+    #medicineProgress {
+      right:0;
+      top:0;
+      min-width:27px;
+      font-size:10px;
+    }
+  `;
+
+  document.head.append(style);
+
+  // 기존 카메라 코드가 참조하므로 DOM은 남기고 화면에서 제거.
+  $('#nextBtn').hidden = true;
+
+  medicine.innerHTML = `
+    <svg viewBox="0 0 48 48" aria-hidden="true">
+      <path d="m12 11 11-7 17 25-11 7z"
+        fill="#fffdf4" stroke="#1f2a5c" stroke-width="2.5"/>
+      <path d="m29 36 4 6 6-4-4-6M12 11l-3-4 11-7 3 4"
+        fill="#8fdcc9" stroke="#1f2a5c" stroke-width="2.5"/>
+      <path d="m21 15 7 10m-9-2 11-7"
+        stroke="#2f9b79" stroke-width="4"/>
+      <path d="M7 34q-8 10 0 10t0-10"
+        fill="#c8f0dc" stroke="#1f2a5c" stroke-width="2"/>
+    </svg>
+    <span>약 바르기</span>
+    <span id="medicineProgress" class="badge" hidden></span>
+  `;
+
+  medicine.setAttribute('aria-label', '약 바르기');
+  medicine.title = '선택한 뒤 캐릭터를 눌러 약 바르기';
+  medicine.disabled = false;
+
+  talk.className = 'tool';
+  talk.dataset.care = 'comfort';
+  talk.setAttribute('aria-label', '위로 한마디');
+
+  talk.innerHTML = `
+    <svg viewBox="0 0 48 48" aria-hidden="true">
+      <path d="M5 7h38v26H20L8 43V33H5z"
+        fill="#fffdf4" stroke="#1f2a5c" stroke-width="3"/>
+      <path d="M13 16h22M13 24h15"
+        stroke="#2f9b79" stroke-width="3" stroke-linecap="round"/>
+    </svg>
+    <span>위로한마디</span>
+  `;
+
+  // 기존 버튼 자체를 옮겨 클릭·꾹 안기 연결을 보존한다.
+  for (const id of ['hand', 'love', 'thumb', 'clap', 'five', 'hug']) {
+    strip.append(document.querySelector(`[data-care="${id}"]`));
+  }
+
+  strip.append(medicine, talk);
+  $('#careRepairs').hidden = true;
+
+  HINTS.bandage =
+    `선택 후 캐릭터를 톡 · 한 번씩 약을 문질러 바릅니다<br>` +
+    `${DOSES}번 완료하면 상처·변형·이빨·안경까지 전체 회복`;
+
+  HINTS.comfort = '위로한마디를 누르면 말을 건넵니다';
+
+  talk.addEventListener('click', () => {
+    cancelPointer();
+    endHug();
+    stopSocial();
+    clearAttacks();
+
+    G.care = 'comfort';
+    syncCareSelection();
+    setHint();
+
+    // 기존 careTalk 클릭 코드가 이어서 실제 대사를 재생한다.
+  }, true);
+
+  const courses = new WeakMap();
+  let treatment = null;
+
+  const cream = new THREE.Mesh(
+    new THREE.SphereGeometry(.037, 14, 10),
+    new THREE.MeshStandardMaterial({
+      color: '#d5f5df',
+      roughness: .65,
+      transparent: true,
+      opacity: .86,
+      depthWrite: false
+    })
+  );
+
+  cream.name = 'medicine-cream';
+  cream.visible = false;
+  scene.add(cream);
+
+  const progress = $('#medicineProgress');
+
+  function showProgress() {
+    const n = G.v ? (courses.get(G.v) || 0) : 0;
+    progress.hidden = n === 0;
+    progress.textContent = `${n}/${DOSES}`;
+  }
+
+  function cancelTreatment() {
+    if (!treatment) return;
+
+    treatment = null;
+    cream.visible = false;
+    RIG.open[1].visible = false;
+    medicine.removeAttribute('aria-busy');
+  }
+
+  function wounded(v) {
+    return v.damage > .001 || v.glassLv > 0 || v.glassOff ||
+      v.noseBlood > .01 || v.lipBlood > .01 || v._crownV2 > .001 ||
+      v.bruises?.length || v.bumps?.length || v.lumps?.length ||
+      v.marks?.length || v._slapDents?.length ||
+      v._bodyCloth?.dents?.length ||
+      v.upper?.some(x => !x) || v.lower?.some(x => !x);
+  }
+
+  function partialHeal(v, count) {
+    const f = (DOSES - count) / (DOSES - count + 1);
+
+    for (const k of [
+      'damage', 'fear', 'noseBlood', 'lipBlood',
+      'tear', 'wet', 'noseRed', '_crownV2'
+    ]) {
+      if (Number.isFinite(v[k])) v[k] *= f;
+    }
+
+    for (const b of v.bruises || []) b.heal = (b.heal ?? 1) * f;
+    for (const b of v.bumps || []) b.amp *= f;
+    for (const m of v.marks || []) m.a *= f;
+    for (const l of v.lumps || []) l.userData.target *= f;
+    for (const e of v.eyes || []) e.swell *= f;
+    for (const d of v._slapDents || []) d.depth *= f;
+
+    const c = v._bodyCloth;
+
+    if (c) {
+      for (const d of c.dents) {
+        d.depth *= f;
+        d.kick *= f;
+      }
+      c.dirty = true;
+    }
+
+    v.tearClear = 3;
+    v.faceDirty = true;
+    v.headDirty = true;
+  }
+
+  function fullHeal(v) {
+    // 같은 이름·외모·죄목으로 손상 없는 모델을 만든다.
+    // newVillain()을 호출하지 않으므로 입장 연출·인원 집계는 발생하지 않는다.
+    // 다른 패치 내부에 남아 있는 변색·옷 얼룩도 함께 초기화한다.
+    const fresh = new Villain(
+      v.crime,
+      { ...v.look },
+      v.hostScene || scene
+    );
+
+    fresh.state = 'stand';
+    fresh.stateT = 0;
+    fresh.root.position.copy(v.root.position);
+    fresh.root.rotation.set(0, 0, 0);
+
+    // 이빨 복구 후에는 발음도 새지 않도록 한다.
+    fresh.st = { ...v.st, teeth: 0 };
+
+    for (const k of [
+      'confessed', 'lettered', 'comfort',
+      'crossArms', '_snubLast', '_snubLine'
+    ]) {
+      if (v[k] !== undefined) fresh[k] = v[k];
+    }
+
+    cancelPointer();
+    stopSocial();
+    clearAttacks();
+    clearJunk();
+
+    G.v = fresh;
+    v.dispose();
+
+    HEAVY_WET.clear(fresh);
+    G.combo = [];
+    G.lastAct = G.time;
+    courses.set(fresh, 0);
+
+    refreshAppearanceButton();
+    updateCareButtons(true);
+    updateVillain(fresh, 0);
+    fresh.root.updateMatrixWorld(true);
+
+    return fresh;
+  }
+
+  function beginMedicine(info) {
+    const v = G.v;
+
+    if (
+      treatment || G.mode !== 'care' || G.editing ||
+      G.care !== 'bandage' || !v || v.state !== 'stand' ||
+      !info?.obj || !isAttached(info.obj, v.root)
+    ) return;
+
+    if (!wounded(v) && !courses.get(v)) {
+      popText(
+        '이미 멀쩡!',
+        v.headMesh.getWorldPosition(V3()),
+        'pat',
+        28
+      );
+      return;
+    }
+
+    stopSocial();
+    G.careAnim = null;
+    SFX.rubStop();
+
+    treatment = { v, info, t: 0, contact: false };
+    medicine.setAttribute('aria-busy', 'true');
+    G.lastAct = G.time;
+  }
+
+  const oldCareAct = careAct;
+
+  careAct = function(kind, info, e) {
+    if (kind === 'bandage') return beginMedicine(info);
+    return oldCareAct.apply(this, arguments);
+  };
+
+  // 이전 코드가 직접 호출해도 반창고 대신 약 바르기로 연결.
+  placeBandage = beginMedicine;
+
+  const oldHands = updateCareHands;
+
+  updateCareHands = function(dt) {
+    const a = treatment;
+
+    if (!a) return oldHands.apply(this, arguments);
+
+    if (
+      G.v !== a.v || G.mode !== 'care' ||
+      G.care !== 'bandage' || G.editing ||
+      a.v.state !== 'stand' || document.hidden ||
+      document.querySelector('.modal:not([hidden])')
+    ) {
+      cancelTreatment();
+      return oldHands.apply(this, arguments);
+    }
+
+    a.t += clamp(Number(dt) || 0, 0, .05);
+    G.lastAct = G.time;
+
+    a.v.root.updateMatrixWorld(true);
+
+    const p = liveContactPoint(a.info);
+    const n = hitNormal(a.info).normalize();
+    const u = V3(0, 1, 0).cross(n);
+
+    if (u.lengthSq() < .01) u.set(1, 0, 0);
+    u.normalize();
+
+    const w = n.clone().cross(u).normalize();
+
+    const into = ease(clamp(a.t / .20, 0, 1));
+    const out = ease(clamp((a.t - .66) / .20, 0, 1));
+    const rub = Math.sin(
+      clamp((a.t - .20) / .46, 0, 1) * Math.PI
+    );
+
+    const target = p.clone()
+      .addScaledVector(n, .065)
+      .addScaledVector(u, Math.sin(a.t * 23) * .022 * rub)
+      .addScaledVector(w, Math.cos(a.t * 23) * .016 * rub);
+
+    const h = RIG.open[1];
+    h.visible = true;
+
+    h.position.copy(camRest(1, -.9))
+      .lerp(target, into)
+      .lerp(camRest(1, -.9), out);
+
+    orient(h, n.clone().negate(), w);
+
+    cream.visible = a.t > .20 && a.t < .78;
+    cream.position.copy(p).addScaledVector(n, .012);
+    orient(cream, n, w);
+
+    cream.scale.set(1 + rub * .6, .6, .14);
+    cream.material.opacity = .86 * (1 - out);
+
+    if (!a.contact && a.t >= .23) {
+      a.contact = true;
+      SFX.pat(clamp(p.x, -1, 1));
+    }
+
+    if (a.t < .86) return;
+
+    // 동작을 끝낸 경우만 인정. 연타·중도 취소로 횟수가 늘어나지 않는다.
+    const v = a.v;
+    const count = Math.min(
+      DOSES,
+      (courses.get(v) || 0) + 1
+    );
+
+    cancelTreatment();
+    courses.set(v, count);
+
+    if (count < DOSES) {
+      partialHeal(v, count);
+      popText(`회복 ${count}/${DOSES}`, p, 'pat', 28);
+    } else {
+      const healed = fullHeal(v);
+      popText(
+        '회복 완료!',
+        healed.headMesh.getWorldPosition(V3()),
+        'pat',
+        34
+      );
+    }
+
+    showProgress();
+  };
+
+  const oldStop = stopSocial;
+
+  stopSocial = function() {
+    cancelTreatment();
+    return oldStop.apply(this, arguments);
+  };
+
+  const oldHit = applyHit;
+
+  applyHit = function(h) {
+    const v = G.v;
+    const before = v?.st?.hits;
+
+    cancelTreatment();
+    const result = oldHit.apply(this, arguments);
+
+    if (
+      v && G.v === v && v.st.hits !== before &&
+      h?.tool !== 'tissue'
+    ) {
+      courses.delete(v);
+      showProgress();
+    }
+
+    return result;
+  };
+
+  const oldButtons = updateCareButtons;
+
+  updateCareButtons = function() {
+    const result = oldButtons.apply(this, arguments);
+    showProgress();
+    return result;
+  };
+
+  addEventListener('blur', cancelTreatment);
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) cancelTreatment();
+  });
+
+  canvas.addEventListener('webglcontextlost', cancelTreatment);
+
+  document.addEventListener('click', e => {
+    if (e.target.closest?.(
+      '[data-care], [data-mode], .top button'
+    )) {
+      cancelTreatment();
+    }
+  }, true);
+
+  window.__SC_CARE8_MEDICINE_V1 = {
+    version: 1,
+    doses: DOSES,
+    inspect: () => ({
+      active: !!treatment,
+      doses: G.v ? courses.get(G.v) || 0 : 0
+    }),
+    cancel: cancelTreatment
+  };
+
+  if (window.__api) {
+    Object.assign(window.__api, {
+      careAct,
+      placeBandage,
+      updateCareHands,
+      stopSocial,
+      applyHit,
+      updateCareButtons
+    });
+  }
+})();
+
+
+/* CARE_SCROLL_FIX_V2
+ * CARE_GRID_HEAL_V1을 포함한 기존 패치들 뒤,
+ * '시작' 주석 바로 위에 한 번만 추가.
+ */
+(() => {
+  if (window.__SC_CARE_SCROLL_FIX_V2) return;
+
+  const hit = $('#hitTools');
+  const care = $('#careTools');
+  const talk = $('#careTalk');
+  if (!hit || !care || !talk) return;
+
+  const css = document.createElement('style');
+  css.textContent = `
+    /* 두 모드 모두 한 줄. 좁으면 가로로 스크롤한다. */
+    body #hitTools:not([hidden]),
+    body #careTools .care-strip {
+      display:flex!important;
+      flex-direction:row!important;
+      flex-wrap:nowrap!important;
+      gap:4px!important;
+      overflow-x:auto!important;
+      overflow-y:hidden!important;
+      padding:2px 0 4px!important;
+      scrollbar-width:thin;
+      scroll-snap-type:x proximity!important;
+      touch-action:pan-x;
+      overscroll-behavior-x:contain;
+      min-width:0;
+    }
+
+    body #hitTools .tool,
+    body #careTools .care-strip>.tool {
+      flex:1 0 64px!important;
+      width:64px!important;
+      min-width:64px!important;
+      min-height:60px!important;
+      margin:0!important;
+      padding:3px 2px!important;
+      font-size:11px!important;
+      white-space:nowrap;
+      scroll-snap-align:start;
+      touch-action:pan-x!important;
+    }
+
+    body #hitTools .tool svg,
+    body #careTools .care-strip>.tool svg {
+      width:34px!important;
+      height:34px!important;
+    }
+
+    /* 꾹 안기는 기존 길게 누르기 입력을 유지한다. */
+    body #careTools .care-strip>.hold {
+      touch-action:none!important;
+    }
+
+    /* 중요: display:flex/grid가 숨김을 덮어쓰지 못하게 한다. */
+    body #hitTools[hidden],
+    body #careTools[hidden] {
+      display:none!important;
+    }
+
+    body #nextBtn,
+    body #careRepairs,
+    body #careRepair,
+    body #careVoiceToggle,
+    body #careTools .care-actions {
+      display:none!important;
+    }
+
+    body #careTools {
+      gap:0!important;
+    }
+  `;
+  document.head.append(css);
+
+  hit.hidden = G.mode !== 'hit';
+  care.hidden = G.mode !== 'care';
+
+  const next = $('#nextBtn');
+  if (next) {
+    next.hidden = true;
+    next.disabled = true;
+  }
+
+  // 위로 한마디도 8개 중 하나로 선택 표시와 설명을 연결한다.
+  // 기존 버튼에 연결된 위로 대사·음성은 그대로 사용한다.
+  talk.dataset.care = 'comfort';
+  talk.setAttribute('aria-pressed', 'false');
+
+  HINTS.comfort = '누르면 위로 한마디를 건넵니다';
+
+  talk.addEventListener('click', () => {
+    if (G.mode !== 'care' || G.editing) return;
+
+    cancelPointer();
+    endHug();
+    stopSocial();
+    clearAttacks();
+
+    G.care = 'comfort';
+    syncCareSelection();
+    setHint();
+  }, true);
+
+  syncCareSelection();
+
+  setTimeout(() => {
+    if (G.v && !G.editing) fit();
+  }, 0);
+
+  window.__SC_CARE_SCROLL_FIX_V2 = { version:2 };
+})();
 
 
 /* ================= 시작 ================= */
