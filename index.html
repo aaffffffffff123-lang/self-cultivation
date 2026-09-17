@@ -8837,6 +8837,512 @@ function updateHomerun(v, m, dt) {
 })();
 
 
+/* CARE_GRID_HEAL_V1
+ * 기존 패치들 뒤, '시작' 주석 바로 위에 한 번만 추가.
+ * 반창고의 내부 선택 키(bandage)는 입력 연결을 위해 유지한다.
+ */
+(() => {
+  if (window.__SC_CARE_GRID_HEAL_V1) return;
+
+  const USES = 3;        // 완전히 낫는 데 필요한 횟수
+  const DURATION = .85;  // 한 번 약을 바르는 동작 길이
+
+  const strip = $('#careTools .care-strip');
+  const medicine = $('[data-care="bandage"]');
+  const talk = $('#careTalk');
+
+  if (!strip || !medicine || !talk) return;
+
+  // 기존 버튼을 이동해서 이벤트와 포옹의 길게 누르기를 보존한다.
+  medicine.innerHTML = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="m16 6 22 7-8 25-21-7z" fill="#e8fff3" stroke="#1f2a5c" stroke-width="2.5"/><path d="m10 30 20 7-2 6-20-7z" fill="#5db999" stroke="#1f2a5c" stroke-width="2.5"/><path d="m23 17-3 10m-3-7 10 3" fill="none" stroke="#329f7b" stroke-width="4" stroke-linecap="round"/></svg>약 바르기';
+
+  medicine.setAttribute('aria-label', '약 바르기');
+  medicine.title = `캐릭터를 눌러 약 바르기 · ${USES}회면 완전히 회복`;
+  medicine.disabled = false;
+
+  talk.className = 'tool';
+  talk.innerHTML = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M6 7h36v26H21L9 42v-9H6z" fill="#e8f8ef" stroke="#1f2a5c" stroke-width="2.5"/><path d="M14 17h20M14 24h14" stroke="#1f2a5c" stroke-width="2.5" stroke-linecap="round"/></svg>위로 한마디';
+  talk.setAttribute('aria-label', '위로 한마디');
+
+  strip.append(medicine, talk);
+
+  // 기존 코드가 조회하는 요소는 지우지 않고 화면에서만 제외한다.
+  for (const id of [
+    'careRepairs', 'careRepair', 'careVoiceToggle', 'nextBtn'
+  ]) {
+    const el = document.getElementById(id);
+
+    if (el) {
+      el.hidden = true;
+      el.tabIndex = -1;
+    }
+  }
+
+  const actions = $('#careTools .care-actions');
+  if (actions) actions.hidden = true;
+
+  const css = document.createElement('style');
+
+  css.textContent = `
+    #nextBtn,
+    #careRepairs,
+    #careRepair,
+    #careVoiceToggle,
+    #careTools .care-actions {
+      display:none!important
+    }
+
+    #careTools:not([hidden]) {
+      display:block!important
+    }
+
+    #careTools .care-strip {
+      display:grid!important;
+      grid-template-columns:repeat(8,minmax(0,1fr))!important;
+      gap:4px!important;
+      overflow:visible!important;
+      padding:0!important;
+      scroll-snap-type:none!important
+    }
+
+    #careTools .care-strip>.tool {
+      width:auto!important;
+      min-width:0!important;
+      min-height:64px!important;
+      margin:0;
+      padding:4px 1px!important;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:2px;
+      font-size:11px!important;
+      line-height:1.3;
+      letter-spacing:-.6px;
+      white-space:nowrap;
+      touch-action:manipulation
+    }
+
+    #careTools .care-strip>.tool svg {
+      width:34px!important;
+      height:34px!important
+    }
+
+    #careTools .care-strip>.hold {
+      touch-action:none
+    }
+
+    #hitTools[hidden],
+    #careTools[hidden] {
+      display:none!important
+    }
+
+    @media(max-width:600px) {
+      #hitTools:not([hidden]),
+      #careTools .care-strip {
+        display:grid!important;
+        grid-template-columns:repeat(4,minmax(0,1fr))!important;
+        overflow:visible!important;
+        gap:4px!important
+      }
+
+      #hitTools .tool {
+        min-width:0!important;
+        width:auto!important
+      }
+
+      #careTools .care-strip>.tool {
+        font-size:12px!important
+      }
+    }
+  `;
+
+  document.head.append(css);
+
+  HINTS.bandage =
+    `캐릭터를 톡: 약 바르기 · ${USES}회면 상처·이빨·안경까지 회복`;
+
+  // 반성문에서도 다음 캐릭터로 교체하지 않는다.
+  const letterNext = $('#letterNext');
+
+  if (letterNext) {
+    letterNext.textContent = '계속하기';
+
+    letterNext.addEventListener('click', e => {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      $('#letterModal').hidden = true;
+      G.lastAct = G.time;
+    }, true);
+  }
+
+  // 작은 크림 자국. 매번 만들지 않고 한 메시를 재사용한다.
+  const cream = new THREE.Mesh(
+    new THREE.SphereGeometry(1, 16, 10),
+    new THREE.MeshStandardMaterial({
+      color: '#fff8df',
+      roughness: .9,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false
+    })
+  );
+
+  cream.name = 'care-ointment';
+  cream.visible = false;
+  scene.add(cream);
+
+  let action = null;
+
+  function cancelMedicine() {
+    if (action) RIG.open[1].visible = false;
+
+    action = null;
+    cream.visible = false;
+  }
+
+  talk.addEventListener('click', cancelMedicine, true);
+
+  function reduceWounds(v, factor) {
+    for (const key of [
+      'damage', 'fear', 'noseBlood', 'lipBlood', 'tear', 'wet',
+      'noseRed', 'noseStretch', 'noseTwist', 'dizzy',
+      'eyeShut', 'squint', '_crownV2'
+    ]) {
+      if (Number.isFinite(v[key])) v[key] *= factor;
+    }
+
+    for (const b of v.bruises) b.heal *= factor;
+    for (const b of v.bumps) b.amp *= factor;
+    for (const m of v.marks) m.a *= factor;
+    for (const e of v.eyes) e.swell *= factor;
+
+    for (const l of v.lumps) {
+      l.userData.target *= factor;
+      l.userData.cur *= factor;
+    }
+
+    for (const d of v._slapDents || []) {
+      d.depth *= factor;
+    }
+
+    if (v._bodyCloth) {
+      for (const d of v._bodyCloth.dents) {
+        d.depth *= factor;
+        d.kick *= factor;
+      }
+
+      v._bodyCloth.dirty = true;
+    }
+
+    v.impacts.length = 0;
+    v.bodyImpulse.length = 0;
+    v.headDirty = v.faceDirty = true;
+
+    v.applyDeform();
+    v.paintFace();
+  }
+
+  function fullyRestore(v) {
+    // nextCrime()/newVillain()을 호출하지 않는다.
+    // 같은 외모의 깨끗한 모델로 복원해 기존 패치의 오염까지 없앤다.
+    const fresh = new Villain(
+      v.crime,
+      {...v.look},
+      v.hostScene
+    );
+
+    fresh.st = {...v.st};
+
+    // 기록과 성격·반응은 유지한다.
+    for (const key of [
+      'confessed', 'comfort', 'lettered', 'hardHits', 'crossArms',
+      'careReplies', 'lastFlip', 'flipped', '_snubLast', '_snubLine'
+    ]) {
+      if (v[key] !== undefined) fresh[key] = v[key];
+    }
+
+    fresh.state = 'stand';
+    fresh.stateT = 0;
+    fresh.animTime = v.animTime;
+
+    fresh.root.position.copy(v.root.position);
+    fresh.root.quaternion.copy(v.root.quaternion);
+
+    fresh._ointmentRestored = true;
+    fresh._ointmentHits = fresh.st.hits;
+    fresh._ointmentUses = 0;
+
+    Object.assign(fresh.mouth, {
+      open: .018,
+      smile: 0,
+      smirk: 0,
+      wide: .72,
+      shape: 'flat'
+    });
+
+    Object.assign(fresh.mouth.target, {
+      open: .018,
+      smile: 0,
+      smirk: 0,
+      wide: .72
+    });
+
+    fresh.paintMouth();
+    fresh.root.updateMatrixWorld(true);
+
+    G.v = fresh;
+    v.dispose();
+
+    // 떨어진 안경·이빨·머리카락과 이전 분출을 정리한다.
+    clearJunk();
+    HEAVY_WET.clear(fresh);
+
+    G.combo = [];
+    G.hitstop = 0;
+    G.letterTimer = 0;
+    G.lastAct = G.time;
+
+    refreshAppearanceButton();
+    updateCareButtons(true);
+
+    return fresh;
+  }
+
+  function completeMedicine(a) {
+    const v = a.v;
+    if (G.v !== v) return;
+
+    // 치료 도중 다시 맞았다면 새 치료 과정으로 시작한다.
+    if (v._ointmentHits !== v.st.hits) {
+      v._ointmentHits = v.st.hits;
+      v._ointmentUses = 0;
+    }
+
+    const before = v._ointmentUses || 0;
+    const count = Math.min(USES, before + 1);
+
+    v._ointmentUses = count;
+    v.st.medicines = (v.st.medicines || 0) + 1;
+    DAY.medicines = (DAY.medicines || 0) + 1;
+
+    if (count >= USES) {
+      fullyRestore(v);
+      popText('회복 완료', a.point, 'pat', 32);
+
+    } else {
+      reduceWounds(
+        v,
+        (USES - count) / (USES - before)
+      );
+
+      popText(`회복 ${count}/${USES}`, a.point, 'pat', 30);
+    }
+
+    G.lastAct = G.time;
+    saveDay();
+  }
+
+  // 반창고 입력 연결만 재사용하고, 붙이는 동작은 호출하지 않는다.
+  const oldCareAct = careAct;
+
+  careAct = function(kind, info, e) {
+    if (kind !== 'bandage') {
+      return oldCareAct.apply(this, arguments);
+    }
+
+    const v = G.v;
+
+    if (
+      action || !v || v.state !== 'stand' ||
+      G.mode !== 'care' || G.editing ||
+      !info || !isAttached(info.obj, v.root)
+    ) return;
+
+    if (
+      document.hidden ||
+      document.querySelector('.modal:not([hidden])')
+    ) return;
+
+    stopSocial();
+    SFX.rubStop();
+
+    v.root.updateMatrixWorld(true);
+
+    action = {
+      v,
+      info,
+      hits: v.st.hits,
+      age: 0,
+      sounded: false,
+      point: hitWorld(info).clone()
+    };
+
+    G.lastAct = G.time;
+  };
+
+  const oldCareHands = updateCareHands;
+
+  updateCareHands = function(dt) {
+    const result = oldCareHands.apply(this, arguments);
+    const a = action;
+
+    if (!a) return result;
+
+    if (
+      G.v !== a.v ||
+      G.mode !== 'care' ||
+      G.care !== 'bandage' ||
+      G.editing || G.hug || G.social ||
+      a.v.state !== 'stand' ||
+      a.v.st.hits !== a.hits ||
+      document.hidden ||
+      document.querySelector('.modal:not([hidden])') ||
+      !isAttached(a.info.obj, a.v.root)
+    ) {
+      cancelMedicine();
+      return result;
+    }
+
+    a.age += Math.max(0, Number(dt) || 0);
+
+    if (a.age >= DURATION) {
+      cancelMedicine();
+      completeMedicine(a);
+      return result;
+    }
+
+    const t = a.age;
+    const v = a.v;
+
+    v.root.updateMatrixWorld(true);
+
+    const p = hitWorld(a.info);
+    const n = hitNormal(a.info).normalize();
+
+    a.point.copy(p);
+
+    const tangent = V3(0, 1, 0).cross(n);
+
+    if (tangent.lengthSq() < .01) {
+      tangent.set(1, 0, 0);
+    }
+
+    tangent.normalize();
+
+    const blend = careWindow(
+      t, 0, .16, .62, DURATION
+    );
+
+    const stroke = Math.sin(
+      clamp((t - .16) / .46, 0, 1) * Math.PI * 2
+    ) * .045;
+
+    const hand = RIG.open[1];
+    hand.visible = true;
+
+    const target = p.clone()
+      .addScaledVector(n, .055)
+      .addScaledVector(tangent, stroke);
+
+    hand.position.copy(camRest(1, -.9))
+      .lerp(target, blend);
+
+    orient(
+      hand,
+      n.clone().negate(),
+      Math.abs(n.y) > .85 ? V3(0, 0, -1) : V3(0, 1, 0)
+    );
+
+    cream.visible = t > .16;
+    cream.position.copy(p).addScaledVector(n, .022);
+
+    orient(
+      cream,
+      n,
+      Math.abs(n.y) > .85 ? V3(0, 0, -1) : V3(0, 1, 0)
+    );
+
+    cream.scale.set(
+      .035 + Math.abs(stroke) * .4,
+      .028,
+      .006
+    );
+
+    cream.material.opacity =
+      .82 * careWindow(t, .14, .24, .50, .73);
+
+    if (!a.sounded && t > .22) {
+      a.sounded = true;
+      SFX.pat(clamp(p.x, -1, 1));
+    }
+
+    return result;
+  };
+
+  // 동작 도중 모드·도구를 바꾸면 미완료 치유는 취소한다.
+  const oldCancel = cancelPointer;
+  const oldStop = stopSocial;
+
+  cancelPointer = function() {
+    cancelMedicine();
+    return oldCancel.apply(this, arguments);
+  };
+
+  stopSocial = function() {
+    cancelMedicine();
+    return oldStop.apply(this, arguments);
+  };
+
+  // 누적 이빨 기록은 보존한다.
+  // 발음만 현재 실제로 빠진 이빨 수에 맞춘다.
+  const oldSpeak = speak;
+
+  speak = function() {
+    const v = G.v;
+
+    if (!v?._ointmentRestored) {
+      return oldSpeak.apply(this, arguments);
+    }
+
+    const total = v.st.teeth;
+
+    v.st.teeth = [
+      ...v.upper,
+      ...v.lower
+    ].filter(x => !x).length;
+
+    try {
+      return oldSpeak.apply(this, arguments);
+    } finally {
+      v.st.teeth = total;
+    }
+  };
+
+  window.__SC_CARE_GRID_HEAL_V1 = {
+    version: 1,
+    uses: USES,
+    cancelMedicine
+  };
+
+  if (window.__api) {
+    Object.assign(window.__api, {
+      careAct,
+      updateCareHands,
+      cancelPointer,
+      stopSocial,
+      speak
+    });
+  }
+
+  setTimeout(() => {
+    if (G.v && !G.editing) fit();
+  }, 0);
+})();
+
+
+
 /* ================= 시작 ================= */
 function boot() {
   setHint();
