@@ -4187,7 +4187,7 @@ function loseHair(d, n, force) {
     g.fillStyle = '#000';
     for (let i = 0; i < n + 1; i++) { g.beginPath(); g.ellipse(x + rnd(-10, 10), y + rnd(-6, 6), rnd(7, 13), rnd(5, 9), rnd(0, 3), 0, 7); g.fill(); }
     v.capAlpha.t.needsUpdate = true; }
-  SFX.rip(0, 0.2, 0.3, 0.55);   // 뭉텅
+  SFX.rip(0, 0.2, 0.2, 0.55);   // 뭉텅
   popText('뭉텅!', v.headWorld(d, 0.05), 'hair', 32);
 }
 
