@@ -2923,6 +2923,23 @@ function removeParticle(i) {
   const j=G.junk.indexOf(p.obj);if(j>=0)G.junk.splice(j,1);
 }
 
+/* 눈물·코피는 그 프레임의 자세가 다 정해진 뒤에 뿌린다.
+   주워 먹느라 주저앉거나 맞아서 날아가는 동안에는 updateVillain 시점의 월드 행렬이
+   아직 이전(서 있던) 자세라, 그때 바로 뿌리면 방울이 허공에서 생긴다. */
+const LATE_FX = [];
+function lateFX(v, at, make) { LATE_FX.push({ v, at, make }); }
+function flushLateFX() {
+  if (!LATE_FX.length) return;
+  const v = G.v;
+  if (v && v.root.parent) v.root.updateMatrixWorld(true);
+  for (const q of LATE_FX) {
+    if (!v || q.v !== v || !v.root.parent) continue;
+    const p = q.at(v);
+    if (p) q.make(p);
+  }
+  LATE_FX.length = 0;
+}
+
 function updateParticles(dt, game) {
 
   HEAVY_WET.update(dt, game);
@@ -3798,17 +3815,13 @@ const HEAVY_WET = (() => {
       while (v[key] >= 1) {
         v[key]--;
 
-        emit(
-          from(v),
-          V3(
-            rnd(-0.08, 0.08),
-            rnd(-0.5, -0.2),
-            rnd(0.12, 0.3)
-          ),
-          0,
-          rnd(0.007, 0.012) * (1 + level * 0.6),
-          1.25
+        const dripVel = V3(
+          rnd(-0.08, 0.08),
+          rnd(-0.5, -0.2),
+          rnd(0.12, 0.3)
         );
+        const dripSize = rnd(0.007, 0.012) * (1 + level * 0.6);
+        lateFX(v, from, pos => emit(pos, dripVel, 0, dripSize, 1.25));
       }
     }
   }
@@ -3834,7 +3847,6 @@ const HEAVY_WET = (() => {
 
         const r = Math.random();
         const kind = r < 0.5 ? 0 : r < 0.8 ? 1 : 2;
-        const p = kind === 2 ? nose(v) : mouth(v);
 
         const vel = tail.force.clone()
           .multiplyScalar(0.25)
@@ -3844,12 +3856,13 @@ const HEAVY_WET = (() => {
             rnd(0.25, 0.7)
           ));
 
-        emit(
-          p,
-          vel,
-          kind,
-          rnd(0.010, 0.019) * (1 + tail.level * 0.5),
-          kind === 2 ? 2.8 : 1.5
+        const size = rnd(0.010, 0.019) * (1 + tail.level * 0.5);
+        const stretch = kind === 2 ? 2.8 : 1.5;
+        // 날아가는 중에도 입·코를 따라오게, 자세가 정해진 뒤에 뿌린다.
+        lateFX(
+          v,
+          a => (kind === 2 ? nose(a) : mouth(a)),
+          at => emit(at, vel, kind, size, stretch)
         );
       }
 
@@ -5675,20 +5688,18 @@ if (v._marshmallowChew > 0 && v.ouch <= 0) {
       const i = v._tearNextEye || 0;
       v._tearNextEye = 1 - i;
 
-      // 눈의 실제 위치를 따라가되, 눈 아래·얼굴 표면 바깥에서 생성
-      const pos = v.eyes[i].g.localToWorld(
-        V3(0, -0.04, 0.045)
+      // 눈의 실제 위치를 따라가되, 눈 아래·얼굴 표면 바깥에서 생성.
+      // 자세가 다 정해진 뒤에 뿌려야 주저앉거나 날아갈 때 허공에서 떨어지지 않는다.
+      const tearVel = V3(
+        rnd(-0.05, 0.05),   // 좌우로는 조금만 흔들리게
+        rnd(-0.45, -0.22),  // 위로 튀지 않고 바로 아래로
+        rnd(0.12, 0.22)     // 얼굴 안으로 파묻히지 않게 살짝 앞으로
       );
-
-      spawnDrop(
-        pos,
-        V3(
-          rnd(-0.05, 0.05),   // 좌우로는 조금만 흔들리게
-          rnd(-0.45, -0.22),  // 위로 튀지 않고 바로 아래로
-          rnd(0.12, 0.22)     // 얼굴 안으로 파묻히지 않게 살짝 앞으로
-        ),
-        'tear',
-        rnd(0.010, 0.016)     // 방울 크기
+      const tearSize = rnd(0.010, 0.016);   // 방울 크기
+      lateFX(
+        v,
+        a => a.eyes[i].g.localToWorld(V3(0, -0.04, 0.045)),
+        pos => spawnDrop(pos, tearVel, 'tear', tearSize)
       );
     }
   } else {
@@ -10082,7 +10093,13 @@ function pose(v,f) {
       f.standFloor=floorY(v,f);
     }
     f.squat=amount;
-    for(const r of f.legs){r.leg.rotation.x=-(1.2+.34*deep)*amount;bendLeg(r,(2.25+.5*deep)*amount);}
+    for(const r of f.legs){
+      // 깊게 앉을수록 무릎을 바깥으로 벌린다. 벌리지 않으면 허벅지가 몸통 정면에
+      // 겹쳐 셔츠 안으로 파묻혀 보인다.
+      const side=Math.sign(r.leg.position.x)||1;
+      r.leg.rotation.set(-(1.2+.34*deep)*amount,0,side*0.90*deep*amount);
+      bendLeg(r,(2.25-.05*deep)*amount);
+    }
     // 다리가 접힌 만큼 몸을 내려 발이 바닥에 붙어 있게 한다.
     v.root.position.y=0;
     v.root.position.y=f.standFloor-floorY(v,f);
@@ -10901,6 +10918,9 @@ function ngPoseHug(v,dt){
     foodSplash(p,p.g.position,V3(0,1,0),5);stats.foodLanded++;SFX.pat(clamp(p.g.position.x,-1,1));
   }
   function updateFood(dt){
+    // 이번 프레임의 앉은 자세를 음식 물리보다 먼저 만든다. 그래야 날아온 음식이
+    // 서 있던 실루엣이 아니라 실제로 화면에 보이는 웅크린 몸에 맞는다.
+    poseMeal(dt);
     animateFoodHand(dt);
     for(let i=foods.length-1;i>=0;i--){
       const p=foods[i];p.age+=dt;p.wait+=dt;
@@ -10936,6 +10956,8 @@ function ngPoseHug(v,dt){
     // 바닥에는 MEAL.floorKeep 개까지만 남긴다. 더 쌓이면 오래된 것부터 먹지 않고 사라진다.
     const waiting=foods.filter(p=>p.phase==='floor');
     for(let i=0;i<waiting.length-MEAL.floorKeep;i++)waiting[i].phase='vanish';
+  }
+  function poseMeal(dt){
     const v=G.v;
     if(G.mode!=='feed'||!v||v.state!=='stand'||v._impactV2||window.__SC_FATIGUE_V1?.active(v))return;
     if(!eating&&G.time>=mealRestUntil)eating=beginMeal(v);
@@ -11033,7 +11055,7 @@ function ngPoseHug(v,dt){
     // 집으려고 손을 뻗는 순간마다 몸이 한 번 더 숙여진다.
     let dip=0,chewing=0;
     for(const it of m.items){const u=(t-it.start)/(MEAL.reach+.12);if(u>0&&u<1)dip=Math.max(dip,Math.sin(Math.PI*u));}
-    v.torso.rotation.x+=crouch*(.86+.17*dip);
+    v.torso.rotation.x+=crouch*(.70+.15*dip);
     v.headPivot.rotation.x-=crouch*(.66+.08*dip);           // 숙여도 얼굴은 화면 쪽을 본다
     v.root.updateMatrixWorld(true);
     const md=v.mouthDir||dirN(0,v.look.mouthY,.9);
@@ -11379,6 +11401,7 @@ function ngPoseHug(v,dt){
   step=function(dt){
     const r=oldStep.apply(this,arguments);
     if(!G.hug||G.editing||G.mode!=='care')ngEndHugPose();
+    flushLateFX();
     return r;
   };
   // Keep test hooks local. No telemetry or names are sent anywhere.
