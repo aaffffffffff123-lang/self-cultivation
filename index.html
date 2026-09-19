@@ -456,6 +456,7 @@ body.look-editing .care-caption{visibility:hidden}
         <button class="look-mini" id="lookClose" aria-label="편집 취소" title="편집 취소"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
       </div>
     </header>
+    <div class="look-identity"><label for="lookName">이름</label><input id="lookName" type="text" maxlength="12" placeholder="나 자신" aria-label="내 이름" autocomplete="off"><span>옷에 적힙니다</span></div>
     <div class="look-main">
       <div class="look-preview-column">
         <div class="look-preview-stage" id="lookStage" aria-label="캐릭터 미리보기. 좌우로 드래그하면 회전합니다.">
@@ -473,13 +474,19 @@ body.look-editing .care-caption{visibility:hidden}
       </div>
     </div>
     <footer class="look-footer"><div class="look-history" role="group" aria-label="편집 되돌리기"><button class="look-mini" id="lookUndo" aria-label="실행 취소" title="실행 취소"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5 3 10l5 5M4 10h10a6 6 0 0 1 0 12" transform="translate(0 -2)"/></svg></button><button class="look-mini" id="lookRedo" aria-label="다시 실행" title="다시 실행"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m16 5 5 5-5 5m4-5H10a6 6 0 0 0 0 12" transform="translate(0 -2)"/></svg></button></div><span class="look-status" id="lookStatus" role="status" aria-live="polite"></span><div class="look-footer-actions"><button class="btn secondary" id="lookCancel" title="기본형으로 바꾸기">기본형으로 하기</button><button class="btn apply" id="lookApply">이게 바로 나야!</button></div></footer>
-    <div id="lookSaveParking" hidden><section class="look-save-settings" id="lookSaveSettings"><h3>지금 외모 보관하기</h3><div class="look-name-row"><input id="lookName" type="text" maxlength="12" placeholder="별명 (선택)" aria-label="캐릭터 별명" autocomplete="off"><button class="look-mini" id="lookSavePreset">보관하기</button></div><p class="look-save-help">보관한 외모는 이 브라우저에 남습니다.</p></section></div>
+    <div id="lookSaveParking" hidden><section class="look-save-settings" id="lookSaveSettings"><h3>지금 외모 보관하기</h3><div class="look-name-row"><button class="look-mini" id="lookSavePreset">보관하기</button></div><p class="look-save-help">위에 적은 이름으로 이 브라우저에 보관됩니다.</p></section></div>
   </section>
 </div>
 
 <style id="ng2-style">
 #ngIntro{position:fixed;inset:0;z-index:60;background:var(--mint);display:grid;place-items:center;padding:24px 20px calc(24px + env(safe-area-inset-bottom));overflow:auto;touch-action:pan-y}
 #ngIntro[hidden]{display:none}
+.look-identity{flex:none;display:flex;align-items:center;gap:8px;padding:8px 20px;border-bottom:2px solid #1f2a5c22;background:#f2fbf6}
+.look-identity label{flex:none;font:800 13px var(--body);color:var(--ink)}
+.look-identity input{flex:1 1 auto;min-width:0;height:34px;padding:0 10px;border:2px solid #97bfb3;border-radius:9px;background:#fff;color:var(--ink);font:700 14px var(--body);user-select:text;-webkit-user-select:text}
+.look-identity input:focus{outline:2px solid var(--care);outline-offset:1px}
+.look-identity span{flex:none;font-size:11px;color:var(--ink);opacity:.6}
+@media (max-width:560px){.look-identity{padding:6px 12px}.look-identity span{display:none}}
 #ngNameHeading:focus{outline:none}
 body #lookCancel{display:inline-flex!important;align-items:center;justify-content:center;flex:0 0 auto;width:auto!important}
 body .look-footer-actions #lookApply{min-width:0!important;width:auto!important;flex:1}
@@ -4180,7 +4187,7 @@ function loseHair(d, n, force) {
     g.fillStyle = '#000';
     for (let i = 0; i < n + 1; i++) { g.beginPath(); g.ellipse(x + rnd(-10, 10), y + rnd(-6, 6), rnd(7, 13), rnd(5, 9), rnd(0, 3), 0, 7); g.fill(); }
     v.capAlpha.t.needsUpdate = true; }
-  SFX.rip(0, 0.2, 0.6, 0.55);   // 뭉텅: 파열음·지지직을 조금 낮춘다
+  SFX.rip(0, 0.2, 0.3, 0.55);   // 뭉텅
   popText('뭉텅!', v.headWorld(d, 0.05), 'hair', 32);
 }
 
@@ -4479,7 +4486,7 @@ function nextCareLine(group){return lastCareLine=chooseDialogue(CARE_LINES[group
 const CareVoice=(()=>{
   let speech=null,utterance=null,voices=[],serial=0,watch=0;
   try{speech=window.speechSynthesis||null;}catch(e){}
-  function refresh(){try{voices=speech?speech.getVoices().filter(v=>v.localService && /^ko(?:[-_]|$)/i.test(v.lang)):[];}catch(e){voices=[];}}
+  function refresh(){try{voices=speech?speech.getVoices().filter(v=>/^ko(?:[-_]|$)/i.test(v.lang)):[];}catch(e){voices=[];}}
   if(speech){refresh();speech.addEventListener?.('voiceschanged',()=>{refresh();});}
   function stop(){serial++;clearTimeout(watch);if(utterance&&speech)try{speech.cancel();}catch(e){}utterance=null;}
   function say(text){
@@ -8572,8 +8579,7 @@ if (G.tool==='brick') {
     if (now < nextAt && !paired) return;
     let line = '';
     if (whine && !whine.used && G.time - whine.t < PAIR_SEC && RETORTS[whine.text]) {
-      const candidate=RETORTS[whine.text];
-      if(!RECENT_DIALOGUE.player.includes(candidate))line=candidate;
+      line=RETORTS[whine.text];
       whine.used = true;
     }
     if (!line) line = pickFrom(LINES) || '야.';
@@ -8749,7 +8755,7 @@ if (G.tool==='brick') {
     const said = G.lastCareLine && G.time - G.lastCareLine.t < 8 ? G.lastCareLine.text : '';
     const paired = retorts[said];
     let gesture,line;
-    if(paired&&!RECENT_DIALOGUE.character.includes(paired[1])&&Math.random()<.75){
+    if(paired){
       gesture=pool.includes(paired[0])?paired[0]:pick(pool);line=paired[1];
     }else{
       const options=pool.flatMap(gesture=>replies[gesture].map(line=>({gesture,line})));
@@ -8795,7 +8801,7 @@ if (G.tool==='brick') {
 
     r.t += dt;
     // A local spoken player line finishes first; otherwise leave a short beat after the caption appears.
-    if(!r.fired&&CareVoice.isSpeaking())r.delay=Math.max(r.delay,r.t+.35);
+    if(!r.fired&&CareVoice.isSpeaking())r.delay=Math.max(r.delay,r.t+.18);
 
     if (!r.fired && r.t >= r.delay) {
       r.fired = true;
@@ -11355,7 +11361,7 @@ function boot() {
   fit();
   newVillain();
   // 처음 온 기기: 입장 연출 대신 기본 외모로 세워 두고 나를 떠올리기부터 띄운다. 한 번 열어 본 기기는 건너뛴다.
-  const firstVisit = true;
+  const firstVisit = !APPEAR.seen;
   if (firstVisit) { const v = G.v; v.state = 'stand'; v.stateT = 0; v.root.position.set(0, 0, 0); v.root.rotation.set(0, 0, 0); }
   requestAnimationFrame(t => { lastT = t; frame(t); });
   window.__game=G;window.__refreshGameFonts=()=>{document.fonts.ready.then(()=>{if(G.v)G.v.drawName();});};window.__bootGuard.ready=true;$('#fallback').style.display='none';
