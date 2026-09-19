@@ -1,0 +1,22 @@
+name: NG2 browser validation assets
+on:
+  push:
+    branches: ['chatgpt/ng2-validation-20260919']
+permissions:
+  contents: read
+jobs:
+  public-engine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Fetch the existing game's pinned public engine
+        run: |
+          mkdir -p validation-assets
+          curl --fail --location --retry 2 --max-time 40 https://raw.githubusercontent.com/mrdoob/three.js/r128/build/three.min.js -o validation-assets/three.min.js
+          test -s validation-assets/three.min.js
+          sha256sum validation-assets/three.min.js > validation-assets/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ng2-public-engine-r128
+          path: validation-assets/
+          retention-days: 1
