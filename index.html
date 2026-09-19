@@ -3425,7 +3425,7 @@ function updateBubble(v) {
   if (topPx < minTop) topPx = minTop;
   left = clamp(left, 8, innerWidth - bw - 8);
   // 위쪽 띠(설정·회피형·오락실 얼굴)에 가리면 옆으로 비키고, 옆에도 자리가 없을 때만 띠 아래로 내린다.
-  const bars = [btn, $('#ngAvoidLabel'), $('#arcadeFace')]
+  const bars = [btn, $('#ngAvoidLabel'), $('#arcadeFace'), $('#recordBtn')]
     .map(x => x instanceof Element ? x.getBoundingClientRect() : x)
     .filter(r => r && r.width > 0 && r.height > 0);
   const hits = (x, y) => bars.some(r => x < r.right + 6 && x + bw > r.left - 6 && y < r.bottom + 6 && y + bh > r.top - 6);
@@ -4534,6 +4534,7 @@ if (!soft) {
 } else if (onHead) {
   // 머리/얼굴에 실제로 닿았을 때만 먹은 것으로 처리.
   feedMarshmallow(v);
+  window.__SC_RECORD?.add('feed');
 }
 
 
@@ -5398,7 +5399,7 @@ function careRub(P, sx, sy, e) {
   h.visible = true;
   const speed = Math.hypot(sx, sy);
   G.rub = Math.min(1, (G.rub || 0) + speed * 0.02);
-  if (!P.rubbing) { P.rubbing = true; G.careAnim=null; clearTimeout(G.carePatTimer);G.carePatTimer=0;SFX.rubStart(); }
+  if (!P.rubbing) { P.rubbing = true; G.careAnim=null; clearTimeout(G.carePatTimer);G.carePatTimer=0;SFX.rubStart(); if(G.mode==='care')window.__SC_RECORD?.add('care'); }
   P.lastRubTime=G.time;
   G.lastAct = G.time;
   if (P.kind === 'pet') {
@@ -10645,7 +10646,7 @@ function pose(v,f) {
     } else if(G.mode==='hit'&&beforeDamage>=CFG.collapseAt) {
       if(f.grace>0) f.grace--;   // 일어난 뒤 10대까지는 버틴다
       else {
-        f.pending=true;
+        f.pending=true;window.__SC_RECORD?.add('down');
         // Finish an already-started chair flight / offscreen return first.
         if(!special(v))startFall(v,f);
       }
@@ -11690,7 +11691,7 @@ function ngPoseHug(v,dt){
       if(bite>0){
         chewing=Math.max(chewing,Math.sin(Math.PI*Math.min(1,bite*1.15)));
         p.g.scale.copy(p.eatScale).multiplyScalar(1-bite);
-        if(!it.fed&&bite>=.45){it.fed=true;recover(v,CFG.foodRecovery);stats.foodEaten++;
+        if(!it.fed&&bite>=.45){it.fed=true;recover(v,CFG.foodRecovery);stats.foodEaten++;window.__SC_RECORD?.add('feed');
           chewBite=FOOD_MENU[p.type].bite||'soft';chewSoundAt=G.time;SFX.chew(clamp(mouth.x,-1,1),1,chewBite);foodSplash(p,mouth,V3(0,.2,1),4);}
         if(bite>=1){it.gone=true;removeFood(p);}
       }else if(u>MEAL.reach+MEAL.lift*.45)chewing=Math.max(chewing,.001);   // 음식이 다가오면 입을 벌린다
@@ -11792,7 +11793,7 @@ function ngPoseHug(v,dt){
     $('#ngCleanProgress').value=v._ngWashProgress;
     if(before<1&&v._ngWashProgress>=1){
       window.__SC_HYGIENE?.wash(v,1);washFoodStains(v,1);HEAVY_WET.clear(v);v.noseBlood=v.lipBlood=v.wet=0;v.marks=[];v.faceDirty=true;
-      sparkTime=1.65;SFX.twinkle();auxPanel.querySelector('p').textContent='반짝! 다 씻었어요.';
+      sparkTime=1.65;SFX.twinkle();window.__SC_RECORD?.add('wash');auxPanel.querySelector('p').textContent='반짝! 다 씻었어요.';
     }
   }
   function updateWaterDrops(dt){
@@ -12031,7 +12032,412 @@ function ngPoseHug(v,dt){
     chooseDialogue,dialogueCandidates,pickCharacterLine,ngThrowPath,ngThrowPose,ngPoseHug,ngEndHugPose,normaliseLook});
 })();
 
+
+
+
+
 /* ================= 시작 ================= */
+
+
+/* ================= 기록·공유 카드 (RECORD_V1) =================
+ * 손봄·돌봄·먹임·씻김·쓰러트림 다섯 가지만 센다.
+ * 「새로 기르기」를 누르면 0으로 돌아가고, 「이어서 기르기」면 이어서 쌓인다.
+ * 카드에는 저장을 누른 시점의 증명사진과 이름(끌 수 있음)만 넣는다. 숫자는 이 기기에만 남는다.
+ */
+(() => {
+  'use strict';
+  if (window.__SC_RECORD) return;
+
+  const KEY = 'self-cultivation.record.v1';
+  const ROWS = [
+    ['hit', '손봄', '#ff3b3b'],
+    ['care', '돌봄', '#2f9bff'],
+    ['feed', '먹임', '#f0a02a'],
+    ['wash', '씻김', '#2f9b79'],
+    ['down', '쓰러트림', '#7d68c9']
+  ];
+  const INK = '#1f2a5c', PAPER = '#fffdf4', MUTED = '#5b6493';
+  const MAX = 9999999;
+  const counts = { hit: 0, care: 0, feed: 0, wash: 0, down: 0 };
+  let showName = true, saveTimer = 0, cardBlob = null, cardURL = '', building = false;
+
+  (function load() {
+    const raw = store.get(KEY, null);
+    if (!raw || typeof raw !== 'object') return;
+    for (const [k] of ROWS) {
+      const n = Math.floor(Number(raw.counts && raw.counts[k]));
+      if (Number.isFinite(n) && n > 0) counts[k] = Math.min(MAX, n);
+    }
+    if (typeof raw.showName === 'boolean') showName = raw.showName;
+  })();
+
+  function persistNow() { clearTimeout(saveTimer); saveTimer = 0; store.set(KEY, { counts, showName }); }
+  function persist() { if (!saveTimer) saveTimer = setTimeout(persistNow, 800); }
+  addEventListener('pagehide', persistNow);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) persistNow(); });
+
+  function add(kind, n = 1) {
+    if (!Object.prototype.hasOwnProperty.call(counts, kind)) return;
+    counts[kind] = Math.min(MAX, counts[kind] + (Number(n) || 0));
+    persist();
+  }
+  function reset() { for (const [k] of ROWS) counts[k] = 0; persistNow(); }
+
+  /* ---------- 세는 자리 ---------- */
+  const prevApplyHit = applyHit;
+  applyHit = function (h) {
+    const v = G.v, before = v ? v.st.hits : 0;
+    const out = prevApplyHit.apply(this, arguments);
+    if (v && G.v === v && v.st.hits > before && (!h || h.tool !== 'tissue')) add('hit');
+    return out;
+  };
+
+  const prevCareAct = careAct;
+  careAct = function (kind) {
+    const out = prevCareAct.apply(this, arguments);
+    if (kind === 'pat' || kind === 'bandage') add('care');
+    return out;
+  };
+
+  const prevStartSocial = startSocial;
+  startSocial = function () {
+    const before = G.social;
+    const out = prevStartSocial.apply(this, arguments);
+    if (G.social && G.social !== before) add('care');
+    return out;
+  };
+
+  const prevStartHug = startHug;
+  startHug = function () {
+    const before = G.hug;
+    const out = prevStartHug.apply(this, arguments);
+    if (G.hug && !before) add('care');
+    return out;
+  };
+
+  $('#careTalk').addEventListener('click', () => { if (G.mode === 'care' && !G.editing) add('care'); });
+
+  /* ---------- 사진: 지금 그대로의 얼굴을 증명사진 크기로 한 장 ---------- */
+  function portrait(pw, ph) {
+    const v = G.v;
+    const out = document.createElement('canvas');
+    out.width = pw; out.height = ph;
+    const g = out.getContext('2d');
+    g.fillStyle = '#dcedfb'; g.fillRect(0, 0, pw, ph);
+    if (!v || !window.THREE || !renderer) return out;
+
+    const ratio = renderer.getPixelRatio();
+    const size = renderer.getSize(new THREE.Vector2());
+    const background = scene.background;
+    const roomOn = room.visible, handsOn = handsRoot.visible;
+    // 이름을 끄면 옷에 적힌 이름도 사진에서 빼 준다. 사진을 찍고 바로 되돌린다.
+    const realName = (v.look && v.look.name) || '';
+    const maskName = !showName && !!realName;
+    try {
+      v.root.updateMatrixWorld(true);
+      const head = v.headMesh.getWorldPosition(V3());
+      const turn = v.headMesh.getWorldQuaternion(new THREE.Quaternion());
+      const face = V3(0, 0, 1).applyQuaternion(turn).normalize();   // 얼굴이 보는 쪽
+      const up = V3(0, 1, 0).applyQuaternion(turn).normalize();     // 머리 위쪽
+      const headR = HEAD_R * Math.max(0.6, v.look.headH || 1);
+      const frame = headR * 3.35;                      // 머리 위아래로 여유를 두고 어깨까지
+      const cam = new THREE.PerspectiveCamera(26, pw / ph, 0.05, 60);
+      const dist = frame / (2 * Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)));
+      // 쓰러져 있어도 사진은 똑바로 선 얼굴로 나오게 머리 자세를 기준으로 찍는다.
+      const aim = head.clone().addScaledVector(up, -frame * 0.10);
+      cam.up.copy(up);
+      cam.position.copy(aim).addScaledVector(face, dist);
+      cam.lookAt(aim);
+      cam.updateProjectionMatrix();
+
+      if (maskName) { v.look.name = ''; v.drawName(); }
+      room.visible = false;
+      handsRoot.visible = false;
+      scene.background = col('#dcedfb');
+      renderer.setPixelRatio(1);
+      renderer.setSize(pw, ph, false);
+      renderer.render(scene, cam);
+      g.drawImage(renderer.domElement, 0, 0, pw, ph);
+    } catch (e) {
+      /* 사진만 비고 나머지는 그대로 낸다 */
+    } finally {
+      if (maskName) { v.look.name = realName; try { v.drawName(); } catch (e) { } }
+      room.visible = roomOn;
+      handsRoot.visible = handsOn;
+      scene.background = background;
+      renderer.setPixelRatio(ratio);
+      renderer.setSize(size.x, size.y, false);
+      try { renderer.render(scene, camera); } catch (e) { }
+    }
+    return out;
+  }
+
+  /* ---------- 카드 그리기 ---------- */
+  const DISPLAY = '"Black Han Sans","Gothic A1","Apple SD Gothic Neo","Malgun Gothic",sans-serif';
+  const BODY = '"Gothic A1","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif';
+
+  function rrect(g, x, y, w, h, r) {
+    g.beginPath();
+    g.moveTo(x + r, y);
+    g.arcTo(x + w, y, x + w, y + h, r);
+    g.arcTo(x + w, y + h, x, y + h, r);
+    g.arcTo(x, y + h, x, y, r);
+    g.arcTo(x, y, x + w, y, r);
+    g.closePath();
+  }
+  function crayon(g, x, y, r, fill) {
+    g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2);
+    g.fillStyle = fill; g.fill();
+    g.lineWidth = 4; g.strokeStyle = INK; g.stroke();
+  }
+
+  function drawCard() {
+    const W = 1080, H = 1350;
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const g = c.getContext('2d');
+
+    g.fillStyle = PAPER; g.fillRect(0, 0, W, H);
+
+    // 바깥 테두리와 안쪽 점선: 어린이집 기록장처럼
+    g.lineJoin = 'round';
+    rrect(g, 26, 26, W - 52, H - 52, 44);
+    g.fillStyle = '#fff'; g.fill();
+    g.lineWidth = 11; g.strokeStyle = INK; g.stroke();
+    g.save();
+    rrect(g, 48, 48, W - 96, H - 96, 30);
+    g.setLineDash([16, 13]); g.lineWidth = 5; g.strokeStyle = '#8fdcc9'; g.stroke();
+    g.restore();
+
+    // 머리띠 색종이
+    crayon(g, 118, 120, 21, '#ffd23f');
+    crayon(g, 168, 96, 14, '#ff8fb1');
+    crayon(g, W - 118, 120, 21, '#8fdcc9');
+    crayon(g, W - 168, 96, 14, '#ffd23f');
+
+    // 제목
+    g.textAlign = 'center';
+    g.fillStyle = INK;
+    g.font = '400 84px ' + DISPLAY;
+    g.fillText('나 기르기', W / 2, 152);
+    g.font = '800 27px ' + BODY;
+    g.fillStyle = MUTED;
+    g.fillText('기른 기록', W / 2, 196);
+
+    // 증명사진
+    const pw = 432, phh = 576, px = (W - pw) / 2, py = 222;
+    g.fillStyle = INK;
+    rrect(g, px + 9, py + 12, pw, phh, 14); g.fill();
+    const photo = portrait(pw * 2, phh * 2);
+    g.save();
+    rrect(g, px, py, pw, phh, 14); g.clip();
+    g.drawImage(photo, px, py, pw, phh);
+    g.restore();
+    rrect(g, px, py, pw, phh, 14);
+    g.lineWidth = 8; g.strokeStyle = INK; g.stroke();
+
+    // 이름표
+    let top = py + phh + 30;
+    const rowsEnd = H - 60;
+    const name = String((G.v && G.v.look && G.v.look.name) || '').trim();
+    if (showName && name) {
+      g.font = '800 42px ' + BODY;
+      const tw = Math.min(W - 260, g.measureText(name).width + 76);
+      const tx = (W - tw) / 2, th = 74;
+      g.fillStyle = INK; rrect(g, tx + 6, top + 8, tw, th, 22); g.fill();
+      rrect(g, tx, top, tw, th, 22);
+      g.fillStyle = '#ffd23f'; g.fill();
+      g.lineWidth = 6; g.strokeStyle = INK; g.stroke();
+      g.fillStyle = INK; g.textBaseline = 'middle';
+      g.fillText(name, W / 2, top + th / 2 + 2);
+      g.textBaseline = 'alphabetic';
+      top += th + 26;
+    } else {
+      top += 4;
+    }
+
+    // 숫자 다섯 줄
+    const left = 140, right = W - 140;
+    const gap = (rowsEnd - top) / ROWS.length;
+    ROWS.forEach(([key, label, tone], i) => {
+      const cy = top + gap * i + gap / 2;
+      if (i) {
+        g.save();
+        g.setLineDash([9, 9]); g.lineWidth = 3; g.strokeStyle = '#1f2a5c33';
+        g.beginPath(); g.moveTo(left, cy - gap / 2); g.lineTo(right, cy - gap / 2); g.stroke();
+        g.restore();
+      }
+      g.beginPath(); g.arc(left + 14, cy - 4, 14, 0, Math.PI * 2);
+      g.fillStyle = tone; g.fill();
+      g.lineWidth = 4; g.strokeStyle = INK; g.stroke();
+
+      g.textAlign = 'left';
+      g.fillStyle = INK;
+      g.font = '800 42px ' + BODY;
+      g.fillText(label, left + 44, cy + 14);
+
+      g.textAlign = 'right';
+      g.font = '400 62px ' + DISPLAY;
+      g.fillText(String(counts[key]), right, cy + 21);
+    });
+    g.textAlign = 'center';
+    return c;
+  }
+
+  async function buildCard() {
+    if (building) return;
+    building = true;
+    try {
+      if (document.fonts) {
+        try {
+          await Promise.race([
+            Promise.all([
+              document.fonts.load('400 84px "Black Han Sans"'),
+              document.fonts.load('800 42px "Gothic A1"')
+            ]),
+            new Promise(r => setTimeout(r, 1200))
+          ]);
+        } catch (e) { }
+      }
+      const canvas = drawCard();
+      const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+      if (cardURL) URL.revokeObjectURL(cardURL);
+      cardBlob = blob;
+      cardURL = blob ? URL.createObjectURL(blob) : canvas.toDataURL('image/png');
+      const img = $('#recCardImg');
+      img.src = cardURL;
+      img.hidden = false;
+      $('#recLoading').hidden = true;
+      $('#recSave').disabled = false;
+      $('#recShare').disabled = false;
+    } finally {
+      building = false;
+    }
+  }
+
+  /* ---------- 화면 ---------- */
+  const style = document.createElement('style');
+  style.textContent = `
+#recordBtn{position:fixed;z-index:6;left:max(8px,env(safe-area-inset-left));
+  top:calc(59px + var(--safe-t));height:44px;width:44px;border:2.5px solid var(--ink);
+  background:var(--paper);border-radius:12px;box-shadow:0 3px 0 var(--ink);
+  display:flex;align-items:center;justify-content:center;padding:0}
+#recordBtn svg{width:24px;height:24px;display:block}
+#recordBtn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+body.ng-intro #recordBtn,body.look-editing #recordBtn{visibility:hidden}
+#recCardWrap{margin:2px 0 4px;border-radius:14px;background:#eef3f7;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;min-height:120px}
+#recCardImg{display:block;width:100%;height:auto}
+#recLoading{padding:26px 0;font:800 13px var(--body);color:var(--muted)}
+#recActions{display:flex;gap:10px}
+#recActions .btn{flex:1;margin-top:12px;width:auto}
+#recActions .btn:disabled{opacity:.5}
+#recShare{background:var(--mint)}
+`;
+  document.head.append(style);
+
+  const btn = document.createElement('button');
+  btn.id = 'recordBtn';
+  btn.type = 'button';
+  btn.setAttribute('aria-label', '내역');
+  btn.title = '내역';
+  btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#1f2a5c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' +
+    '<rect x="3.6" y="4.2" width="16.8" height="17.6" rx="3.2" fill="#fffdf4"/>' +
+    '<path d="M9.2 2.6h5.6a1.2 1.2 0 0 1 1.2 1.2v2.4H8V3.8a1.2 1.2 0 0 1 1.2-1.2Z" fill="#ffd23f"/>' +
+    '<path d="M7.8 11.6h8.4M7.8 16.2h5.4"/></svg>';
+  document.body.append(btn);
+
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.id = 'recordModal';
+  modal.hidden = true;
+  modal.innerHTML = `
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="recTitle">
+    <button class="pill close" data-close aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <h2 id="recTitle">내역</h2>
+    <div id="recCardWrap"><p id="recLoading">기록을 적는 중…</p><img id="recCardImg" alt="나를 기른 기록 카드" hidden></div>
+    <div class="row">카드에 이름 넣기<button class="switch" id="recName" role="switch" aria-checked="true" aria-label="카드에 이름 넣기"></button></div>
+    <div id="recActions">
+      <button class="btn" id="recSave" type="button" disabled>이미지로 저장</button>
+      <button class="btn" id="recShare" type="button" disabled>공유하기</button>
+    </div>
+    <p class="small" id="recNote">숫자는 이 기기에만 남습니다. 「새로 기르기」를 하면 처음부터 다시 셉니다.</p>
+  </div>`;
+  document.body.append(modal);
+
+  modal.addEventListener('click', e => {
+    if (e.target === modal || e.target.closest('[data-close]')) modal.hidden = true;
+  });
+
+  const shareable = (() => {
+    try {
+      return !!(navigator.canShare && navigator.share &&
+        navigator.canShare({ files: [new File([new Uint8Array(1)], 'a.png', { type: 'image/png' })] }));
+    } catch (e) { return false; }
+  })();
+  if (!shareable) $('#recShare').hidden = true;
+
+  const nameSwitch = $('#recName');
+  nameSwitch.setAttribute('aria-checked', String(showName));
+  nameSwitch.addEventListener('click', () => {
+    showName = !showName;
+    nameSwitch.setAttribute('aria-checked', String(showName));
+    persistNow();
+    SFX.unlock(); SFX.pop(0);
+    $('#recCardImg').hidden = true;
+    $('#recLoading').hidden = false;
+    $('#recSave').disabled = true;
+    $('#recShare').disabled = true;
+    buildCard();
+  });
+
+  function fileName() {
+    const name = String((G.v && G.v.look && G.v.look.name) || '').trim();
+    return (showName && name ? name + ' ' : '') + '나 기르기 기록.png';
+  }
+
+  $('#recSave').addEventListener('click', () => {
+    if (!cardURL) return;
+    const a = document.createElement('a');
+    a.href = cardURL;
+    a.download = fileName();
+    document.body.append(a);
+    a.click();
+    a.remove();
+    const note = $('#recNote');
+    note.textContent = '사진첩이나 다운로드 폴더에 저장했습니다. 저장이 안 되면 카드 그림을 길게 눌러 주세요.';
+  });
+
+  $('#recShare').addEventListener('click', () => {
+    if (!cardBlob) return;
+    try {
+      const file = new File([cardBlob], fileName(), { type: 'image/png' });
+      navigator.share({ files: [file] }).catch(() => { });
+    } catch (e) {
+      $('#recNote').textContent = '이 브라우저에서는 공유가 막혀 있습니다. 「이미지로 저장」을 눌러 주세요.';
+    }
+  });
+
+  btn.addEventListener('click', () => {
+    SFX.unlock(); SFX.pop(0);
+    $('#recCardImg').hidden = true;
+    $('#recLoading').hidden = false;
+    $('#recSave').disabled = true;
+    $('#recShare').disabled = true;
+    $('#recNote').textContent = '숫자는 이 기기에만 남습니다. 「새로 기르기」를 하면 처음부터 다시 셉니다.';
+    openModal('#recordModal');
+    requestAnimationFrame(() => buildCard());
+  });
+
+  $('#ngRestart').addEventListener('click', reset);
+
+  // 다른 층과 같은 방식으로 최신 함수를 테스트 창구에도 걸어 둔다.
+  if (window.__api) Object.assign(window.__api, { applyHit, careAct, startSocial, startHug });
+
+  window.__SC_RECORD = { add, reset, get: () => ({ ...counts }) };
+})();
+
+
 function boot() {
   fit();
   newVillain();
