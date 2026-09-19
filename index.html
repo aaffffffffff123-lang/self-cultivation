@@ -1812,6 +1812,9 @@ function ngFaceSurface(L,d,out=0){
   const lip=Math.exp(-Math.pow(d.x/.34,2)-Math.pow((y+.42)/.23,2))*Math.pow(Math.max(0,d.z),3);
   p.z+=.078*L.mouthForward*lip;
   p.z+=.018*(L.cheekFat-.15)*cheek*Math.exp(-Math.pow((Math.abs(d.x)-.5)/.32,2))*Math.max(0,d.z);
+  // 얼굴 너비·길이는 머리 메시 스케일이 아니라 여기서 처리한다.
+  // 메시를 늘리면 눈·코·귀·안경·머리카락까지 같이 늘어나 사진을 잡아당긴 그림이 된다.
+  p.set(p.x*L.headW,p.y*L.headH,p.z*.97);
   return p;
 }
 function mouthRest(L,smug=false){
@@ -1979,7 +1982,7 @@ ntag.renderOrder = 2;
     this.headGeo = hg;
     this.headMat = mat('#ffffff', { map: this.face.t, roughness: L.style === 'bald' ? 0.28 : 0.5 });
     this.headMesh = tag(mesh(hg, this.headMat, this.head), 'head');
-    this.headMesh.scale.set(L.headW, 1.05, 0.97);
+    this.headMesh.scale.set(1, 1, 1);   // 얼굴 길이·너비는 ngFaceSurface가 좌표로 처리한다
     const H = this.headMesh;
     this.anchor = [];
     const anchorAt = (obj, d, out = 0) => { this.anchor.push({ obj, d: d.clone().normalize(), out }); return obj; };
@@ -2165,8 +2168,10 @@ ntag.renderOrder = 2;
     this.lensMat=[0,1].map(()=>new THREE.MeshStandardMaterial({color:col(sun?'#222c42':'#dff3ff'),transparent:true,opacity:sun?.86:.22,roughness:.08,depthWrite:false}));
     this.crackTex=(()=>{const t=canvasTex(128,128),g=t.g,rr=seededLookRandom(L.hairSeed+72);g.strokeStyle='#fff';g.lineWidth=3;g.lineCap='round';for(let i=0;i<9;i++){let x=64,y=64;g.beginPath();g.moveTo(x,y);const a=i/9*Math.PI*2;for(let k=0;k<4;k++){x+=Math.cos(a+(rr()-.5))*18;y+=Math.sin(a+(rr()-.5))*18;g.lineTo(x,y);}g.stroke();}g.beginPath();g.arc(64,64,20,0,7);g.stroke();return t;})();
     this.lenses=[];this.rims=[];
-    const sc=L.glassSize,rx=(L.glassesStyle==='oval'?.081:square?.072:.07)*sc,ry=(L.glassesStyle==='oval'?.054:square?.056:.068)*sc;
+    const sc=L.glassSize,ry=(L.glassesStyle==='oval'?.054:square?.056:.068)*sc;
+    let rx=(L.glassesStyle==='oval'?.081:square?.072:.07)*sc;
     const cen=this.surfacePoint(dirN(L.eyeGap,L.eyeY,.92),-.018);const cy=cen.y+L.glassY;
+    rx=Math.min(rx,Math.max(.032,cen.x-.008));   // 렌즈는 이제 얼굴과 같이 눌리지 않으므로, 좁은 얼굴에서 두 알이 겹치지 않게 막는다
     // 코(콧대·코끝)가 머리 좌표에서 어디까지 앞으로 나와 있는지. 코 그룹은 코 방향(nd)을 앞, 그에 수직인 쪽을 위로 둔다.
     const nd=dirN(0,L.noseY,1),no=this.surfacePoint(nd,-.03),nform=NOSE_FORMS[L.noseStyle]||NOSE_FORMS.button,ridge=.008+.032*L.bridgeHeight;
     const noseParts=[
@@ -2183,7 +2188,7 @@ ntag.renderOrder = 2;
     const eyeZ=eyeZ0+clamp(Math.max(needRim-eyeZ0,Math.min(needBridge-(eyeZ0+bridgeMid),.022)),0,.05);
     const arch=Math.max(0,needBridge-(eyeZ+bridgeMid));
     // 머리 옆면이 (높이 y, 깊이 z)에서 얼마나 넓은지. 얼굴형·얼굴 너비·턱·광대 값이 모두 반영된 실제 표면이다.
-    const sideX=(y,z)=>{const dy=clamp(y/HEAD_R,-.95,.95),dz=clamp(z/HEAD_R,-.95,.95);return this.surfacePoint(V3(Math.sqrt(Math.max(.02,1-dy*dy-dz*dz)),dy,dz).normalize()).x;};
+    const sideX=(y,z)=>{const dy=clamp(y/(HEAD_R*L.headH),-.95,.95),dz=clamp(z/(HEAD_R*.97),-.95,.95);return this.surfacePoint(V3(Math.sqrt(Math.max(.02,1-dy*dy-dz*dz)),dy,dz).normalize()).x;};
     for(const s of [-1,1]){
       const rg=new THREE.Group();rg.position.set(s*cen.x,cy,eyeZ);gl.add(rg);
       const shape=new THREE.Shape();
@@ -2572,11 +2577,18 @@ ntag.renderOrder = 2;
   // 목을 지금 체형·얼굴에 맞춘다.
   // · 윗끝은 항상 머리 속(머리 중심에서 반 높이의 45% 아래)까지 올라간다 → 얼굴이 짧아도 목 윗면이 드러나지 않는다.
   // · 몸통 너비가 1을 넘으면 목은 그 25%만 따라 굵어진다 → 넓은 몸통에서 목이 받침대처럼 되지 않는다.
+  // 머리 중심에서 턱끝까지의 거리(얼굴 길이·턱 길이 반영).
+  chinDrop(){const L=this.look;return HEAD_R*L.headH*(1+.43*(L.jawLength-1));}
+  // 머리 중심을 목 관절에서 얼마나 위에 둘지. 얼굴·턱이 길어진 만큼 위로 올려
+  // 턱끝이 몸통 .50(칼라 위)보다 내려가지 않게 한다 → 얼굴이 가슴·이름표를 먹지 않는다.
+  headStandY(){return Math.max(.31,this.chinDrop()-.06);}
+  // 줄넘기가 감기는 높이(몸통 좌표). 턱 바로 아래, 칼라 위.
+  neckLoopY(){return clamp(.56+this.headStandY()-this.chinDrop()-.012,.485,.552);}
   fitNeck(){
     const L=this.look,neck=this.neck;if(!neck)return;
     const w=Math.max(.16,L.bodyW),h=Math.max(.1,L.bodyH);
     // 머리 중심은 목 관절(몸통 좌표 .56)에서 실제 길이로 .31 위에 있다. 몸통 좌표로는 키 배율만큼 나눈 값이다.
-    const bottom=.50,top=.56+(.31-HEAD_R*L.headH*.45)/h;
+    const bottom=.50,top=.56+(this.headStandY()-HEAD_R*L.headH*.45)/h;
     neck.position.y=(top+bottom)/2;neck.scale.y=Math.max(.5,(top-bottom)/.1);
     const thick=w<=1?1:(1+(w-1)*.25)/w;
     neck.scale.x=neck.scale.z=thick;
@@ -2589,7 +2601,9 @@ ntag.renderOrder = 2;
     this.tie.visible=L.hasTie;
     this.body.scale.set(L.bodyW,L.bodyH,L.bodyW);
     this.headPivot.scale.set(1/L.bodyW,1/L.bodyH,1/L.bodyW);
-    this.headMesh.scale.set(L.headW,L.headH,.97);
+    this.headMesh.scale.set(1,1,1);
+    this.head.position.y=this.headStandY();
+    this.stars.position.y=HEAD_R*L.headH+.10;
     this.fitNeck();
     this.headMat.roughness=['bald','shaved'].includes(L.style)?.33:.5;
     this.earMats.forEach(m=>m.color.copy(col(L.skin)).multiplyScalar(.72));
@@ -3020,9 +3034,13 @@ function updateBubble(v) {
   if (performance.now() > BUB.until) { bubble.classList.remove('show'); if (performance.now() > BUB.until + 200) BUB.text = ''; return; }
   // 머리의 화면상 중심과 반지름. 서 있든 누워 있든 '화면에서 머리 위'를 기준으로 삼는다.
   const centre = v.headMesh.getWorldPosition(V3());
-  const edge = v.headMesh.localToWorld(V3(HEAD_R, 0, 0));
-  const [hx, cy] = toScreen(centre), [ex, ey] = toScreen(edge);
-  const r = Math.hypot(ex - hx, ey - cy);
+  const [hx, cy] = toScreen(centre);
+  // 가로 반지름만 재면 얼굴을 길게 했을 때 말풍선이 이마를 덮는다. 옆·위·아래 중 화면에서 가장 먼 쪽을 쓴다.
+  let r = 0;
+  for (const d of [dirN(1, 0, 0), dirN(0, 1, 0), dirN(0, -1, 0)]) {
+    const [px, py] = toScreen(v.headWorld(d));
+    r = Math.max(r, Math.hypot(px - hx, py - cy));
+  }
   const hy = cy - r * 1.08;
   const bw = bubble.offsetWidth, bh = bubble.offsetHeight;
   // 말풍선은 머리 위에 둔다. 얼굴을 덮지 않는다.
@@ -3096,7 +3114,7 @@ function fit() {
   const L = G.v?.look;
   const y0 = -.06;
   const y1 = L
-    ? Math.max(1.93, 1.06 * L.bodyH + .31 + L.headH * (HEAD_R + (['spiky', 'mohawk'].includes(L.style) ? .17 : .07)))
+    ? Math.max(1.93, 1.06 * L.bodyH + G.v.headStandY() + HEAD_R * L.headH + (['spiky', 'mohawk'].includes(L.style) ? .17 : .07))
     : 1.93;
   const h = Math.max((y1 - y0) * H / avail, 1.5 / camera.aspect);
   G.viewH = h;
@@ -5194,8 +5212,9 @@ function ropeSafePole(v, a, origin, axis, distance, L, target) {
 
 function fixActorHandPose(v) {
   // 달래기 동작·이빨을 들고 있는 손은 건드리지 않는다.
+  // 먹이기·씻기기에서도 돌아가야 한다. 여기서 빠져나가는 바람에 그 두 모드에서만 손이 얼굴에 박혔다.
   if (
-    G.mode !== 'hit' || G.social || G.hug ||
+    G.mode === 'care' || G.social || G.hug ||
     G.ptr?.grab || v.toothHold > 0
   ) return;
 
@@ -5214,13 +5233,8 @@ function fixActorHandPose(v) {
   v.root.updateMatrixWorld(true);
 
   // 머리 크기와 몸 크기에 맞춰 손이 들어가지 않을 여유 공간을 둔다.
-  const hs = v.headMesh.getWorldScale(V3());
   const bs = v.torso.getWorldScale(V3());
-  const padding =
-    (.105 * Math.max(bs.x, bs.y, bs.z) + .018) /
-    Math.max(.01, Math.min(hs.x, hs.y, hs.z));
-
-  const radius = HEAD_R + .025 + padding;
+  const padding = .105 * Math.max(bs.x, bs.y, bs.z) + .025;
   const down = V3(0, -1, 0);
 
   for (const a of v.armRig) {
@@ -5229,6 +5243,8 @@ function fixActorHandPose(v) {
     );
 
     // 턱 아래나 얼굴 안에 들어간 손은 얼굴 앞쪽으로 빼낸다.
+    // 공 하나로 어림잡지 않고 얼굴 길이·너비·턱이 반영된 실제 표면에서 잰다.
+    const radius = v.surfacePoint(p.clone().normalize()).length() + padding;
     if (p.lengthSq() < radius * radius) {
       p.z = Math.sqrt(Math.max(
         0,
@@ -6632,7 +6648,7 @@ const Slapstick = (() => {
   function support(v){
     v.root.updateMatrixWorld(true);
     const c=v.headMesh.getWorldPosition(V3()),e=v.headMesh.matrixWorld.elements;
-    const radius=(HEAD_R+.026)*Math.hypot(e[1],e[5],e[9]);
+    const radius=(HEAD_R*v.look.headH+.026)*Math.hypot(e[1],e[5],e[9]);
     let result={y:c.y-radius,point:V3(c.x,c.y-radius,c.z),part:'head'};
     const consider=(p,r,part)=>{if(p.y-r<result.y)result={y:p.y-r,point:V3(p.x,p.y-r,p.z),part};};
     for(const a of v.armRig)consider(a.hand.getWorldPosition(V3()),.070*v.look.bodyW,'body');
@@ -7097,7 +7113,7 @@ const AppearanceEditor=(()=>{
       return box;
     };
     const headBox=measure(v.headMesh),bounds=E.full?measure(v.root):headBox;
-    const headY=v.headMesh.getWorldPosition(V3()).y,pivotY=headY-.31;   // 머리는 목 관절에서 .31 위에 있다
+    const headY=v.headMesh.getWorldPosition(V3()).y,pivotY=headY-v.headStandY();   // 목 관절 높이. 얼굴 길이와 무관하게 고정이다
     v.root.rotation.y=oldYaw;v.root.updateMatrixWorld(true);
     if(bounds.isEmpty()||headBox.isEmpty())return;
     const aspect=E.w/E.h,tan=Math.tan(THREE.MathUtils.degToRad(E.camera.fov/2));
@@ -7109,18 +7125,20 @@ const AppearanceEditor=(()=>{
     }else{
       const key=[E.full,E.w,E.h].concat(Object.keys(L).filter(k=>!R[k]&&k!=='name'&&!/^#/.test(String(L[k]))).map(k=>L[k])).join('|');
       if(!fitFrame||fitFrame.key!==key){
-        // 머리에 붙은 것들은 얼굴 길이·너비와 같은 비율로 늘어나므로, 지금 크기를 슬라이더 최댓값으로 환산한다.
-        const upH=R.headH[1]/L.headH,upW=R.headW[1]/L.headW;
-        const headTop=(headBox.max.y-headY)*upH+.02;
-        const jawUp=(1+.43*(R.jawLength[1]-1))/(1+.43*(L.jawLength-1));   // 턱 길이를 끝까지 늘렸을 때 아래로 더 내려가는 비율
-        const headBottom=Math.max((headY-headBox.min.y)*upH*jawUp,HEAD_R*R.headH[1]*(1+.43*(R.jawLength[1]-1)))+.02;
+        // 틀은 목 관절(pivotY) 기준으로 잡는다. 얼굴·턱을 끝까지 늘려도 턱끝은 목 관절 아래 .06을 넘지 않고
+        // 정수리만 올라가므로, 슬라이더를 움직이는 동안 틀이 흔들리지 않는다.
+        const upW=R.headW[1]/L.headW;
+        const maxLift=Math.max(.31,HEAD_R*R.headH[1]*(1+.43*(R.jawLength[1]-1))-.06);
+        const hairTop=Math.max(0,headBox.max.y-headY-HEAD_R*L.headH);   // 머리카락이 정수리 위로 솟은 높이
+        const headTop=maxLift+HEAD_R*R.headH[1]+hairTop+.02;
+        const headBottom=.08;
         const headWide=Math.max(Math.abs(headBox.min.x),Math.abs(headBox.max.x))*upW*1.07+.02;
         fitFrame=E.full
-          ?{key,top:pivotY/L.bodyH*R.bodyH[1]+.31+headTop,bottom:-.07,pivotBased:false,
+          ?{key,top:pivotY/L.bodyH*R.bodyH[1]+headTop,bottom:-.07,pivotBased:false,
             halfW:Math.max(headWide,Math.max(Math.abs(bounds.min.x),Math.abs(bounds.max.x))/L.bodyW*R.bodyW[1]+.02)}
           :{key,top:headTop,bottom:-headBottom,pivotBased:true,halfW:headWide};
       }
-      const base=fitFrame.pivotBased?headY:0;
+      const base=fitFrame.pivotBased?pivotY:0;
       // 기준 틀은 최댓값으로 잡았으니 보통은 그대로 쓰인다. 틀을 넘는 드문 조합에서만 그만큼 넓힌다.
       top=Math.max(base+fitFrame.top,bounds.max.y);bottom=Math.min(base+fitFrame.bottom,bounds.min.y);
       halfW=Math.max(fitFrame.halfW,Math.abs(bounds.min.x),Math.abs(bounds.max.x));
@@ -7530,7 +7548,7 @@ window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,startSoci
   function neckHands(v, strength) {
     for (const a of v.armRig) {
       const start = a.sh.position.clone();
-      const target = V3(a.s * .094, .552, .108);
+      const target = V3(a.s * .094, v.neckLoopY(), .108);
       const delta = target.clone().sub(start), distance = clamp(delta.length(), .02, .395);
       const axis = delta.normalize();
       const pole = V3(a.s * .75, -.9, .45);   // 팔꿈치는 아래·바깥: 줄은 목 높이에서 앞·바깥으로 뻗는다
@@ -7547,7 +7565,8 @@ window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,startSoci
   function poseRope(v, H) {
     const q = H.tension, t = G.time, r = RIG.tools.rope, U = r.userData;
     v.root.updateMatrixWorld(true);
-    const center = v.torso.localToWorld(V3(0, .552, 0));
+    const neckY = v.neckLoopY();   // 턱 바로 아래. 고정 .552는 얼굴이 길어지면 턱 속이다
+    const center = v.torso.localToWorld(V3(0, neckY, 0));
     const spread = .27 + q * .35;
     const jitter = Math.sin(t * 57) * .003 * q;
     const right = center.clone().add(V3(spread + jitter, -.105 - q * .045, .32 + q * .28));
@@ -7557,7 +7576,7 @@ window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,startSoci
     r.position.copy(right).sub(V3(0, .17, 0).applyQuaternion(r.quaternion));
     r.updateMatrixWorld(true);
     const radius = (v.neckLocalRadius || .078) * 1.115 - q * .005;   // 목 굵기에 맞춘 고리
-    const attach = a => v.torso.localToWorld(V3(Math.sin(a) * radius, .552, Math.cos(a) * radius));
+    const attach = a => v.torso.localToWorld(V3(Math.sin(a) * radius, neckY, Math.cos(a) * radius));
     // 정면과 양옆에 밀착한 곡선, 양손까지의 구간은 직선에 가깝게 유지.
     const begin = attach(1.85), end = attach(-1.85), pts = U.cord.points;
     for (let i = 0; i <= U.cord.N; i++) {
@@ -7830,7 +7849,7 @@ window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,startSoci
   function resetSprings(v){for(const k of Object.keys(v.spring))v.spring[k]=0;v.recoil.set(0,0,0);v.recoilVel.set(0,0,0);v.bodyImpulse.length=0;v.slx=v.slxv=0;}
   function neutralBody(v){
     v.body.position.set(0,0,0);v.body.rotation.set(0,0,0);v.torso.position.y=.5;v.torso.scale.set(1,1,1);
-    v.head.position.y=.31;v.head.scale.set(1,1,1);v.headPivot.rotation.set(0,0,0);
+    v.head.position.y=v.headStandY();v.head.scale.set(1,1,1);v.headPivot.rotation.set(0,0,0);
   }
   function anchor(v){
     v.root.updateMatrixWorld(true);
@@ -7868,7 +7887,7 @@ window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,startSoci
   function hideWalls(){if(wallRoot)wallRoot.visible=false;}
   function xLimits(v){
     v.root.updateMatrixWorld(true);const h=v.headMesh.getWorldPosition(V3()),e=v.headMesh.matrixWorld.elements;
-    const r=(HEAD_R+.025)*Math.hypot(e[0],e[4],e[8]);let lo=h.x-r,hi=h.x+r;
+    const r=(HEAD_R*v.look.headW+.025)*Math.hypot(e[0],e[4],e[8]);let lo=h.x-r,hi=h.x+r;
     for(const a of v.armRig){const p=a.hand.getWorldPosition(V3()),rr=.07*v.look.bodyW;lo=Math.min(lo,p.x-rr);hi=Math.max(hi,p.x+rr);}
     for(const l of v.legs){const p=l.localToWorld(V3(0,-.48,.05));lo=Math.min(lo,p.x-.08);hi=Math.max(hi,p.x+.08);}
     return {lo,hi};
@@ -8009,7 +8028,7 @@ function updateHomerun(v, m, dt) {
 
   function pressPose(v,m,dt){
     neutralBody(v);const t=m.age,k=t<.11?1:t<.30?lerp(1,.84,(t-.11)/.19):1-ease(clamp((t-.30)/.84,0,1));
-    v.head.position.y=.31-CFG.headDrop*k;v.head.scale.set(1+.11*k,1-.30*k,1+.09*k);
+   v.head.position.y=v.headStandY()-CFG.headDrop*k;v.head.scale.set(1+.11*k,1-.30*k,1+.09*k);
     v.headPivot.rotation.set(.04*k,0,0);v.torso.position.y=.5-.048*k;
     for(const a of v.armRig){a.sh.rotation.set(-.25*k,0,a.s*(.12+1.38*k));a.el.rotation.set(-.12,0,0);a.hand.rotation.set(0,a.s*1.4,0);}
     v.legs.forEach((l,i)=>l.rotation.set(0,0,(i?1:-1)*.07*k));
@@ -9860,7 +9879,7 @@ if (G.tool==='brick') {
     if(weight<0.001)return;
     v.root.updateMatrixWorld(true);
     const d=new THREE.Vector3(a.s*0.30,0.05,0.95).normalize();
-    const p=v.surfacePoint(d,0.07);
+    const p=v.surfacePoint(d).addScaledVector(d,.085);   // 표면에서 실제 거리만큼 띄운다(좁은 얼굴에서도 손이 볼에 묻히지 않게)
     const world=v.headMesh.localToWorld(p.clone());
     const target=v.torso.worldToLocal(world);
     const origin=a.sh.position.clone(),delta=target.clone().sub(origin);
@@ -9976,7 +9995,7 @@ function pose(v,f) {
   v.torso.scale.set(1,1,1);
   v.torso.rotation.set(0.22*curl,0,0);   // 등을 살짝 만다
 
-  v.head.position.y=0.31;
+  v.head.position.y=v.headStandY();
   v.head.scale.set(1,1,1);
   v.headPivot.rotation.set(
     0.40*curl,                            // 턱을 당긴다
@@ -11005,7 +11024,9 @@ function ngPoseHug(v,dt){
     v.torso.rotation.x+=crouch*(.86+.17*dip);
     v.headPivot.rotation.x-=crouch*(.66+.08*dip);           // 숙여도 얼굴은 화면 쪽을 본다
     v.root.updateMatrixWorld(true);
-    const mouth=v.mouthWorld(),atMouth=mouth.clone().add(V3(0,-.075,.05));
+    const md=v.mouthDir||dirN(0,v.look.mouthY,.9);
+    // 손은 입 표면에서 바깥으로 떨어뜨린다. 얼굴·턱이 길어져도 손이 턱에 묻히지 않는다.
+    const mouth=v.mouthWorld(),atMouth=v.headMesh.localToWorld(v.surfacePoint(md).addScaledVector(md,.105));
     for(const index of [0,1]){
       const a=v.armRig[index],it=[...m.items].reverse().find(it=>it.side===index&&t>=it.start);if(!it)continue;
       const u=t-it.start,reach=clamp(u/MEAL.reach,0,1),lift=clamp((u-MEAL.reach)/MEAL.lift,0,1),after=u-MEAL.reach-MEAL.lift-MEAL.chew;
@@ -11107,7 +11128,8 @@ function ngPoseHug(v,dt){
       window.__SC_LEGS?.squat(v,.20*w);poseSnapshot.squatted=true;
       v.root.updateMatrixWorld(true);
       for(let i=0;i<2;i++){
-        const target=(headHit||i===0)?v.headMesh.localToWorld(V3(i?.23:-.23,-.11,HEAD_R+.08)):
+        const gd=dirN(i?.62:-.62,-.18,.76);   // 얼굴 표면에서 재야 얼굴 크기가 바뀌어도 손이 안 묻힌다
+        const target=(headHit||i===0)?v.headMesh.localToWorld(v.surfacePoint(gd).addScaledVector(gd,.115)):
           v.torso.localToWorld(V3(i?.12:-.12,.29,.28));
         actorHandTo(v,i,target,.96);
       }
