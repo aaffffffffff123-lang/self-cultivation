@@ -2582,8 +2582,7 @@ ntag.renderOrder = 2;
   // 머리 중심을 목 관절에서 얼마나 위에 둘지. 얼굴·턱이 길어진 만큼 위로 올려
   // 턱끝이 몸통 .50(칼라 위)보다 내려가지 않게 한다 → 얼굴이 가슴·이름표를 먹지 않는다.
   headStandY(){return Math.max(.31,this.chinDrop()-.06);}
-  // 줄넘기가 감기는 높이(몸통 좌표). 턱 바로 아래, 칼라 위.
-  neckLoopY(){return clamp(.56+this.headStandY()-this.chinDrop()-.012,.485,.552);}
+
   fitNeck(){
     const L=this.look,neck=this.neck;if(!neck)return;
     const w=Math.max(.16,L.bodyW),h=Math.max(.1,L.bodyH);
@@ -3034,13 +3033,9 @@ function updateBubble(v) {
   if (performance.now() > BUB.until) { bubble.classList.remove('show'); if (performance.now() > BUB.until + 200) BUB.text = ''; return; }
   // 머리의 화면상 중심과 반지름. 서 있든 누워 있든 '화면에서 머리 위'를 기준으로 삼는다.
   const centre = v.headMesh.getWorldPosition(V3());
-  const [hx, cy] = toScreen(centre);
-  // 가로 반지름만 재면 얼굴을 길게 했을 때 말풍선이 이마를 덮는다. 옆·위·아래 중 화면에서 가장 먼 쪽을 쓴다.
-  let r = 0;
-  for (const d of [dirN(1, 0, 0), dirN(0, 1, 0), dirN(0, -1, 0)]) {
-    const [px, py] = toScreen(v.headWorld(d));
-    r = Math.max(r, Math.hypot(px - hx, py - cy));
-  }
+  const edge = v.headMesh.localToWorld(V3(HEAD_R * v.look.headW, 0, 0));
+  const [hx, cy] = toScreen(centre), [ex, ey] = toScreen(edge);
+  const r = Math.hypot(ex - hx, ey - cy);
   const hy = cy - r * 1.08;
   const bw = bubble.offsetWidth, bh = bubble.offsetHeight;
   // 말풍선은 머리 위에 둔다. 얼굴을 덮지 않는다.
@@ -4544,8 +4539,8 @@ function careFlipWeight(){
 function flipHandTarget(v){
   v.root.updateMatrixWorld(true);
   const T=v.torso,H=v.headMesh,c=T.worldToLocal(H.getWorldPosition(V3()));
-  const r=(x,y,z)=>T.worldToLocal(H.localToWorld(V3(x,y,z))).distanceTo(c);
-  const rx=r(HEAD_R,0,0)*1.12+.07,ry=r(0,HEAD_R,0)*1.08+.05,rz=r(0,0,HEAD_R)*1.12+.12;
+  const r=(x,y,z)=>T.worldToLocal(H.localToWorld(v.surfacePoint(V3(x,y,z)))).distanceTo(c);
+  const rx=r(1,0,0)*1.12+.07,ry=r(0,1,0)*1.08+.05,rz=r(0,0,1)*1.12+.12;
   const sh=v.armRig[1].sh.position,tipUp=.24;
   const out=(p)=>{let worst=Infinity;for(const u of [0,.5,1]){const q=V3(p.x,p.y+tipUp*u,p.z);worst=Math.min(worst,((q.x-c.x)/rx)**2+((q.y-c.y)/ry)**2+((q.z-c.z)/rz)**2);}return worst;};
   let best=null,bestScore=-Infinity;
@@ -4740,8 +4735,8 @@ function poseCareArm(v,a,target,palmNormal,weight,kind='open'){
 function fiveHandTarget(v){
   v.root.updateMatrixWorld(true);
   const T=v.torso,H=v.headMesh,c=T.worldToLocal(H.getWorldPosition(V3()));
-  const r=(x,y,z)=>T.worldToLocal(H.localToWorld(V3(x,y,z))).distanceTo(c);
-  const rx=r(HEAD_R,0,0)*1.15+.10,ry=r(0,HEAD_R,0)*1.10+.14,rz=r(0,0,HEAD_R)*1.15+.08;
+  const r=(x,y,z)=>T.worldToLocal(H.localToWorld(v.surfacePoint(V3(x,y,z)))).distanceTo(c);
+  const rx=r(1,0,0)*1.15+.10,ry=r(0,1,0)*1.10+.14,rz=r(0,0,1)*1.15+.08;
   const sh=v.armRig[0].sh.position,z=.185;let p=null;
   for(let y=.69;y>=.29;y-=.02){
     const k=1-((y-c.y)/ry)**2-((z-c.z)/rz)**2;
@@ -7548,7 +7543,7 @@ window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,startSoci
   function neckHands(v, strength) {
     for (const a of v.armRig) {
       const start = a.sh.position.clone();
-      const target = V3(a.s * .094, v.neckLoopY(), .108);
+      const target = V3(a.s * .094, .552, .108);
       const delta = target.clone().sub(start), distance = clamp(delta.length(), .02, .395);
       const axis = delta.normalize();
       const pole = V3(a.s * .75, -.9, .45);   // 팔꿈치는 아래·바깥: 줄은 목 높이에서 앞·바깥으로 뻗는다
@@ -7565,8 +7560,7 @@ window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,startSoci
   function poseRope(v, H) {
     const q = H.tension, t = G.time, r = RIG.tools.rope, U = r.userData;
     v.root.updateMatrixWorld(true);
-    const neckY = v.neckLoopY();   // 턱 바로 아래. 고정 .552는 얼굴이 길어지면 턱 속이다
-    const center = v.torso.localToWorld(V3(0, neckY, 0));
+    const center = v.torso.localToWorld(V3(0, .552, 0));
     const spread = .27 + q * .35;
     const jitter = Math.sin(t * 57) * .003 * q;
     const right = center.clone().add(V3(spread + jitter, -.105 - q * .045, .32 + q * .28));
@@ -7576,7 +7570,7 @@ window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,startSoci
     r.position.copy(right).sub(V3(0, .17, 0).applyQuaternion(r.quaternion));
     r.updateMatrixWorld(true);
     const radius = (v.neckLocalRadius || .078) * 1.115 - q * .005;   // 목 굵기에 맞춘 고리
-    const attach = a => v.torso.localToWorld(V3(Math.sin(a) * radius, neckY, Math.cos(a) * radius));
+    const attach = a => v.torso.localToWorld(V3(Math.sin(a) * radius, .552, Math.cos(a) * radius));
     // 정면과 양옆에 밀착한 곡선, 양손까지의 구간은 직선에 가깝게 유지.
     const begin = attach(1.85), end = attach(-1.85), pts = U.cord.points;
     for (let i = 0; i <= U.cord.N; i++) {
