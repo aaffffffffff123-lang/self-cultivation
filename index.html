@@ -561,6 +561,12 @@ body.look-editing #ngAvoidLabel,body.ng-intro #ngAvoidLabel{visibility:hidden}
 #ngItemHelp .ng-help-icon{flex:none;align-self:center}
 #ngItemHelp .ng-help-viewport{display:block;flex:1;min-width:0;overflow:hidden;white-space:nowrap;cursor:default;outline-offset:-1px}
 #ngItemHelp .ng-help-text{display:inline-block;white-space:nowrap;max-width:none;padding:0;vertical-align:middle;will-change:transform}
+#ngItemHelp .ng-help-item{display:inline-flex;align-items:center;gap:4px;margin-right:8px;padding:2px 8px 2px 3px;border-radius:99px;background:#fff;box-shadow:inset 0 0 0 1.5px #c6d6cd}
+#ngItemHelp .ng-help-do{flex:none;padding:1px 7px;border-radius:99px;background:var(--ink);color:#fffdf4;font-weight:800}
+#ngItemHelp .ng-help-arrow{flex:none;font-style:normal;color:#93a0ba}
+#ngItemHelp .ng-help-res{color:var(--ink);font-weight:800}
+#ngItemHelp .ng-help-note{display:inline-flex;align-items:center;gap:4px;margin-right:8px;padding:2px 8px;border-radius:99px;background:#e2ece5;color:#5d6b86;font-weight:700}
+#ngItemHelp .ng-help-note::before{content:'i';display:inline-grid;place-items:center;width:11px;height:11px;border-radius:99px;background:#aebfc9;color:#fff;font:800 8px/1 var(--body)}
 #ngItemHelp.scrolling .ng-help-viewport{cursor:pointer}
 @media(prefers-reduced-motion:reduce){#ngItemHelp .ng-help-viewport{overflow-x:auto;scrollbar-width:none;touch-action:pan-x}#ngItemHelp .ng-help-text{will-change:auto}}
 @media(max-width:345px){#ngAvoidLabel{left:50px;font-size:10px;gap:4px;padding:0 6px 0 5px}#ngAvoidLabel input{width:13px;height:13px;min-width:13px}}
@@ -10490,8 +10496,14 @@ function ngSetItemHelp(el,text,force=false){
       });
     }
   }
-  if(a.text===text&&!force)return;
-  a.text=text;a.span.textContent=text;el.setAttribute('aria-label',text);a.view.setAttribute('aria-label',text);
+  const parts=Array.isArray(text)?text:[text];
+  const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  const html=parts.map(x=>Array.isArray(x)
+    ?'<span class="ng-help-item"><b class="ng-help-do">'+esc(x[0])+'</b><i class="ng-help-arrow" aria-hidden="true">→</i><span class="ng-help-res">'+esc(x[1])+'</span></span>'
+    :'<span class="ng-help-note">'+esc(x)+'</span>').join('');
+  const plain=parts.map(x=>Array.isArray(x)?x[0]+' → '+x[1]:x).join(' · ');
+  if(a.html===html&&!force)return;
+  a.html=html;a.text=plain;a.span.innerHTML=html;el.setAttribute('aria-label',plain);a.view.setAttribute('aria-label',plain);
   el.classList.remove('changed');requestAnimationFrame(()=>el.classList.add('changed'));a.measure();
 }
 let ngHugArms=null;
@@ -10641,27 +10653,31 @@ function ngPoseHug(v,dt){
   }
   $('.panel').append(feedTools);
   $('.panel').append(auxPanel);
+ 
   const help={
     hit:{
-      hand:'톡: 잽 · 좌우로 쓸기: 훅 · 좌우로 왕복: 연속 따귀 · 위로 쓸기: 어퍼컷 · 아래로 쓸기: 내려치기 · 이마를 꾹: 딱밤 · 볼·코를 꾹 누르고 당기기: 얼굴 잡기 · 몸통을 꾹 잡고 움직이기: 들어 올리기·흔들기·바닥에 내려치기',
-      rope:'캐릭터를 누른 채 드래그: 목에 줄을 걸어 당기기 · 더 멀리 당길수록 팽팽해집니다 · 손을 놓으면 풀립니다',
-      brick:'톡톡: 팔을 뒤로 젖혔다가 연속 투척 · 누른 채 겨냥한 뒤 놓아도 됩니다 · 맞은 벽돌은 튕겨 바닥에 떨어집니다',
-      hammer:'톡: 내려치기 · 옆으로 쓸기: 후려치기 · 위로 쓸기: 올려치기 · 좌우로 왕복하면 연속 공격',
-      pan:'톡: 무거운 내려치기 · 좌우로 쓸기: 스테인팬 휘두르기 · 위로 쓸기: 올려치기 · 빠른 스윙과 연속 공격 가능',
-      bat:'톡: 짧은 스윙 · 좌우로 쓸기: 후려치기 · 위로 쓸기: 올려치기 · 꾹 눌러 끝까지 힘을 모은 뒤 놓기: 풀차지 스윙',
-      chair:'누른 채 들어 올려 겨냥하기 · 아래나 옆으로 휘두르며 놓기: 의자 공격 · 위로 들기만 하면 공격하지 않습니다',
-      tissue:'얼굴에 톡: 마시멜로를 먹입니다 · 체력은 회복되지만 멍·빠진 이는 따로 치료해야 합니다'
+      hand:[['톡','잽'],['좌우로 쓸기','훅'],['좌우로 왕복','연속 따귀'],['위로 쓸기','어퍼컷'],['아래로 쓸기','내려치기'],['이마를 꾹','딱밤'],['볼·코를 꾹 누르고 당기기','얼굴 잡기'],['몸통을 꾹 잡고 움직이기','들어 올리기·흔들기·바닥에 내려치기']],
+      rope:[['캐릭터를 누른 채 드래그','목에 줄을 걸어 당기기'],['손 놓기','풀기'],'더 멀리 당길수록 팽팽해집니다'],
+      brick:[['톡톡','팔을 젖혔다가 연속 투척'],['누른 채 겨냥하고 놓기','던지기'],'맞은 벽돌은 튕겨 바닥에 떨어집니다'],
+      hammer:[['톡','내려치기'],['옆으로 쓸기','후려치기'],['위로 쓸기','올려치기'],['좌우로 왕복','연속 공격']],
+      pan:[['톡','무거운 내려치기'],['좌우로 쓸기','휘두르기'],['위로 쓸기','올려치기'],['좌우로 왕복','연속 공격']],
+      bat:[['톡','짧은 스윙'],['좌우로 쓸기','후려치기'],['위로 쓸기','올려치기'],['꾹 눌러 모았다 놓기','풀차지 스윙']],
+      chair:[['누른 채 들어 올리기','겨냥'],['아래·옆으로 휘두르며 놓기','의자 공격'],'위로 들기만 하면 공격하지 않습니다'],
+      tissue:[['얼굴에 톡','마시멜로 먹이기'],'멍·빠진 이는 따로 치료해야 합니다']
     },
-    care:{hand:'짧게 톡: 토닥토닥 · 누른 채 머리·얼굴·몸을 움직이며 문지르기: 쓰다듬기 · 얼굴을 닦으면 눈물·코피도 닦입니다 · 드래그 중에도 대화와 체력 회복',
-      hug:'이 버튼을 꾹 누르는 동안 등을 감싸 안기 · 손을 놓으면 풀기 · 안는 동안 대화와 체력 회복',
-      love:'누르면 손가락 하트와 사랑한다는 말 · 잠시 뒤 캐릭터가 받아칩니다 · 체력 회복',
-      thumb:'누르면 엄지척과 칭찬 한마디 · 잠시 뒤 캐릭터가 받아칩니다 · 체력 회복',
-      clap:'누르는 박자대로 박수 · 화면을 톡톡 눌러도 이어 칩니다 · 박수 중에도 대화와 체력 회복',
-      five:'손을 내밀고 잠시 기다린 뒤 캐릭터 손바닥을 톡: 하이파이브 · 체력 회복',
-      bandage:'다친 곳을 톡톡 눌러 약 바르기 · 여러 번 발라야 완전히 낫습니다 · 멍·상처 치료',
-      comfort:'누를 때마다 위로 한마디 · 잠시 뒤 캐릭터가 받아칩니다 · 체력 회복'
+    care:{
+      hand:[['짧게 톡','토닥토닥'],['누른 채 문지르기','쓰다듬기'],['얼굴을 문지르기','눈물·코피 닦기'],'체력 회복'],
+      hug:[['버튼을 꾹 누르기','등을 감싸 안기'],['손 놓기','풀기'],'체력 회복'],
+      love:[['버튼을 톡','손가락 하트와 사랑한다는 말'],['화면을 톡','한 번 더'],'체력 회복'],
+      thumb:[['버튼을 톡','엄지척과 칭찬 한마디'],['화면을 톡','한 번 더'],'체력 회복'],
+      clap:[['버튼을 누르는 박자대로','박수'],['화면을 톡톡','이어서 박수'],'체력 회복'],
+      five:[['버튼을 톡','손 내밀기'],['캐릭터 손바닥을 톡','하이파이브'],'체력 회복'],
+      bandage:[['다친 곳을 톡톡','약 바르기'],'여러 번 발라야 완전히 낫습니다'],
+      comfort:[['버튼을 톡','위로 한마디'],'체력 회복']
     }
   };
+
+
   const hitOrder=['hand','rope','brick','hammer','pan','bat','chair','tissue'];
   const careOrder=['hand','hug','love','thumb','clap','five','bandage','comfort'];
   for(const k of hitOrder){const b=$(`[data-tool="${k}"]`);if(b)$('#hitTools').append(b);}
@@ -10700,8 +10716,8 @@ function ngPoseHug(v,dt){
     frames.forEach(x=>x.sync());lastMode=G.mode;fit();
   }
   function showItemHelp(){
-    const text=auxMode()?(G.mode==='feed'?FOOD_MENU[foodChoice].name+' · 화면을 톡톡 던지기 / 맞고 떨어진 음식을 주워 먹습니다':'화면을 꾹 누르고 움직이기 · 물이 닿은 동안 씻깁니다')
-      :(help[G.mode]?.[G.mode==='hit'?G.tool:(G.hug?'hug':G.care)]||'아이템을 선택해 주세요.');
+    const text=auxMode()?(G.mode==='feed'?[['화면을 톡톡',FOOD_MENU[foodChoice].name+' 던지기'],'떨어진 음식은 주워 먹습니다']:[['화면을 꾹 누르고 움직이기','씻기기'],'물이 닿은 동안 씻깁니다'])
+      :(help[G.mode]?.[G.mode==='hit'?G.tool:(G.hug?'hug':G.care)]||['아이템을 선택해 주세요.']);
     ngSetItemHelp(itemHelp,text,arguments[0]===true);
   }
   const originalHint=setHint;
@@ -11349,16 +11365,20 @@ function ngPoseHug(v,dt){
       for(let i=0;i<p.count;i++){
         const x=e.base[i*3],y=e.base[i*3+1],z=e.base[i*3+2],yn=y/.075;
         const tip=clamp((yn-.05)/.95,0,1),low=clamp((-yn-.40)/.60,0,1);
-        p.setXYZ(i,x*.67*(1-L.earPoint*.64*tip)+back,y*(1+L.earPoint*.52*tip+L.earLobe*.18*low),z*.40);
+        // 귓볼이 없을수록 귀 아래쪽을 머리에 붙여 없앤다. 아래로 처진 부분을 끌어올리고,
+        // 바깥으로 나온 두께와 앞뒤 폭을 함께 줄여 굴곡 없이 볼로 이어지게 한다.
+        const melt=(1-clamp(L.earLobe/.55,0,1))*low;
+        p.setXYZ(i,(x*.67*(1-L.earPoint*.64*tip)+back)*(1-.78*melt),y*(1+L.earPoint*.52*tip+L.earLobe*.18*low-.28*melt),z*.40*(1-.82*melt));
       }
       p.needsUpdate=true;m.geometry.computeVertexNormals();m.geometry.computeBoundingSphere();
       m.scale.setScalar(L.earSize);
       e.inner.position.set(back,.004,.023);e.inner.scale.set(.52,.83,.19);
       e.inner.visible=true;
       if(!e.lobe){e.lobe=mesh(new THREE.SphereGeometry(.025,14,10),v.skinMat,m);}
-      e.lobe.visible=L.earLobe>.04;
-      e.lobe.position.set(back,-.056-.012*L.earLobe,.003);
-      e.lobe.scale.set(.82+.10*L.earLobe,.45+L.earLobe*.72,.55);
+      const lob=clamp(L.earLobe/.55,0,1);
+      e.lobe.visible=lob>.01;
+      e.lobe.position.set(back*(.25+.75*lob),-.056-.012*L.earLobe,.003);
+      e.lobe.scale.set((.82+.10*L.earLobe)*lob,(.45+L.earLobe*.72)*lob,.55*lob);
       const anchor=v.anchor.find(a=>a.obj===m);
       if(anchor){anchor.d.copy(dirN(e.s,L.earY,-.05));m.userData.oriented=false;}
     }
