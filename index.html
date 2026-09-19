@@ -5248,9 +5248,18 @@ function fixActorHandPose(v) {
     }
 
     // 줄넘기에 걸려 있으면 목 옆의 줄을 쥔다.
-    const target = ropeGripPoint(v, a) || v.torso.worldToLocal(
+    const grip = ropeGripPoint(v, a);
+    const target = grip || v.torso.worldToLocal(
       v.headMesh.localToWorld(p)
     );
+
+    // 줄을 쥐었을 때 손가락이 뻗어야 할 방향: 목에서 플레이어 손 쪽으로 나가는 줄의 방향(몸통 좌표).
+    let ropeAxis = null;
+    if (grip && v._ropeFree) {
+      const [rf, rt] = v._ropeFree[a.s > 0 ? 0 : 1];
+      const d = v.torso.worldToLocal(rt.clone()).sub(v.torso.worldToLocal(rf.clone()));
+      if (d.lengthSq() > 1e-8) ropeAxis = d.normalize();
+    }
 
     const origin = a.sh.position.clone();
     const delta = target.clone().sub(origin);
@@ -5311,7 +5320,10 @@ function fixActorHandPose(v) {
 
     
     
-const y = foreDir.clone().negate();
+// 손가락(-Y)이 뻗는 방향. 손은 손목보다 .14쯤 더 아래로 뻗어 있어서,
+// 팔뚝을 그대로 이은 방향을 쓰면 줄을 쥘 때 손바닥·손가락이 목 안으로 들어간다.
+// 줄을 쥔 동안에는 손가락을 줄을 따라 목 바깥으로 뻗게 한다.
+const y = ropeAxis ? ropeAxis.clone().negate() : foreDir.clone().negate();
 
 // 손을 내미는 애원 자세에서는 손바닥을 위로 향하게 한다.
 // 손가락이 화면 쪽을 향해도 손목의 기준축이 뒤집히지 않는다.
@@ -5321,9 +5333,11 @@ const reaching =
   !v._guardV2 &&
   !v._wipeV2;
 
-const reference = reaching
-  ? V3(0, -1, 0)       // 손등 아래쪽 → 손바닥 위쪽
-  : V3(a.s * .15, 0, 1);
+const reference = ropeAxis
+  ? V3(target.x, 0, target.z)   // 손등이 목 바깥 → 손바닥이 목을 향한다
+  : reaching
+    ? V3(0, -1, 0)       // 손등 아래쪽 → 손바닥 위쪽
+    : V3(a.s * .15, 0, 1);
 
 const z = reference.projectOnPlane(y);
 
@@ -7540,21 +7554,35 @@ window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,startSoci
   }
 
   // 캐릭터의 두 손을 목 근처로 올린다. 팔을 크게 휘두르는 기존 tether 자세는 덮는다.
+  // 손목 자리는 목 굵기(neckLocalRadius)에 맞춰 잡는다. 고정 좌표로 두면 몸통이 넓을 때
+  // 손이 목에서 뜨고 좁을 때 파묻힌다.
+  // 손은 손목보다 .14쯤 더 뻗어 있어서, 손가락 방향을 팔뚝의 연장선으로 두면 목 안으로 들어간다.
+  // 손가락은 줄이 나가는 쪽(바깥·앞·살짝 아래), 손바닥은 목 쪽을 보게 한다.
   function neckHands(v, strength) {
+    const radius = (v.neckLocalRadius || .078) * 1.115 + .062;
     for (const a of v.armRig) {
       const start = a.sh.position.clone();
-      const target = V3(a.s * .094, .552, .108);
+      const out = V3(a.s * .657, 0, .754).normalize();   // 목 축에서 손목까지의 방향
+      const target = out.clone().multiplyScalar(radius).setY(.552);
       const delta = target.clone().sub(start), distance = clamp(delta.length(), .02, .395);
       const axis = delta.normalize();
       const pole = V3(a.s * .75, -.9, .45);   // 팔꿈치는 아래·바깥: 줄은 목 높이에서 앞·바깥으로 뻗는다
       pole.addScaledVector(axis, -pole.dot(axis)).normalize();
       const elbow = start.clone().addScaledVector(axis, distance / 2)
-        .addScaledVector(pole, Math.sqrt(.04 - distance * distance / 4));
+        .addScaledVector(pole, Math.sqrt(Math.max(0, .04 - distance * distance / 4)));
       const qs = new THREE.Quaternion().setFromUnitVectors(V3(0, -1, 0), elbow.clone().sub(start).normalize());
       const qe = new THREE.Quaternion().setFromUnitVectors(V3(0, -1, 0), target.clone().sub(elbow).normalize());
       qe.premultiply(qs.clone().invert());
       a.sh.quaternion.slerp(qs, strength); a.el.quaternion.slerp(qe, strength);
-      a.hand.rotation.z = a.s * .2 * strength;
+      const hy = V3(-a.s * .46, .26, -.85).normalize();   // 손 +Y = 손가락(-Y)의 반대
+      const hz = out.clone().addScaledVector(hy, -out.dot(hy));
+      if (hz.lengthSq() < 1e-8) hz.copy(V3(0, 0, 1).addScaledVector(hy, -hy.z));
+      hz.normalize();
+      const hx = hy.clone().cross(hz).normalize();
+      hz.copy(hx.clone().cross(hy)).normalize();
+      const local = qs.clone().multiply(qe).invert()
+        .multiply(new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(hx, hy, hz)));
+      a.hand.quaternion.slerp(local, strength);
     }
   }
   function poseRope(v, H) {
