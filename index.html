@@ -566,7 +566,7 @@ body.look-editing #ngAvoidLabel,body.ng-intro #ngAvoidLabel{visibility:hidden}
 @media(max-width:345px){#ngAvoidLabel{left:50px;font-size:10px;gap:4px;padding:0 6px 0 5px}#ngAvoidLabel input{width:13px;height:13px;min-width:13px}}
 
 </style>
-<section id="ngIntro" role="dialog" aria-modal="true" aria-labelledby="ngNameHeading">
+<section id="ngIntro" role="dialog" aria-modal="true" aria-labelledby="ngNameHeading" hidden>
   <div class="ng-intro-card">
     <form id="ngNameForm" autocomplete="off">
       <h1 id="ngNameHeading">내 이름은?</h1>
@@ -11363,6 +11363,7 @@ function boot() {
   // 처음 온 기기: 입장 연출 대신 기본 외모로 세워 두고 나를 떠올리기부터 띄운다. 한 번 열어 본 기기는 건너뛴다.
   const firstVisit = !APPEAR.seen;
   if (firstVisit) { const v = G.v; v.state = 'stand'; v.stateT = 0; v.root.position.set(0, 0, 0); v.root.rotation.set(0, 0, 0); }
+  else { $('#ngIntro').hidden = true; document.body.classList.remove('ng-intro'); }
   requestAnimationFrame(t => { lastT = t; frame(t); });
   window.__game=G;window.__refreshGameFonts=()=>{document.fonts.ready.then(()=>{if(G.v)G.v.drawName();});};window.__bootGuard.ready=true;$('#fallback').style.display='none';
   if (firstVisit) window.__NG2.beginIntro();
