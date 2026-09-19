@@ -110,7 +110,7 @@ textarea{width:100%;min-height:120px;margin-top:8px;border:2.5px solid var(--ink
 .pill.appearance{background:#b9efdf;position:relative}
 .pill.appearance.locked::after{content:'';position:absolute;right:3px;top:3px;width:7px;height:7px;border:1.5px solid var(--ink);border-radius:50%;background:var(--hit)}
 #lookModal{z-index:25;padding:18px;background:#172342b8;touch-action:none}
-.look-sheet{width:min(1060px,100%);height:min(820px,calc(100dvh - 36px));max-height:calc(100% - 4px);display:flex;flex-direction:column;overflow:hidden;background:var(--paper);border:3px solid var(--ink);border-radius:24px;box-shadow:0 7px 0 #182344;isolation:isolate}
+.look-sheet{width:min(1060px,100%);height:min(820px,calc(100svh - 36px));max-height:calc(100% - 4px);display:flex;flex-direction:column;overflow:hidden;background:var(--paper);border:3px solid var(--ink);border-radius:24px;box-shadow:0 7px 0 #182344;isolation:isolate}
 .look-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px 14px;border-bottom:2.5px solid var(--ink);background:var(--sun);flex:none}
 .look-title{display:flex;align-items:center;gap:11px;min-width:0}
 .look-title>svg{width:40px;height:40px;flex:none}
@@ -127,28 +127,25 @@ textarea{width:100%;min-height:120px;margin-top:8px;border:2.5px solid var(--ink
 .look-preview-stage{position:relative;flex:1;min-height:0;background:#d6f2e9;overflow:hidden}
 .look-preview-stage #world{position:absolute;inset:0;width:100%;height:100%;cursor:grab;touch-action:none;z-index:0}
 .look-preview-stage #world:active{cursor:grabbing}
-.look-preview-top{position:absolute;left:12px;right:12px;top:12px;display:flex;align-items:center;justify-content:space-between;gap:5px;z-index:1;pointer-events:none}
-.look-live{font-size:10px;font-weight:800;letter-spacing:.3px;display:flex;align-items:center;gap:5px;background:#fffdf4de;padding:6px 8px;border-radius:99px}
-.look-live::before{content:'';width:6px;height:6px;border-radius:50%;background:#27a078}
-.look-preview-top .look-mini{pointer-events:auto;background:#fffdf4ed;height:30px;font-size:11px}
-.look-preview-bottom{position:absolute;bottom:12px;left:12px;right:12px;display:flex;align-items:center;justify-content:space-between;gap:5px;z-index:1;pointer-events:none}
-.look-preview-bottom button{pointer-events:auto;min-width:33px;padding:0 7px;height:30px;background:#fffdf4dc}
-.look-rotate-note{font-size:10px;font-weight:800;color:#476a62;text-align:center;line-height:1.4}
-.look-expression{display:flex;justify-content:center;gap:5px;flex:none;padding:11px 10px;border-top:1.5px solid #1f2a5c22;background:#e9f8f0}
-.look-expression button{min-width:0;flex:1;height:33px;font-size:10.5px;padding:0 4px;border-color:transparent;background:transparent;border-radius:9px;font-weight:800}
-.look-expression button.on{border:2px solid var(--ink);background:#fffdf4}
+.look-rail{position:absolute;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px;z-index:2;pointer-events:none}
+.look-rail-left{left:8px}
+.look-rail-right{right:8px}
+.look-rail .look-mini{pointer-events:auto;width:46px;min-width:46px;height:44px;min-height:44px;padding:0;font-size:12px;background:#fffdf4ee;box-shadow:0 2px 0 #1f2a5c2b}
+.look-rail #lookLeft,.look-rail #lookRight{font-size:22px;font-family:var(--body);line-height:1}
+.look-expression{position:absolute;left:58px;right:58px;top:6px;z-index:3;display:flex;gap:3px;padding:4px;border:2px solid var(--ink);border-radius:12px;background:#fffdf4f2;box-shadow:0 3px 0 #1f2a5c33}
+.look-expression button{min-width:0;flex:1;height:34px;min-height:34px;font-size:11px;padding:0 2px;border-color:transparent;background:transparent;border-radius:9px;font-weight:800}
+.look-expression button.on{border:2px solid var(--ink);background:var(--sun)}
 .look-name-row{padding:12px;display:flex;gap:7px;border-top:1.5px solid #1f2a5c22;flex:none;background:#f2fbf6}
 .look-name-row input{min-width:0;width:100%;height:38px;border:2px solid #97bfb3;background:white;border-radius:9px;color:var(--ink);padding:0 10px;font:700 13px var(--body);user-select:text;-webkit-user-select:text;touch-action:manipulation}
 .look-name-row input:focus{outline:2px solid var(--care);outline-offset:1px}
 .look-name-row button{height:38px;background:#b9efdf}
 .look-workspace{min-width:0;min-height:0;display:flex;flex-direction:column;background:#fffdf4}
-.look-tabs{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:4px;padding:12px 10px 10px;border-bottom:2px solid #1f2a5c1f;flex:none;background:#f2efe7}
+.look-tabs{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:4px;padding:10px 10px 9px;border-bottom:2px solid #1f2a5c1f;flex:none;background:#f2efe7}
 .look-tab{border:2px solid transparent;min-width:0;border-radius:10px;padding:5px 0 4px;background:transparent;display:flex;align-items:center;flex-direction:column;gap:4px;font-size:10px;font-weight:800;white-space:nowrap;color:#667096}
 .look-tab svg{height:27px;width:27px;flex:none}
 .look-tab[aria-selected=true]{background:var(--sun);border-color:var(--ink);color:var(--ink);box-shadow:0 2px 0 var(--ink)}
 .look-controls{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;padding:18px 20px 22px;scrollbar-width:thin;scrollbar-color:#b3bac8 transparent}
 .look-controls *{touch-action:pan-y}
-.look-controls input[type=range],.look-controls .look-step{touch-action:none}
 .look-section{margin-bottom:20px}
 .look-section:last-child{margin-bottom:0}
 .look-section h3{font-size:13px;line-height:1.4;margin:0 0 10px;font-weight:800;display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -164,23 +161,22 @@ textarea{width:100%;min-height:120px;margin-top:8px;border:2.5px solid var(--ink
 .look-swatch{width:33px;height:33px;background:var(--swatch);border:2px solid #1f2a5c30;position:relative;border-radius:10px;flex:none}
 .look-swatch[aria-pressed=true]{outline:2px solid var(--ink);outline-offset:2px;border-color:var(--paper)}
 .look-swatch[aria-pressed=true]::after{content:'✓';position:absolute;inset:0;display:grid;place-items:center;font-size:17px;font-weight:800;color:#fff;text-shadow:0 1px 3px #000,0 0 3px #000}
-.look-sliders{background:#f2f3ed;border:1px solid #e2e4da;border-radius:14px;padding:4px 12px}
-.look-slider{padding:11px 0;border-bottom:1px solid #1f2a5c13}
+.look-sliders{background:#f2f3ed;border:1px solid #e2e4da;border-radius:14px;padding:2px 11px}
+.look-slider{display:flex;align-items:center;gap:7px;padding:4px 0;min-height:50px;border-bottom:1px solid #1f2a5c13}
 .look-slider:last-child{border-bottom:0}
-.look-slider-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;font-size:11px;font-weight:800}
-.look-slider-head output{font:700 10px var(--body);color:#727c91;min-width:34px;text-align:right;font-variant-numeric:tabular-nums}
-.look-slider-track{display:flex;gap:9px;align-items:center}
-.look-step{flex:none;width:28px;height:28px;border:1.5px solid #b7c2bd;border-radius:8px;background:white;font:700 18px/1 var(--body);padding:0;display:grid;place-items:center}
-.look-slider-track input{min-width:0;width:100%;height:24px;margin:0;accent-color:#248f80;cursor:ew-resize;touch-action:none}
+.look-slider-name{flex:0 0 auto;width:66px;font:800 12px/1.25 var(--body);word-break:keep-all}
+.look-slider output{flex:0 0 auto;width:36px;text-align:right;font:700 11px var(--body);color:#727c91;font-variant-numeric:tabular-nums}
+.look-step{flex:none;width:34px;height:34px;border:1.5px solid #b7c2bd;border-radius:9px;background:white;font:700 19px/1 var(--body);padding:0;display:grid;place-items:center}
+.look-slider-track{position:relative;flex:1 1 auto;min-width:54px;display:flex;align-items:center}
+.look-slider-track input{min-width:0;width:100%;height:34px;margin:0;accent-color:#248f80;cursor:ew-resize;pointer-events:none;touch-action:pan-y}
+.look-slider-grab{position:absolute;inset:-7px -6px;border-radius:10px;touch-action:pan-y;cursor:ew-resize}
 .look-check{display:flex;gap:10px;align-items:center;font-size:12px;font-weight:800;line-height:1.5;padding:9px 0;cursor:pointer}
 .look-check input{width:19px;height:19px;accent-color:#248f80;flex:none;margin:0}
-.look-footer{flex:none;border-top:2.5px solid var(--ink);display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 18px;background:#fffdf4}
-.look-footer-left{display:flex;flex-direction:column;gap:2px;min-width:0}
+.look-footer{flex:none;border-top:2.5px solid var(--ink);display:flex;align-items:center;gap:12px;padding:13px 18px;background:#fffdf4}
 .look-footer .look-check{font-size:11px;padding:0;gap:7px}
-.look-status{min-height:15px;font-size:10px;color:#677488;font-weight:700;line-height:1.4}
+.look-status{flex:1 1 auto;min-width:0;min-height:15px;font-size:10px;color:#677488;font-weight:700;line-height:1.4}
 .look-footer-actions{display:flex;gap:7px;flex:none}
 .look-footer .btn{height:42px;font-size:17px;padding:0 20px}
-.look-footer .btn.secondary{background:#fff;font-family:var(--body);font-size:13px;font-weight:800;padding:0 14px}
 .look-footer .btn.apply{background:var(--ink);color:#fff;box-shadow:0 3px 0 #080e2f}
 .look-presets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .look-preset{position:relative;border:2px solid #d9ddd9;border-radius:13px;overflow:hidden;background:#fff}
@@ -194,23 +190,12 @@ textarea{width:100%;min-height:120px;margin-top:8px;border:2.5px solid var(--ink
 body.look-editing>.top,body.look-editing>.dock,body.look-editing>#bubble,body.look-editing>#fxLayer{visibility:hidden}
 /* ===== Mobile appearance editor: keep the face large, scroll the choices ===== */
 :root{--safe-l:env(safe-area-inset-left,0px);--safe-r:env(safe-area-inset-right,0px)}
-.look-sheet{position:relative;max-width:100%;height:820px;height:min(820px,calc(100dvh - 36px));max-height:100%}
+.look-sheet{position:relative;max-width:100%;height:820px;height:min(820px,calc(100svh - 36px));max-height:100%}
 .look-mini{min-height:44px;height:44px;min-width:44px;font-size:13px}
 .look-mini svg{width:21px;height:21px}
 .look-header-actions{flex:none}
 .look-preview-column{overflow:visible;min-height:0}
 .look-preview-stage{isolation:isolate;min-height:0}
-.look-preview-top{justify-content:space-between;align-items:flex-start;top:10px;left:10px;right:10px}
-.look-preview-top .look-mini{height:44px;font-size:13px;background:#fffdf4eb}
-.look-live{font-size:11px}
-.look-preview-tools{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px;min-height:56px;padding:6px 8px;border-top:1px solid #1f2a5c20;background:#e9f8f0;flex:none;position:relative;z-index:2}
-.look-rotation,.look-view-actions{display:flex;gap:4px;align-items:center}
-.look-rotation .look-mini{padding:0 6px;background:#ffffffd9}
-#lookLeft,#lookRight{font-size:24px;font-family:var(--body)}
-.look-view-actions .look-mini{font-size:12px;padding:0 8px}
-.look-expression{position:absolute;bottom:62px;left:8px;right:8px;border:2px solid var(--ink);border-radius:14px;box-shadow:0 4px 0 #1f2a5c33;padding:6px;background:var(--paper);gap:4px;z-index:4}
-.look-expression button{height:44px;max-height:none;font-size:13px;padding:0;flex:1}
-.look-expression button.on{background:var(--sun)}
 .look-history{display:flex;gap:6px;align-items:center;flex:none}
 .look-history .look-mini{background:#f1f3ed}
 .look-footer{position:relative;padding:10px 16px;gap:12px;min-height:70px;z-index:3}
@@ -226,10 +211,10 @@ body.look-editing>.top,body.look-editing>.dock,body.look-editing>#bubble,body.lo
 .look-save-settings .look-check{font-size:14px;min-height:48px;padding:10px 0 0}
 .look-save-settings .look-check input{width:23px;height:23px}
 .look-save-help{font-size:12px;line-height:1.6;color:var(--muted);margin:5px 0 0}
-.look-tabs{display:flex;gap:5px;overflow-x:auto;overscroll-behavior-x:contain;touch-action:pan-x;scrollbar-width:none;padding:8px 10px 10px;scroll-padding-inline:10px}
 .look-tabs::-webkit-scrollbar{display:none}
-.look-tab{width:64px;min-width:64px;height:62px;flex:none;gap:3px;padding:4px 0;font-size:12px;touch-action:pan-x}
-.look-tab svg{width:32px;height:30px}
+.look-tab{height:54px;gap:1px;padding:3px 1px;font-size:10.5px;line-height:1.05;white-space:normal;word-break:keep-all;justify-content:center}
+.look-tab svg{width:23px;height:21px}
+.look-tab span{display:block;text-align:center}
 .look-controls{scroll-padding-block:12px;-webkit-overflow-scrolling:touch}
 .look-controls:focus-visible{outline:2px solid var(--care);outline-offset:-3px}
 .look-section h3{font-size:15px}
@@ -242,11 +227,10 @@ body.look-editing>.top,body.look-editing>.dock,body.look-editing>#bubble,body.lo
 .look-choice[aria-pressed=true]::after{width:18px;height:18px;line-height:18px;font-size:12px}
 .look-swatches{gap:10px;padding:3px}
 .look-swatch{width:44px;height:44px;border-radius:12px}
-.look-slider-head{font-size:14px;margin-bottom:8px}
-.look-slider-head output{font-size:12px}
-.look-step{width:44px;height:44px;min-width:44px;border-radius:10px;font-size:23px}
-.look-slider-track{gap:10px}
-.look-slider-track input{height:44px;min-height:44px;appearance:none;-webkit-appearance:none;background:transparent}
+.look-slider-name{font-size:12.5px}
+.look-slider output{font-size:12px}
+.look-step{width:36px;height:36px;min-width:36px;border-radius:9px;font-size:20px}
+.look-slider-track input{height:36px;min-height:36px;appearance:none;-webkit-appearance:none;background:transparent}
 .look-slider-track input::-webkit-slider-runnable-track{height:8px;border-radius:9px;background:linear-gradient(to right,#248f80 var(--range-fill,50%),#c9d4cf var(--range-fill,50%))}
 .look-slider-track input::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;height:28px;width:28px;border-radius:50%;border:3px solid var(--paper);background:#248f80;box-shadow:0 0 0 2px #1f2a5c;margin-top:-10px}
 .look-slider-track input::-moz-range-track{height:8px;border-radius:9px;background:#c9d4cf}
@@ -264,25 +248,18 @@ body.look-editing>.top,body.look-editing>.dock,body.look-editing>#bubble,body.lo
 #lookModal.look-preview-expanded .look-workspace{display:none}
 #lookModal.look-preview-expanded .look-preview-column{flex:1;width:100%;height:auto;border-right:0}
 #lookModal.look-preview-expanded .look-preview-stage{height:auto;flex:1;min-height:0}
-#lookModal.look-preview-expanded .look-preview-tools{justify-content:center;gap:16px}
 @media(max-width:900px) and (orientation:portrait), (max-width:600px){
   #lookModal{padding:0;align-items:stretch;background:var(--paper)}
-  .look-sheet{width:100%;height:100%;height:100dvh;height:var(--look-viewport-h,100dvh);max-height:100%;border:0;border-radius:0;box-shadow:none}
+  .look-sheet{width:100%;height:100%;height:100svh;height:var(--look-viewport-h,100svh);max-height:100%;border:0;border-radius:0;box-shadow:none}
   .look-header{padding:calc(8px + var(--safe-t)) max(12px,var(--safe-r)) 8px max(12px,var(--safe-l));gap:8px;border-bottom-width:2px}
   .look-title{gap:7px}.look-title>svg{width:29px;height:29px}.look-title h2{font-size:23px;white-space:nowrap}.look-title p{display:none}
   .look-header-actions{gap:6px}.look-header-actions .look-mini{height:44px;padding:0 10px}.look-random-label{font-size:13px}
   .look-main{display:flex;flex-direction:column;min-height:0}
   .look-preview-column{flex:none;display:flex;flex-direction:column;height:auto;border-right:0;border-bottom:2px solid var(--ink);padding:0}
-  .look-preview-stage{position:relative;inset:auto;flex:none;height:28vh;height:clamp(150px,30dvh,290px);height:clamp(150px,calc(var(--look-viewport-h,100dvh)*.30),290px);min-height:0}
-  .look-preview-tools{padding:6px max(8px,var(--safe-r)) 6px max(8px,var(--safe-l));min-height:56px}
-  .look-live{font-size:11px;padding:5px 7px;background:#fffdf4b3}
-  .look-preview-top{top:8px;left:10px;right:10px}
-  .look-preview-top .look-mini{height:44px;font-size:13px}
-  .look-view-actions .look-mini{font-size:13px;padding:0 9px}
-  .look-rotation .look-mini{font-size:13px}
+  .look-preview-stage{position:relative;inset:auto;flex:none;height:26vh;height:clamp(150px,26svh,240px);min-height:0}
   .look-workspace{flex:1;min-height:0}
-  .look-tabs{padding:6px max(10px,var(--safe-r)) 8px max(10px,var(--safe-l));gap:5px}
-  .look-tab{width:65px;min-width:65px;height:60px;font-size:13px;border-radius:10px;gap:2px}
+  .look-tabs{padding:6px max(8px,var(--safe-r)) 7px max(8px,var(--safe-l));gap:3px}
+  .look-tab{height:54px;font-size:10.5px;border-radius:10px;gap:1px}
   .look-controls{padding:14px max(12px,var(--safe-r)) 20px max(12px,var(--safe-l))}
   .look-controls>.look-section-label,.look-controls>.look-section-label + .look-section-note{display:none}
   .look-controls[data-tab=saved]>.look-section-label{display:block;font-size:22px;margin-bottom:14px}
@@ -291,11 +268,9 @@ body.look-editing>.top,body.look-editing>.dock,body.look-editing>#bubble,body.lo
   .look-choice{font-size:13px;min-height:98px;padding:7px 3px 8px;gap:3px}
   .look-choice svg{height:63px}
   .look-swatches{gap:10px}
-  .look-sliders{padding:2px 12px}.look-slider{padding:12px 0}
-  .look-slider-head{font-size:14px}
-  .look-footer{padding:8px max(10px,var(--safe-r)) calc(10px + var(--safe-b)) max(10px,var(--safe-l));gap:12px;min-height:70px;border-top-width:2px}
+  .look-sliders{padding:2px 10px}
+  .look-footer{padding:8px max(10px,var(--safe-r)) calc(10px + var(--safe-b)) max(10px,var(--safe-l));gap:10px;min-height:70px;border-top-width:2px}
   .look-footer-actions{flex:1;display:flex;margin:0}
-  .look-footer .btn.secondary{display:none}
   .look-footer .btn.apply{width:100%;height:50px;font-size:18px;padding:0 10px}
   .look-history{gap:6px}
   .look-history .look-mini{width:44px;height:44px;min-width:44px;padding:0}
@@ -306,41 +281,35 @@ body.look-editing>.top,body.look-editing>.dock,body.look-editing>#bubble,body.lo
   #lookModal.look-keyboard .look-preview-column{display:none}
 }
 @media(max-width:900px) and (max-height:680px) and (orientation:portrait){
-  .look-preview-stage{height:clamp(128px,24dvh,164px);height:clamp(128px,calc(var(--look-viewport-h,100dvh)*.24),164px)}
+  .look-preview-stage{height:clamp(126px,22svh,170px)}
 }
 @media(max-width:370px){
   .look-title>svg{display:none}.look-title h2{font-size:22px}
-  .look-view-actions .look-mini{font-size:12px;padding:0 7px}
-  .look-preview-tools{gap:4px;padding-left:7px;padding-right:7px}
-  .look-rotation,.look-view-actions{gap:3px}
+  .look-rail .look-mini{width:42px;min-width:42px;font-size:11px}
+  .look-rail-left{left:6px}.look-rail-right{right:6px}
+  .look-expression{left:50px;right:50px}
   .look-choice{font-size:12.5px;min-height:93px}.look-choice svg{height:59px}
   .look-save-settings{padding:10px}.look-name-row{gap:6px}.look-name-row button{padding:0 8px}
 }
 /* Phones in landscape use two full-size panes instead of a shrunken desktop dialog. */
 @media(max-height:540px) and (orientation:landscape){
   #lookModal{padding:0;background:var(--paper)}
-  .look-sheet{height:100%;height:100dvh;height:var(--look-viewport-h,100dvh);max-height:100%;border:0;border-radius:0;box-shadow:none}
+  .look-sheet{height:100%;height:100svh;height:var(--look-viewport-h,100svh);max-height:100%;border:0;border-radius:0;box-shadow:none}
   .look-header{padding:calc(6px + var(--safe-t)) max(12px,var(--safe-r)) 6px max(12px,var(--safe-l));border-bottom-width:2px}
   .look-title h2{font-size:22px}.look-title p{display:none}.look-title>svg{width:32px;height:32px}
   .look-main{display:grid;grid-template-columns:minmax(286px,42%) minmax(0,1fr)}
   .look-preview-column{border-bottom:0;height:auto;border-right:2px solid var(--ink)}
   .look-preview-stage{flex:1;height:auto;min-height:0}
-  .look-preview-tools{gap:4px;padding:4px 7px;min-height:54px}
-  .look-preview-top{top:6px;left:8px;right:8px}
-  .look-live{display:none}
-  .look-preview-top .look-mini{margin-left:auto}
   .look-controls{padding:12px}
   .look-controls>.look-section-label,.look-controls>.look-section-label + .look-section-note{display:none}
   .look-tabs{padding:4px 8px 7px}
-  .look-tab{height:58px}
+  .look-tab{height:50px}
   .look-footer{padding:6px max(12px,var(--safe-r)) calc(8px + var(--safe-b)) max(12px,var(--safe-l));min-height:64px}
   .look-footer .btn{height:46px}
   .look-footer .btn.apply{min-width:220px}
-  .look-footer .btn.secondary{height:46px}
 }
 @media(max-width:560px) and (orientation:landscape){
   .look-main{grid-template-columns:48% minmax(0,1fr)}
-  .look-preview-tools{flex-wrap:wrap;justify-content:center}
   .look-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 /* In-game quick actions stay finger-sized as well. */
@@ -450,47 +419,58 @@ body.look-editing .care-caption{visibility:hidden}
     <header class="look-header">
       <div class="look-title"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M10 12Q9 3 20 3T30 12" fill="#1f2a5c"/><path d="M8 15C6 33 15 37 20 37s14-4 12-22Q19 18 13 10Z" fill="#ffcfaa"/><path d="M14 21h2m8 0h2m-10 8q4 3 8-1"/><path d="m31 4 1 4 4 1-4 1-1 4-1-4-4-1 4-1Z" fill="#fffdf4" stroke-width="1.5"/></svg><div><h2 id="lookTitle">나를 떠올리기</h2><p>인상은 달라도, 같은 나.</p></div></div>
       <div class="look-header-actions">
-
-
+        <button class="look-mini" id="lookCancel" title="기본형으로 되돌리기"><span class="look-wide-label">기본형으로 하기</span><span class="look-narrow-label">기본형</span></button>
         <button class="look-mini" id="lookRandom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="4"/><g fill="currentColor" stroke="none"><circle cx="7.5" cy="7.5" r="1.4"/><circle cx="16.5" cy="7.5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="7.5" cy="16.5" r="1.4"/><circle cx="16.5" cy="16.5" r="1.4"/></g></svg><span class="look-random-label">랜덤</span></button>
         <button class="look-mini" id="lookClose" aria-label="편집 취소" title="편집 취소"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
       </div>
     </header>
-    <div class="look-identity"><label for="lookName">이름</label><input id="lookName" type="text" maxlength="12" placeholder="나 자신" aria-label="내 이름" autocomplete="off"><span>옷에 적힙니다</span></div>
     <div class="look-main">
       <div class="look-preview-column">
         <div class="look-preview-stage" id="lookStage" aria-label="캐릭터 미리보기. 좌우로 드래그하면 회전합니다.">
-          <div class="look-preview-top"><span class="look-live">좌우로 드래그 · 회전</span><button class="look-mini" id="lookExpand" aria-pressed="false" aria-label="미리보기 크게 보기">크게 보기</button></div>
+          <div class="look-rail look-rail-left" role="group" aria-label="캐릭터 회전">
+            <button class="look-mini" id="lookLeft" aria-label="왼쪽으로 회전">↶</button>
+            <button class="look-mini" id="lookFront" aria-label="정면으로">정면</button>
+            <button class="look-mini" id="lookRight" aria-label="오른쪽으로 회전">↷</button>
+          </div>
+          <div class="look-rail look-rail-right" role="group" aria-label="미리보기 방식">
+            <button class="look-mini" id="lookZoom" aria-pressed="false" aria-label="전신 보기">전신</button>
+            <button class="look-mini" id="lookExpressionToggle" aria-expanded="false" aria-controls="lookExpressions">표정</button>
+            <button class="look-mini" id="lookExpand" aria-pressed="false" aria-label="미리보기 크게 보기">크게</button>
+          </div>
+          <div class="look-expression" id="lookExpressions" hidden role="group" aria-label="미리보기 표정"><button class="on" data-look-expression="neutral" aria-pressed="true">기본</button><button data-look-expression="smug" aria-pressed="false">얄미움</button><button data-look-expression="surprise" aria-pressed="false">깜짝</button><button data-look-expression="sad" aria-pressed="false">울상</button><button data-look-expression="smile" aria-pressed="false">웃음</button></div>
         </div>
-        <div class="look-preview-tools">
-          <div class="look-rotation" role="group" aria-label="캐릭터 회전"><button class="look-mini" id="lookLeft" aria-label="왼쪽으로 회전">↶</button><button class="look-mini" id="lookFront">정면</button><button class="look-mini" id="lookRight" aria-label="오른쪽으로 회전">↷</button></div>
-          <div class="look-view-actions"><button class="look-mini" id="lookZoom" aria-pressed="false">전신 보기</button><button class="look-mini" id="lookExpressionToggle" aria-expanded="false" aria-controls="lookExpressions">표정 ▾</button></div>
-        </div>
-        <div class="look-expression" id="lookExpressions" hidden role="group" aria-label="미리보기 표정"><button class="on" data-look-expression="neutral" aria-pressed="true">기본</button><button data-look-expression="smug" aria-pressed="false">얄미움</button><button data-look-expression="surprise" aria-pressed="false">깜짝</button><button data-look-expression="sad" aria-pressed="false">울상</button><button data-look-expression="smile" aria-pressed="false">웃음</button></div>
       </div>
       <div class="look-workspace">
         <nav class="look-tabs" id="lookTabs" role="tablist" aria-label="외모 부위"></nav>
         <div class="look-controls" id="lookControls" role="tabpanel" tabindex="0"></div>
       </div>
     </div>
-    <footer class="look-footer"><div class="look-history" role="group" aria-label="편집 되돌리기"><button class="look-mini" id="lookUndo" aria-label="실행 취소" title="실행 취소"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5 3 10l5 5M4 10h10a6 6 0 0 1 0 12" transform="translate(0 -2)"/></svg></button><button class="look-mini" id="lookRedo" aria-label="다시 실행" title="다시 실행"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m16 5 5 5-5 5m4-5H10a6 6 0 0 0 0 12" transform="translate(0 -2)"/></svg></button></div><span class="look-status" id="lookStatus" role="status" aria-live="polite"></span><div class="look-footer-actions"><button class="btn secondary" id="lookCancel" title="기본형으로 바꾸기">기본형으로 하기</button><button class="btn apply" id="lookApply">이게 바로 나야!</button></div></footer>
-    <div id="lookSaveParking" hidden><section class="look-save-settings" id="lookSaveSettings"><h3>지금 외모 보관하기</h3><div class="look-name-row"><button class="look-mini" id="lookSavePreset">보관하기</button></div><p class="look-save-help">위에 적은 이름으로 이 브라우저에 보관됩니다.</p></section></div>
+    <footer class="look-footer">
+      <div class="look-history" role="group" aria-label="편집 되돌리기">
+        <button class="look-mini" id="lookUndo" aria-label="실행 취소" title="실행 취소"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5 3 10l5 5M4 10h10a6 6 0 0 1 0 12" transform="translate(0 -2)"/></svg></button>
+        <button class="look-mini" id="lookRedo" aria-label="다시 실행" title="다시 실행"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m16 5 5 5-5 5m4-5H10a6 6 0 0 0 0 12" transform="translate(0 -2)"/></svg></button>
+      </div>
+      <span class="look-status" id="lookStatus" role="status" aria-live="polite"></span>
+      <div class="look-footer-actions"><button class="btn apply" id="lookApply">이게 바로 나야!</button></div>
+    </footer>
+    <div id="lookNameParking" hidden><section class="look-section look-name-field" id="lookNameField"><h3>옷에 적을 이름</h3><input id="lookName" type="text" maxlength="12" placeholder="나 자신" aria-label="옷에 적을 이름" autocomplete="off"></section></div>
+    <div id="lookSaveParking" hidden><section class="look-save-settings" id="lookSaveSettings"><h3>지금 외모 보관하기</h3><div class="look-name-row"><button class="look-mini" id="lookSavePreset">보관하기</button></div><p class="look-save-help">「옷·체형」 탭에 적은 이름으로 이 브라우저에 보관됩니다.</p></section></div>
   </section>
 </div>
 
 <style id="ng2-style">
 #ngIntro{position:fixed;inset:0;z-index:60;background:var(--mint);display:grid;place-items:center;padding:24px 20px calc(24px + env(safe-area-inset-bottom));overflow:auto;touch-action:pan-y}
 #ngIntro[hidden]{display:none}
-.look-identity{flex:none;display:flex;align-items:center;gap:8px;padding:8px 20px;border-bottom:2px solid #1f2a5c22;background:#f2fbf6}
-.look-identity label{flex:none;font:800 13px var(--body);color:var(--ink)}
-.look-identity input{flex:1 1 auto;min-width:0;height:34px;padding:0 10px;border:2px solid #97bfb3;border-radius:9px;background:#fff;color:var(--ink);font:700 14px var(--body);user-select:text;-webkit-user-select:text}
-.look-identity input:focus{outline:2px solid var(--care);outline-offset:1px}
-.look-identity span{flex:none;font-size:11px;color:var(--ink);opacity:.6}
-@media (max-width:560px){.look-identity{padding:6px 12px}.look-identity span{display:none}}
+/* 이름은 옷에 적히는 글씨라 「옷·체형」 탭 안으로 옮겼다. 전용 줄을 없애 조작 영역을 넓혔다. */
+.look-name-field input{width:100%;height:46px;padding:0 12px;border:2px solid #97bfb3;border-radius:10px;background:#fff;color:var(--ink);font:700 16px var(--body);user-select:text;-webkit-user-select:text;touch-action:manipulation}
+.look-name-field input:focus{outline:2px solid var(--care);outline-offset:1px}
+#lookNameParking[hidden],#lookSaveParking[hidden]{display:none}
 #ngNameHeading:focus{outline:none}
 body #lookCancel{display:inline-flex!important;align-items:center;justify-content:center;flex:0 0 auto;width:auto!important}
 body .look-footer-actions #lookApply{min-width:0!important;width:auto!important;flex:1}
-body .look-footer .look-history button{width:29px;min-width:29px;padding:0 4px}
+body .look-footer .look-history button{width:36px;min-width:36px;padding:0 5px}
+.look-narrow-label{display:none}
+@media(max-width:900px) and (orientation:portrait),(max-width:600px){.look-wide-label{display:none}.look-narrow-label{display:inline}}
 .ng-intro-card{width:min(100%,410px);padding:30px 24px 26px;background:var(--paper);border:3px solid var(--ink);border-radius:25px;box-shadow:7px 8px 0 var(--ink)}
 .ng-intro-card h1{font:400 clamp(34px,9vw,46px)/1.15 var(--display);margin:0 0 26px;letter-spacing:-1px}
 .ng-intro-card label{display:block;font:800 12px var(--body);color:var(--muted);margin-bottom:9px}
@@ -534,7 +514,7 @@ body .tool-scroll.more-right{mask-image:none!important;-webkit-mask-image:none!i
 #ngSoundGuide p{margin:6px 0}
 #ngStorageInfo{font-size:11px;color:var(--muted);line-height:1.65;margin:8px 0}
 @keyframes ngHelpIn{from{opacity:.5;transform:translateY(2px)}to{opacity:1;transform:none}}
-@media(max-width:430px){.look-title h2{font-size:22px}.look-footer-actions{gap:5px}.look-footer-actions #lookCancel{font-size:11px;padding:0 8px}.look-footer-actions #lookApply{font-size:16px;padding:0 11px}.look-history{gap:3px}.look-history button{width:29px;min-width:29px;padding:0 4px}}
+@media(max-width:430px){.look-title h2{font-size:20px}.look-header-actions{gap:5px}.look-header-actions #lookCancel{font-size:11.5px;padding:0 9px}.look-footer-actions #lookApply{font-size:17px;padding:0 12px}.look-history{gap:5px}.look-history button{width:36px;min-width:36px;padding:0 5px}}
 @media(max-height:560px){#ngIntro{padding:12px}.ng-intro-card{padding:18px 22px}.ng-intro-card h1{font-size:31px;margin-bottom:16px}.ng-intro-card .ng-privacy{margin:12px 0}.ng-intro-card .ng-sub{margin-bottom:18px}#ngItemHelp{height:28px;font-size:10px}#ngAuxPanel{min-height:64px;padding:6px}}
 @media(prefers-reduced-motion:reduce){#ngItemHelp.changed{animation:none}}
 
@@ -7070,7 +7050,8 @@ const APPEAR=(()=>{
 })();
 function persistAppearance(){try{localStorage.setItem(APPEAR_KEY,JSON.stringify(APPEAR));return true;}catch(e){return false;}}
 function refreshAppearanceButton(){const b=$('#appearanceBtn');b.classList.remove('locked');b.title='나를 떠올리기';}
-const LOOK_TABS=[['face','얼굴'],['hair','머리'],['eyes','눈'],['brows','눈썹'],['nose','코'],['ears','귀'],['mouth','입'],['glasses','안경'],['details','수염·점'],['clothes','옷·체형'],['saved','보관함']];
+const LOOK_TABS=[['face','얼굴'],['hair','머리'],['eyes','눈·눈썹'],['nose','코·귀'],['mouth','입'],['extras','안경·수염'],['clothes','옷·체형'],['saved','보관함']];
+const LOOK_TAB_ICON={face:'face',hair:'hair',eyes:'eyes',nose:'nose',mouth:'mouth',extras:'glasses',clothes:'clothes',saved:'saved'};
 /* 직접 그린 벡터 아이콘. 외부 이미지/게임 에셋을 사용하지 않는다. */
 function lookIcon(kind,value='',L=LOOK_DEFAULT){
   const ink='#1f2a5c',skin=L.skin,hair=L.hair;let p='';
@@ -7124,19 +7105,21 @@ const AppearanceEditor=(()=>{
   const E={isOpen:false,draft:null,model:null,scene:null,camera:null,tab:'face',yaw:0,full:false,expression:'neutral',history:[],at:0,dirty:false,time:0,w:0,h:0,drag:null};
   let statusTimer=0;
   const status=t=>{const el=$('#lookStatus');el.textContent=t;clearTimeout(statusTimer);el.classList.toggle('show',!!t&&!t.startsWith('적용 전까지')&&!t.startsWith('적용하면 게임'));statusTimer=setTimeout(()=>el.classList.remove('show'),3200);};
-  const savedSettings=$('#lookSaveSettings');
+  const savedSettings=$('#lookSaveSettings'),nameField=$('#lookNameField');
   function updateRangeFill(){ $('#lookControls').querySelectorAll('input[type=range]').forEach(input=>{const p=(Number(input.value)-Number(input.min))/(Number(input.max)-Number(input.min))*100;input.style.setProperty('--range-fill',clamp(p,0,100)+'%');}); }
   function setExpressionMenu(open){$('#lookExpressions').hidden=!open;$('#lookExpressionToggle').setAttribute('aria-expanded',String(open));}
-  function expandPreview(expanded){$('#lookModal').classList.toggle('look-preview-expanded',expanded);const b=$('#lookExpand');b.textContent=expanded?'편집으로':'크게 보기';b.setAttribute('aria-pressed',String(expanded));b.setAttribute('aria-label',expanded?'크게 보기를 닫고 외모 편집으로 돌아가기':'미리보기 크게 보기');setExpressionMenu(false);requestAnimationFrame(resize);}
+  function expandPreview(expanded){$('#lookModal').classList.toggle('look-preview-expanded',expanded);const b=$('#lookExpand');b.textContent=expanded?'편집':'크게';b.setAttribute('aria-pressed',String(expanded));b.setAttribute('aria-label',expanded?'크게 보기를 닫고 외모 편집으로 돌아가기':'미리보기 크게 보기');setExpressionMenu(false);requestAnimationFrame(resize);}
   function syncVisualViewport(){
     if(!E.isOpen)return;
-    const vv=window.visualViewport,h=vv?vv.height:innerHeight;
+    const vv=window.visualViewport,h=vv?vv.height:innerHeight,modal=$('#lookModal');
     const portrait=innerWidth<=900&&innerHeight>=innerWidth;
     const keyboard=portrait&&document.activeElement===$('#lookName')&&h<innerHeight*.78;
-    $('#lookModal').classList.toggle('look-keyboard',keyboard);
-    // visualViewport is reduced by the keyboard, but also by pinch zoom. Do not re-layout for zoom.
-    const pixelHeight=(!vv||Math.abs(vv.scale-1)<.05)?Math.round(h):innerHeight;
-    $('#lookModal').style.setProperty('--look-viewport-h',pixelHeight+'px');
+    modal.classList.toggle('look-keyboard',keyboard);
+    // 주소창이 접혔다 펴질 때마다 visualViewport.height 가 50~90px 씩 바뀐다.
+    // 그 값에 시트 높이를 묶어 두면 스크롤할 때마다 아래 버튼이 따라 움직인다.
+    // 평소에는 CSS 고정값(100svh)에 맡기고, 키보드가 올라왔을 때만 픽셀 높이로 덮어쓴다.
+    if(keyboard&&(!vv||Math.abs(vv.scale-1)<.05))modal.style.setProperty('--look-viewport-h',Math.round(h)+'px');
+    else modal.style.removeProperty('--look-viewport-h');
     requestAnimationFrame(()=>{resize();if(keyboard)$('#lookName').scrollIntoView({block:'nearest'});});
   }
   const clone=L=>({...normaliseLook(L)});
@@ -7148,23 +7131,21 @@ const AppearanceEditor=(()=>{
   function colours(key,title,palette=key){return `<section class="look-section"><h3>${title}</h3><div class="look-swatches" role="group" aria-label="${title}">${LOOK_PALETTES[palette].map((c,i)=>`<button class="look-swatch" style="--swatch:${c}" data-look-colour="${key}" data-value="${c}" aria-pressed="${E.draft[key]===c}" aria-label="${title} ${i+1}" title="${c}"></button>`).join('')}</div></section>`;}
   function choices(key,title){return `<section class="look-section"><h3>${title}<small>${LOOK_OPTIONS[key].length}가지</small></h3><div class="look-grid" role="group" aria-label="${title}">${LOOK_OPTIONS[key].map(([id,name])=>`<button class="look-choice" data-look-choice="${key}" data-value="${id}" aria-pressed="${E.draft[key]===id}">${lookIcon(key,id,E.draft)}<span>${name}</span></button>`).join('')}</div></section>`;}
   function valueLabel(k,v){if(['eyeTilt','browTilt'].includes(k))return `${Math.round(v*180/Math.PI)}°`;if(['eyeY','noseY','mouthY','browY','moleX','moleY','glassY'].includes(k))return Math.round(v*100);if(['eyeGap','browGap'].includes(k))return Math.round(v*100);return `${Math.round(v*100)}%`;}
-  function sliders(items){return `<section class="look-section"><h3>세부 조절<small>− / + 버튼으로 한 칸씩</small></h3><div class="look-sliders">${items.map(([k,title])=>{const [min,max,step]=LOOK_RANGES[k];return `<div class="look-slider"><div class="look-slider-head"><label for="look-range-${k}">${title}</label><output id="look-out-${k}" for="look-range-${k}">${valueLabel(k,E.draft[k])}</output></div><div class="look-slider-track"><button class="look-step" data-look-step="${k}" data-delta="-1" aria-label="${title} 줄이기">−</button><input id="look-range-${k}" data-look-range="${k}" type="range" min="${min}" max="${max}" step="${step}" value="${E.draft[k]}"><button class="look-step" data-look-step="${k}" data-delta="1" aria-label="${title} 늘리기">+</button></div></div>`;}).join('')}</div></section>`;}
+  function sliders(items,heading='세부 조절'){return `<section class="look-section"><h3>${heading}</h3><div class="look-sliders">${items.map(([k,title])=>{const [min,max,step]=LOOK_RANGES[k];return `<div class="look-slider"><label class="look-slider-name" for="look-range-${k}">${title}</label><button class="look-step" data-look-step="${k}" data-delta="-1" aria-label="${title} 줄이기">−</button><div class="look-slider-track"><input id="look-range-${k}" data-look-range="${k}" type="range" min="${min}" max="${max}" step="${step}" value="${E.draft[k]}" aria-label="${title}"><span class="look-slider-grab" data-look-grab="${k}"></span></div><button class="look-step" data-look-step="${k}" data-delta="1" aria-label="${title} 늘리기">+</button><output id="look-out-${k}" for="look-range-${k}">${valueLabel(k,E.draft[k])}</output></div>`;}).join('')}</div></section>`;}
   function check(k,title){return `<label class="look-check"><input type="checkbox" data-look-check="${k}" ${E.draft[k]?'checked':''}>${title}</label>`;}
-  function renderTabs(){ $('#lookTabs').innerHTML=LOOK_TABS.map(([id,label])=>`<button class="look-tab" role="tab" id="look-tab-${id}" aria-controls="lookControls" aria-selected="${id===E.tab}" tabindex="${id===E.tab?0:-1}" data-look-tab="${id}">${lookIcon(id,id==='hair'?'part':'',E.draft)}<span>${label}</span></button>`).join(''); }
+  function renderTabs(){ $('#lookTabs').innerHTML=LOOK_TABS.map(([id,label])=>`<button class="look-tab" role="tab" id="look-tab-${id}" aria-controls="lookControls" aria-selected="${id===E.tab}" tabindex="${id===E.tab?0:-1}" data-look-tab="${id}">${lookIcon(LOOK_TAB_ICON[id]||id,id==='hair'?'part':'',E.draft)}<span>${label}</span></button>`).join(''); }
   function renderControls(){
     const el=$('#lookControls'),scroll=el.scrollTop;const L=E.draft;let s='';
     const intro=(h,n)=>`<h3 class="look-section-label">${h}</h3><p class="look-section-note">${n}</p>`;
-    if(E.tab==='face')s=intro('인상의 시작, 얼굴','모양을 고른 뒤 가로·세로 비율을 맞춰 보세요.')+choices('faceShape','얼굴형')+colours('skin','피부색')+sliders([['headW','얼굴 너비'],['headH','얼굴 길이'],['jawWidth','턱 너비'],['jawLength','턱 길이'],['cheekFat','볼살'],['cheekBone','광대 돌출'],['templeHollow','관자놀이 들어감']]);
+    if(E.tab==='face')s=intro('인상의 시작, 얼굴','모양을 고른 뒤 가로·세로 비율을 맞춰 보세요.')+choices('faceShape','얼굴형')+colours('skin','피부색')+sliders([['headW','얼굴 너비'],['headH','얼굴 길이'],['jawWidth','턱 너비'],['jawLength','턱 길이'],['cheekFat','볼살'],['cheekBone','광대'],['templeHollow','관자놀이']]);
     if(E.tab==='hair')s=intro('머리 하나로 다른 사람','앞모습과 옆모습을 번갈아 확인해 보세요.')+choices('style','머리 모양')+colours('hair','머리색')+check('hairFlip','가르마·머리 방향 뒤집기');
-    if(E.tab==='eyes')s=intro('눈빛까지 취향대로','크기뿐 아니라 간격·높이·기울기도 바꿀 수 있어요.')+choices('eyeStyle','눈 모양')+colours('eyeColor','눈동자 색')+sliders([['eyeSize','눈 크기'],['eyeGap','눈 사이 간격'],['eyeY','눈 높이'],['eyeTilt','눈 기울기']]);
-    if(E.tab==='brows')s=intro('인상을 결정하는 눈썹','표정이 바뀌어도 고른 눈썹 모양은 유지됩니다.')+choices('browStyle','눈썹 모양')+colours('browColor','눈썹 색','hair')+sliders([['brow','눈썹 두께'],['browWidth','눈썹 길이'],['browGap','눈썹 사이 간격'],['browY','눈썹 높이'],['browTilt','눈썹 기울기']]);
-    if(E.tab==='nose')s=intro('입체적인 코','살짝 돌려서 옆모습도 확인해 보세요.')+choices('noseStyle','코 모양')+sliders([['nose','코 크기'],['noseY','코 위치'],['nostrilWidth','콧볼 넓이'],['bridgeHeight','콧대 높이']]);
-    if(E.tab==='ears')s=intro('귀의 모양과 위치','둥근 귀부터 뾰족한 귀까지, 귓볼도 따로 맞춰 보세요.')+sliders([['earY','귀 높이'],['earSize','귀 크기'],['earPoint','귀 끝 · 둥글게 / 뾰족하게'],['earLobe','귓볼 · 없음 / 길게']]);
-    if(E.tab==='mouth')s=intro('말하지 않아도 보이는 성격','기본 인상은 고정하고, 말하기·울기 표정은 그대로 살아 있어요.')+choices('mouthStyle','기본 입 모양')+colours('lipColor','입술 색')+sliders([['mouthWidth','입 너비'],['mouthHeight','입 두께·높이'],['mouthY','입 위치'],['mouthForward','돌출입']]);
-    if(E.tab==='glasses')s=intro('안경도 벗겨 보자','고른 안경에도 기존의 파손·수리 반응이 적용됩니다.')+choices('glassesStyle','안경 모양')+(L.glassesStyle==='none'?'':colours('frame','테 색')+sliders([['glassSize','안경 크기'],['glassY','안경 높이']]));
-    if(E.tab==='details')s=intro('작은 차이가 만드는 개성','수염, 점, 주근깨를 조합해 보세요.')+choices('stacheStyle','수염 모양')+`<section class="look-section">${check('stubble','까슬까슬한 수염자국')}${check('freckles','주근깨')}${check('mole','얼굴에 점 찍기')}</section>`+(L.mole?sliders([['moleX','점 좌우 위치'],['moleY','점 높이'],['moleSize','점 크기']]):'')+`<p class="look-section-note">수염 색은 머리색을 따라갑니다.</p>`;
+    if(E.tab==='eyes')s=intro('눈빛까지 취향대로','눈과 눈썹을 같이 보면서 맞춰 보세요.')+choices('eyeStyle','눈 모양')+colours('eyeColor','눈동자 색')+sliders([['eyeSize','눈 크기'],['eyeGap','눈 간격'],['eyeY','눈 높이'],['eyeTilt','눈 기울기']],'눈 세부 조절')+choices('browStyle','눈썹 모양')+colours('browColor','눈썹 색','hair')+sliders([['brow','눈썹 두께'],['browWidth','눈썹 길이'],['browGap','눈썹 간격'],['browY','눈썹 높이'],['browTilt','눈썹 기울기']],'눈썹 세부 조절');
+    if(E.tab==='nose')s=intro('코와 귀','살짝 돌려서 옆모습도 확인해 보세요.')+choices('noseStyle','코 모양')+sliders([['nose','코 크기'],['noseY','코 위치'],['nostrilWidth','콧볼 넓이'],['bridgeHeight','콧대 높이']],'코 세부 조절')+sliders([['earY','귀 높이'],['earSize','귀 크기'],['earPoint','귀 끝 모양'],['earLobe','귓볼 길이']],'귀 세부 조절');
+    if(E.tab==='mouth')s=intro('말하지 않아도 보이는 성격','기본 인상은 고정하고, 말하기·울기 표정은 그대로 살아 있어요.')+choices('mouthStyle','기본 입 모양')+colours('lipColor','입술 색')+sliders([['mouthWidth','입 너비'],['mouthHeight','입 두께'],['mouthY','입 위치'],['mouthForward','돌출입']]);
+    if(E.tab==='extras')s=intro('작은 차이가 만드는 개성','안경, 수염, 점, 주근깨를 조합해 보세요.')+choices('glassesStyle','안경 모양')+(L.glassesStyle==='none'?'':colours('frame','테 색')+sliders([['glassSize','안경 크기'],['glassY','안경 높이']],'안경 세부 조절'))+choices('stacheStyle','수염 모양')+`<section class="look-section">${check('stubble','까슬까슬한 수염자국')}${check('freckles','주근깨')}${check('mole','얼굴에 점 찍기')}</section>`+(L.mole?sliders([['moleX','점 좌우'],['moleY','점 높이'],['moleSize','점 크기']],'점 세부 조절'):'')+`<p class="look-section-note">수염 색은 머리색을 따라갑니다.</p>`;
     if(E.tab==='clothes'){
       s=intro('옷도 취향대로','얼굴·체형에 관계없이 자유롭게 조합해 보세요.')
+        +'<div id="lookNameSlot"></div>'
         +choices('topStyle','상의 · 원피스')
         +(L.topStyle==='dress'
           ?'<p class="look-section-note">원피스는 상·하의가 이어진 한 벌입니다.</p>'
@@ -7176,11 +7157,11 @@ const AppearanceEditor=(()=>{
           :'')
         +sliders([['bodyH','키'],['bodyW','체형 너비']]);
     }
-    if(E.tab==='saved')s=intro('내 외모 보관함','별명을 적고 「보관하기」를 누르면 이 기기에 저장됩니다.')+'<div id="lookSaveSlot"></div>'+`<p class="look-infotag">${APPEAR.presets.length} / 12 보관 중 · 카드 선택으로 불러오기</p>`+(APPEAR.presets.length?`<div class="look-presets">${APPEAR.presets.map(p=>`<div class="look-preset"><button class="look-preset-load" data-look-load="${esc(p.id)}" aria-label="${esc(p.name)} 불러오기">${p.thumb?`<img src="${p.thumb}" alt="${esc(p.name)} 외모" width="160" height="160">`:lookIcon('face',p.look.faceShape,p.look)}<span>${esc(p.name)}</span></button><button class="look-preset-delete" data-look-delete="${esc(p.id)}" aria-label="${esc(p.name)} 삭제">×</button></div>`).join('')}</div>`:`<div class="look-empty">${lookIcon('saved')}<br>아직 보관한 외모가 없어요.<br>마음에 드는 얼굴을 만든 뒤<br><b>「보관하기」</b>를 눌러 주세요.</div>`);
-    $('#lookSaveParking').append(savedSettings);el.innerHTML=s;el.dataset.tab=E.tab;if(E.tab==='saved')$('#lookSaveSlot').append(savedSettings);el.setAttribute('aria-labelledby','look-tab-'+E.tab);el.scrollTop=scroll;updateRangeFill();
+    if(E.tab==='saved')s=intro('내 외모 보관함','「보관하기」를 누르면 지금 외모가 이 기기에 저장됩니다.')+'<div id="lookSaveSlot"></div>'+`<p class="look-infotag">${APPEAR.presets.length} / 12 보관 중 · 카드 선택으로 불러오기</p>`+(APPEAR.presets.length?`<div class="look-presets">${APPEAR.presets.map(p=>`<div class="look-preset"><button class="look-preset-load" data-look-load="${esc(p.id)}" aria-label="${esc(p.name)} 불러오기">${p.thumb?`<img src="${p.thumb}" alt="${esc(p.name)} 외모" width="160" height="160">`:lookIcon('face',p.look.faceShape,p.look)}<span>${esc(p.name)}</span></button><button class="look-preset-delete" data-look-delete="${esc(p.id)}" aria-label="${esc(p.name)} 삭제">×</button></div>`).join('')}</div>`:`<div class="look-empty">${lookIcon('saved')}<br>아직 보관한 외모가 없어요.<br>마음에 드는 얼굴을 만든 뒤<br><b>「보관하기」</b>를 눌러 주세요.</div>`);
+    $('#lookSaveParking').append(savedSettings);$('#lookNameParking').append(nameField);el.innerHTML=s;el.dataset.tab=E.tab;if(E.tab==='clothes')$('#lookNameSlot').append(nameField);if(E.tab==='saved')$('#lookSaveSlot').append(savedSettings);el.setAttribute('aria-labelledby','look-tab-'+E.tab);el.scrollTop=scroll;updateRangeFill();
   }
   function selectTab(id){if(!LOOK_TABS.some(t=>t[0]===id))return;const was=E.tab;E.tab=id;setExpressionMenu(false);renderTabs();renderControls();$('#lookControls').scrollTop=0;$('#look-tab-'+id).scrollIntoView({block:'nearest',inline:'nearest'});if(id==='clothes'){E.full=true;}else if(was==='clothes'&&id!=='saved'){E.full=false;}syncZoom();resize();}
-  function syncZoom(){const b=$('#lookZoom');b.textContent=E.full?'얼굴 보기':'전신 보기';b.setAttribute('aria-pressed',E.full);}
+  function syncZoom(){const b=$('#lookZoom');b.textContent=E.full?'얼굴':'전신';b.setAttribute('aria-pressed',E.full);b.setAttribute('aria-label',E.full?'얼굴만 보기':'전신 보기');}
   function initScene(){
     if(E.scene)return;
     E.scene=new THREE.Scene();E.scene.background=col('#d6f2e9');
@@ -7247,9 +7228,14 @@ const AppearanceEditor=(()=>{
       // 정수리·턱 끝·귀는 코끝이 아니라 머리 중심 깊이 근처에 있다. 코끝 깊이로 맞추던 여유를 돌려받아 얼굴을 더 크게 보여 준다.
       front=.12;
     }
-    const cy=(top+bottom)/2,halfH=(top-bottom)/2;
-    const distance=front+Math.max(halfH/(tan*usableY),halfW/(tan*aspect*usableX));
-    E.camera.aspect=aspect;E.camera.position.set(0,cy,Math.max(.8,distance));
+    const halfH=(top-bottom)/2;
+    const distance=Math.max(.8,front+Math.max(halfH/(tan*usableY),halfW/(tan*aspect*usableX)));
+    // 틀은 「슬라이더를 끝까지 올렸을 때」 크기라 거리(=보이는 크기)는 안정적이다. 다만 그 틀의 한가운데를 보면
+    // 아직 안 쓴 머리 위 여유만큼 화면 위가 비고 캐릭터가 아래로 처진다.
+    // 거리는 건드리지 않고 시선 높이만 지금 실제 머리 끝에 맞춘다. 크기와 좌우 너비는 그대로다.
+    const seenTop=Math.min(top,Math.max(bounds.max.y,bottom+.05)),limitY=distance*tan*usableY;
+    const cy=clamp((seenTop+bottom)/2,bounds.max.y-limitY,bounds.min.y+limitY);
+    E.camera.aspect=aspect;E.camera.position.set(0,cy,distance);
     E.camera.lookAt(0,cy,0);E.camera.updateProjectionMatrix();E.camera.updateMatrixWorld();
   }
   function resize(){if(!E.isOpen)return;const r=$('#lookStage').getBoundingClientRect();if(!r.width||!r.height)return;E.w=Math.round(r.width);E.h=Math.round(r.height);renderer.setSize(E.w,E.h,false);cameraFit();}
@@ -7337,6 +7323,52 @@ const AppearanceEditor=(()=>{
     b=e.target.closest('[data-look-delete]');if(b){const p=APPEAR.presets.find(x=>x.id===b.dataset.lookDelete);if(p&&confirm(`「${p.name}」 외모를 보관함에서 삭제할까요?`)){APPEAR.presets=APPEAR.presets.filter(x=>x!==p);const ok=persistAppearance();renderControls();status(ok?'보관함에서 삭제했어요.':'현재 보관함에서 삭제했어요. 브라우저 저장은 차단되어 있어요.');}}
   });
   $('#lookControls').addEventListener('input',e=>{const k=e.target.dataset.lookRange;if(!k)return;changed(k,Number(e.target.value),false);$('#look-out-'+k).textContent=valueLabel(k,E.draft[k]);updateRangeFill();});
+  // 슬라이더: 손가락이 가로로 움직인 게 확인된 뒤에만 값이 바뀐다.
+  // 세로로 그으면 브라우저가 목록을 스크롤하고, 그냥 누르기만 하면 아무 일도 없다.
+  (()=>{
+    let d=null;
+    const setVal=(k,v)=>{
+      const r=LOOK_RANGES[k];
+      v=clamp(Number((Math.round((v-r[0])/r[2])*r[2]+r[0]).toFixed(4)),r[0],r[1]);
+      if(E.draft[k]===v)return;
+      changed(k,v,false);
+      const el=$('#look-range-'+k);if(el)el.value=v;
+      const o=$('#look-out-'+k);if(o)o.textContent=valueLabel(k,v);
+      updateRangeFill();
+    };
+    $('#lookControls').addEventListener('pointerdown',e=>{
+      const grab=e.target.closest('[data-look-grab]');if(!grab||d)return;
+      if(e.pointerType==='mouse'&&e.button!==0)return;
+      const k=grab.dataset.lookGrab,r=LOOK_RANGES[k],w=grab.getBoundingClientRect().width||150;
+      d={id:e.pointerId,k,grab,x:e.clientX,y:e.clientY,base:E.draft[k],
+         per:(r[1]-r[0])/Math.max(w*1.5,150),on:false,moved:false};
+      if(e.pointerType==='mouse'){d.on=true;e.preventDefault();try{grab.setPointerCapture(e.pointerId);}catch(_){}}
+    });
+    addEventListener('pointermove',e=>{
+      if(!d||d.id!==e.pointerId)return;
+      if(!d.on){
+        const dx=e.clientX-d.x,dy=e.clientY-d.y;
+        if(Math.abs(dy)>Math.abs(dx)&&Math.abs(dy)>5){d=null;return;}
+        if(Math.abs(dx)<6)return;
+        d.on=true;d.x=e.clientX;try{d.grab.setPointerCapture(e.pointerId);}catch(_){}
+        return;
+      }
+      if(e.cancelable)e.preventDefault();
+      if(Math.abs(e.clientX-d.x)>2)d.moved=true;
+      setVal(d.k,d.base+(e.clientX-d.x)*d.per);
+    },{passive:false});
+    const end=e=>{
+      if(!d||d.id!==e.pointerId)return;
+      const x=d;d=null;
+      if(!x.on)return;
+      if(!x.moved&&e.type==='pointerup'&&e.pointerType==='mouse'){
+        const b=x.grab.getBoundingClientRect(),r=LOOK_RANGES[x.k];
+        setVal(x.k,r[0]+clamp((e.clientX-b.left)/(b.width||1),0,1)*(r[1]-r[0]));
+      }
+      commit();
+    };
+    addEventListener('pointerup',end);addEventListener('pointercancel',end);
+  })();
   $('#lookControls').addEventListener('change',e=>{if(e.target.dataset.lookRange){commit();return;}const k=e.target.dataset.lookCheck;if(k){changed(k,e.target.checked);renderControls();$(`[data-look-check="${k}"]`)?.focus({preventScroll:true});}});
   $$('[data-look-expression]').forEach(b=>b.addEventListener('click',()=>{E.expression=b.dataset.lookExpression;$$('[data-look-expression]').forEach(x=>{const on=x===b;x.classList.toggle('on',on);x.setAttribute('aria-pressed',on);});setExpressionMenu(false);}));
   canvas.addEventListener('pointerdown',e=>{if(!E.isOpen||E.drag)return;e.preventDefault();canvas.setPointerCapture(e.pointerId);E.drag={id:e.pointerId,x:e.clientX,yaw:E.yaw};});
