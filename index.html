@@ -1115,15 +1115,15 @@ const SFX = (() => {
     if (!Number.isFinite(distance) || distance <= 0) return;
 
     const t = ctx.currentTime;
-    rubTravel = Math.min(70, rubTravel + distance);
+    rubTravel = Math.min(100, rubTravel + distance);
 
     if (
-      rubTravel < 24 ||
-      t - rubLast < .60 ||
+      rubTravel < 34 ||
+      t - rubLast < .86 ||
       rubVoices.size >= 1
     ) return;
 
-    const strength = Math.min(1, rubTravel / 55);
+    const strength = Math.min(1, rubTravel / 78);
     rubTravel = 0;
     rubLast = t;
 
@@ -2858,7 +2858,7 @@ function updateRopeMesh(data,points){
   data.mesh.geometry.attributes.position.needsUpdate=true;data.mesh.geometry.attributes.normal.needsUpdate=true;
 }
 
-const TOOLS = {};
+
 function buildTool(kind) {
   const g = new THREE.Group();
   const grip = buildFist(false); grip.scale.setScalar(0.85); grip.rotation.x = -Math.PI / 2; g.add(grip);
@@ -3154,13 +3154,8 @@ function updateBubble(v) {
   const btn = $('#settingsBtn').getBoundingClientRect();
   const minTop = 8;
   let left = hx + r * 0.2 - bw * 0.25, topPx = hy - bh - 14, beside = false;
-  if (topPx < minTop) {
-    // 꾹 안기처럼 머리 위에 자리가 없으면 얼굴 옆(빈 쪽)으로 보낸다.
-    beside = true;
-    topPx = clamp(hy + r * 0.15, minTop, innerHeight * 0.45);
-    left = hx + r * 1.02;
-    if (left + bw > innerWidth - 8) left = hx - r * 1.02 - bw;
-  }
+  // 머리 위 자리가 모자라면 화면 위에 붙이기만 한다. 반대편으로 넘기지 않는다(가로는 계속 머리를 따라간다).
+  if (topPx < minTop) topPx = minTop;
   left = clamp(left, 8, innerWidth - bw - 8);
   // 왼쪽 위 설정 버튼과 겹치면 버튼 오른쪽으로 비킨다.
   if (topPx < btn.bottom + 6 && left < btn.right + 6) left = Math.min(btn.right + 8, innerWidth - bw - 8);
@@ -3514,7 +3509,7 @@ function drainAttackQueue(){
 }
 function hideRig(a) { if (!G.attacks.some(b => b.rig === a.rig)) a.rig.visible = false; }
 
-const _q = new THREE.Quaternion();
+
 function camRest(side, low = -0.9) {
   // 화면 아래 모서리 바깥
   const d = Math.min(G.camDist * 0.45, 2.2);
@@ -4603,8 +4598,13 @@ const CARE_LINES={
   five:['손 줘. 하이파이브.','천천히 해도 돼.'],
   hug:['힘들었지?','말 안 해도 돼. 그냥 이러고 있자.','괜찮아. 잠깐 기대고 있어.','오늘도 버티느라 애썼어.','지금은 조금 쉬어도 괜찮아.']
 };
-const careBags={},careSeen=new Set();let lastCareLine='';
-function nextCareLine(group){return lastCareLine=chooseDialogue(CARE_LINES[group]||CARE_LINES.comfort,'player');}
+
+function nextCareLine(group){
+  const own=CARE_LINES[group]||CARE_LINES.comfort;
+  // 풀이 최근 기록(5개)보다 작으면 "5회 안에 한 말 금지"가 성립할 수 없어 고정 순환이 된다. 공용 위로 대사를 섞어 넓힌다.
+  const list=own.length>6?own:[...own,...CARE_LINES.comfort];
+  return chooseDialogue(list,'player');
+}
 const CareVoice=(()=>{
   let speech=null,utterance=null,voices=[],serial=0,watch=0;
   try{speech=window.speechSynthesis||null;}catch(e){}
@@ -5067,6 +5067,8 @@ canvas.addEventListener('pointermove', e => {
 function careRub(P, sx, sy, e) {
   const v = G.v; if (!v || v.state !== 'stand') return;
   const info = pick3D(e.clientX, e.clientY);
+  // 손이 지금 닿아 있는 자리로 매번 다시 판정한다. 누르기 시작한 부위에 묶이지 않는다.
+  if (info) P.kind = P.careTarget = (info.part === 'head' && info.dir && info.dir.y > 0.3) ? 'pet' : (info.part === 'head' || info.part === 'nose') ? 'wipe' : 'stroke';
   const h = RIG.open[1];
   h.visible = true;
   const speed = Math.hypot(sx, sy);
@@ -5270,17 +5272,12 @@ function segmentGap(p1, q1, p2, q2) {
   else if (e > 1e-9) t = clamp(f / e, 0, 1);
   return p1.clone().addScaledVector(d1, s).distanceTo(p2.clone().addScaledVector(d2, t));
 }
-// 줄넘기에 걸린 동안 손이 쥘 자리(몸통 기준 좌표). 목에서 조금 나온 줄 위, 손목은 줄 바로 아래.
-function ropeGripPoint(v, a) {
-  const free = v.state === 'tether' ? v._ropeFree : null;
-  if (!free) return null;
-  const [from, to] = free[a.s > 0 ? 0 : 1], length = from.distanceTo(to);
-  if (length < .05) return null;
-  const w = Math.max(.3, v.look.bodyW);
-  const grip = from.clone().lerp(to, clamp((.045 + .055 * w) / length, .08, .45));
-  grip.y -= .04 * Math.max(.6, v.look.bodyH);   // 손가락이 줄 위로 걸리게 손목은 줄 아래
-  return v.torso.worldToLocal(grip);
-}
+
+
+
+
+
+
 // 줄넘기에 걸린 동안의 팔꿈치 방향. 몸통이 넓어 어깨·팔꿈치가 바깥으로 나가도 줄이 팔을 뚫지 않게 한다.
 // 자연스러운 방향(아래·바깥)에서 가까운 각도부터 훑어, 줄의 직선 구간과 팔 굵기만큼 떨어지는 첫 각도를 쓴다.
 function ropeSafePole(v, a, origin, axis, distance, L, target) {
@@ -7691,36 +7688,11 @@ window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,startSoci
 
   // 캐릭터의 두 손을 목 근처로 올린다. 팔을 크게 휘두르는 기존 tether 자세는 덮는다.
   // 손목 자리는 목 굵기(neckLocalRadius)에 맞춰 잡는다. 고정 좌표로 두면 몸통이 넓을 때
-  // 손이 목에서 뜨고 좁을 때 파묻힌다.
-  // 손은 손목보다 .14쯤 더 뻗어 있어서, 손가락 방향을 팔뚝의 연장선으로 두면 목 안으로 들어간다.
-  // 손가락은 줄이 나가는 쪽(바깥·앞·살짝 아래), 손바닥은 목 쪽을 보게 한다.
-  function neckHands(v, strength) {
-    const radius = (v.neckLocalRadius || .078) * 1.115 + .062;
-    for (const a of v.armRig) {
-      const start = a.sh.position.clone();
-      const out = V3(a.s * .657, 0, .754).normalize();   // 목 축에서 손목까지의 방향
-      const target = out.clone().multiplyScalar(radius).setY(.552);
-      const delta = target.clone().sub(start), distance = clamp(delta.length(), .02, .395);
-      const axis = delta.normalize();
-      const pole = V3(a.s * .75, -.9, .45);   // 팔꿈치는 아래·바깥: 줄은 목 높이에서 앞·바깥으로 뻗는다
-      pole.addScaledVector(axis, -pole.dot(axis)).normalize();
-      const elbow = start.clone().addScaledVector(axis, distance / 2)
-        .addScaledVector(pole, Math.sqrt(Math.max(0, .04 - distance * distance / 4)));
-      const qs = new THREE.Quaternion().setFromUnitVectors(V3(0, -1, 0), elbow.clone().sub(start).normalize());
-      const qe = new THREE.Quaternion().setFromUnitVectors(V3(0, -1, 0), target.clone().sub(elbow).normalize());
-      qe.premultiply(qs.clone().invert());
-      a.sh.quaternion.slerp(qs, strength); a.el.quaternion.slerp(qe, strength);
-      const hy = V3(-a.s * .46, .26, -.85).normalize();   // 손 +Y = 손가락(-Y)의 반대
-      const hz = out.clone().addScaledVector(hy, -out.dot(hy));
-      if (hz.lengthSq() < 1e-8) hz.copy(V3(0, 0, 1).addScaledVector(hy, -hy.z));
-      hz.normalize();
-      const hx = hy.clone().cross(hz).normalize();
-      hz.copy(hx.clone().cross(hy)).normalize();
-      const local = qs.clone().multiply(qe).invert()
-        .multiply(new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(hx, hy, hz)));
-      a.hand.quaternion.slerp(local, strength);
-    }
-  }
+
+
+
+
+
   function poseRope(v, H) {
     const q = H.tension, t = G.time, r = RIG.tools.rope, U = r.userData;
     v.root.updateMatrixWorld(true);
@@ -8934,7 +8906,8 @@ if (G.tool==='brick') {
     const said = G.lastCareLine && G.time - G.lastCareLine.t < 8 ? G.lastCareLine.text : '';
     const paired = retorts[said];
     let gesture,line;
-    if(paired){
+    // 이어치기 대꾸도 최근 5개 안에 한 말이면 일반 대꾸로 돌린다.
+    if(paired&&!RECENT_DIALOGUE.character.includes(paired[1])){
       gesture=pool.includes(paired[0])?paired[0]:pick(pool);line=paired[1];
     }else{
       const options=pool.flatMap(gesture=>replies[gesture].map(line=>({gesture,line})));
@@ -10699,7 +10672,7 @@ function ngPoseHug(v,dt){
   const intro=$('#ngIntro'),nameForm=$('#ngNameForm'),nameInput=$('#ngNameInput');
   let introStage='name',ready=false,owner=null,auxPointer=null,eating=null,dodge=null;
   let poseSnapshot=null,careHealAt=-100,petTalkAt=-100,clapTalkAt=-100,foodSerial=0;
-  let cleanTime=0,sparkTime=0,lastMode=G.mode,foodRecoil=null,throwMotion=null;
+  let sparkTime=0,lastMode=G.mode,foodRecoil=null,throwMotion=null;
   const stats={foodThrown:0,foodImpacts:0,foodLanded:0,foodEaten:0,waterEmitted:0,openingLines:0};
   const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
   const auxMode=()=>G.mode==='feed'||G.mode==='wash';
