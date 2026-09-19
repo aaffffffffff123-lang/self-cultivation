@@ -923,15 +923,16 @@ const SFX = (() => {
     tone(o, t, { f0: 1100, f1: 260, dur: 0.06, peak: 0.45 });
     burst(o, t, { dur: 0.015, peak: 0.5, type: 'highpass', f: 3000 });
   };
-  S.rip = (pan = 0, dur = 0.25, level = 1, crackle = 1) => {
+  S.rip = (pan = 0, dur = 0.25, level = 1, crackle = 1, cut = 20000, wet = 0.1) => {
     if (!ctx) return;
-    const t = ctx.currentTime, o = out(pan, 0.1);
+    const t = ctx.currentTime, o = out(pan, wet);
     const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain(), am = ctx.createOscillator(), ag = ctx.createGain();
     s.buffer = noise; f.type = 'highpass'; f.frequency.value = 1400;
     am.type = 'square'; am.frequency.setValueAtTime(90, t); am.frequency.linearRampToValueAtTime(40, t + dur);
     ag.gain.value = 0.25 * level * crackle; am.connect(ag); ag.connect(g.gain);
-    g.gain.setValueAtTime(0.3 * level, t); g.gain.linearRampToValueAtTime(0.0001, t + dur);
-    s.connect(f); f.connect(g); g.connect(o);
+    g.gain.setValueAtTime(0.3 * level, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = cut; lp.Q.value = .5;
+    s.connect(f); f.connect(lp); lp.connect(g); g.connect(o);
     s.start(t, Math.random()); s.stop(t + dur + 0.05); am.start(t); am.stop(t + dur + 0.05);
   };
   S.honk = (pan = 0) => {
@@ -4187,7 +4188,7 @@ function loseHair(d, n, force) {
     g.fillStyle = '#000';
     for (let i = 0; i < n + 1; i++) { g.beginPath(); g.ellipse(x + rnd(-10, 10), y + rnd(-6, 6), rnd(7, 13), rnd(5, 9), rnd(0, 3), 0, 7); g.fill(); }
     v.capAlpha.t.needsUpdate = true; }
-  SFX.rip(0, 0.2, 0.2, 0.55);   // 뭉텅
+    SFX.rip(0, 0.08, 0.12, 0.3, 2000, 0.03);   // 뭉텅
   popText('뭉텅!', v.headWorld(d, 0.05), 'hair', 32);
 }
 
