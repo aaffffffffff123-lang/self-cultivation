@@ -481,6 +481,9 @@ body .look-footer .look-history button{width:36px;min-width:36px;padding:0 5px}
 .ng-intro-card .btn:disabled{opacity:.5;cursor:default}
 .ng-intro-card .ng-kicker{font:800 15px var(--body);margin:0 0 12px;word-break:break-all}
 .ng-intro-card #ngGameTitle{font-size:clamp(46px,13vw,64px);margin:12px 0 10px}
+.ng-intro-card #ngTitleHeading{font-size:clamp(46px,13vw,64px);margin:0 0 10px}
+.ng-intro-card .ng-second{margin-top:11px;background:var(--paper)}
+.ng-intro-card #ngContinue[hidden]{display:none}
 .ng-intro-card .ng-sub{font:800 18px var(--body);margin:0 0 32px}
 body.ng-intro .dock,body.ng-intro .top-buttons,body.ng-intro #bubble{visibility:hidden}
 body.ng-intro.look-editing #lookModal{visibility:visible}
@@ -563,6 +566,12 @@ body.look-editing #ngAvoidLabel,body.ng-intro #ngAvoidLabel{visibility:hidden}
       <p id="ngNamePrivacy" class="ng-privacy">이름은 이 기기의 브라우저에만 저장됩니다.<br>게임 서버에는 절.대.로. 전송·저장하지 않습니다.</p>
       <button id="ngNameNext" class="btn" type="submit" disabled>준비 중…</button>
     </form>
+    <div id="ngTitle" hidden>
+      <h1 id="ngTitleHeading">나 기르기</h1>
+      <p class="ng-sub">나를.</p>
+      <button id="ngContinue" class="btn" type="button">이어서 기르기</button>
+      <button id="ngRestart" class="btn ng-second" type="button">새로 기르기</button>
+    </div>
     <div id="ngReveal" hidden>
       <p class="ng-kicker" id="ngIdentity"></p>
       <h1 id="ngGameTitle">나 기르기</h1>
@@ -583,7 +592,7 @@ body.look-editing #ngAvoidLabel,body.ng-intro #ngAvoidLabel{visibility:hidden}
   </svg>
 </a>
 
-<div id="fallback" role="status" style="display:flex"><div id="fallbackTitle">문 여는 중…</div><small id="fallbackDetail">3D 화면을 준비하고 있어요.</small><button id="retryGame" type="button" hidden>화면 다시 열기</button></div>
+<div id="fallback" role="status" style="display:flex"><div id="fallbackTitle">나 떠올리는 중…</div><small id="fallbackDetail">잠깐만요.</small><button id="retryGame" type="button" hidden>다시 떠올리기</button></div>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
 <defs>
@@ -1573,6 +1582,11 @@ S.batOffscreenCrash = (pan = 0) => {
   S.unlock = unlock; S.setOn = function(v){if(!v)S.waterStop();setOn(v);};
   return S;
 })();
+
+/* 버튼을 거치지 않고 화면 아무 데나 먼저 만져도 소리가 열리게 한다.
+   캡처 단계라 인트로·편집기가 덮고 있어도 먼저 받는다. 소리가 중간에 끊겨도 다음 입력에서 다시 붙는다. */
+for(const type of ['pointerdown','touchstart','mousedown','keydown'])
+  addEventListener(type,()=>SFX.unlock(),{capture:true,passive:true});
 
 /* ================= 추임새 ================= */
 
@@ -2992,6 +3006,7 @@ function removeParticle(i) {
   // Only standalone lens/temple fragments own their materials. A whole frame is a
   // clone sharing the avatar's resources; disposing it would break the worn pair.
   if(p.ownedFragment){p.obj.traverse(o=>{o.geometry?.dispose();if(o.material)for(const m of(Array.isArray(o.material)?o.material:[o.material]))m.dispose();});}
+  else if(p.fadeOwn){p.obj.traverse(o=>{if(o.material)for(const m of(Array.isArray(o.material)?o.material:[o.material]))m.dispose();});}
   const j=G.junk.indexOf(p.obj);if(j>=0)G.junk.splice(j,1);
 }
 
@@ -3049,7 +3064,12 @@ function updateParticles(dt, game) {
         if (sp < 0.45) { p.rest = true; p.vel.set(0, 0, 0); if (p.flat) { p.obj.rotation.x = p.flat.x; p.obj.rotation.z = p.flat.z; } }
       }
     }
-    if (p.fade && p.age > p.life - 1) { p.obj.traverse(o => { if (o.material) { o.material.transparent = true; o.material.opacity = Math.max(0, p.life - p.age); } }); }
+    if (p.fade && p.age > p.life - 1) {
+      // 머리카락은 머리 전체가 재질 두 개를 나눠 쓴다. 떨어진 가닥에서 그 재질의 투명도를 바로 건드리면
+      // 아직 머리에 붙어 있는 가닥과 먼저 떨어진 가닥까지 같이 흐려졌다 사라진다. 흐려지기 직전에 제 재질로 떼어 낸다.
+      if (!p.fadeOwn) { p.fadeOwn = true; p.obj.traverse(o => { if (o.material) o.material = Array.isArray(o.material) ? o.material.map(m => m.clone()) : o.material.clone(); }); }
+      p.obj.traverse(o => { if (o.material) { o.material.transparent = true; o.material.opacity = Math.max(0, p.life - p.age); } });
+    }
     if (p.age > p.life && !p.persist) { removeParticle(i); continue; }
   }
 }
@@ -7502,8 +7522,8 @@ window.__appearanceEditor=AppearanceEditor;
     } catch (error) {
       status.lastError = String(error?.message || error);
       console.error('화면 복구 실패:', error);
-      window.showGameError('화면을 복구하지 못했어요.',
-        '자동으로 재시작하지 않았어요. 화면 다시 열기를 누르면 다시 시작합니다.');
+      window.showGameError('나를 다시 떠올리지 못했어요.',
+        '「다시 떠올리기」를 누르면 처음부터 다시 시작합니다.');
     }
   }
 
@@ -7514,7 +7534,7 @@ window.__appearanceEditor=AppearanceEditor;
     e.preventDefault();
     window.__bootGuard.lost = true;
     cancelPointer(); endHug(); stopSocial(); clearAttacks();
-    window.showGameError('3D 화면을 복구하고 있어요.', '잠시만 기다려 주세요.');
+    window.showGameError('나를 다시 떠올리는 중이에요.', '잠깐만요.');
   });
   canvas.addEventListener('webglcontextrestored', request);
   document.addEventListener('visibilitychange', () => {
@@ -10098,13 +10118,13 @@ if (G.tool==='brick') {
     if(weight<0.001)return;
     v.root.updateMatrixWorld(true);
     const d=new THREE.Vector3(a.s*0.30,0.05,0.95).normalize();
-    const p=v.surfacePoint(d).addScaledVector(d,.085);   // 표면에서 실제 거리만큼 띄운다(좁은 얼굴에서도 손이 볼에 묻히지 않게)
+    const p=v.surfacePoint(d).addScaledVector(d,.10);   // 표면에서 실제 거리만큼 띄운다(좁은 얼굴에서도 손이 볼에 묻히지 않게)
     const world=v.headMesh.localToWorld(p.clone());
     const target=v.torso.worldToLocal(world);
     const origin=a.sh.position.clone(),delta=target.clone().sub(origin);
     const distance=delta.length();if(distance<0.001)return;
     const axis=delta.divideScalar(distance);
-    const L=Math.max(0.20,(distance+0.026)*0.5);
+    const L=Math.max(0.20,distance*0.58);
     armLengths(v,a,mix(0.20,L,weight));
     // 팔꿈치는 바깥·아래쪽으로 빠진다.
     const pole=new THREE.Vector3(a.s*0.9,-0.45,0.20).projectOnPlane(axis);
@@ -10780,7 +10800,8 @@ function ngPoseHug(v,dt){
   function beginIntro(){
     ready=true;G.ngIntro=true;introStage='name';
     document.body.classList.add('ng-intro');intro.hidden=false;
-    nameForm.hidden=false;$('#ngReveal').hidden=true;
+    nameForm.hidden=false;$('#ngReveal').hidden=true;$('#ngTitle').hidden=true;
+    intro.setAttribute('aria-labelledby','ngNameHeading');
     let saved='';try{saved=JSON.parse(localStorage.getItem(NAME_KEY)||'null')?.name||'';}catch(_){}
     nameInput.value=normName(saved||G.v?.look.name||'');
     $('#ngNameNext').disabled=false;$('#ngNameNext').textContent='나를 떠올리기';
@@ -10805,11 +10826,26 @@ function ngPoseHug(v,dt){
     intro.setAttribute('aria-labelledby','ngGameTitle');$('#ngIdentity').textContent=name;
     clearDialogue();$('#ngPlay').focus({preventScroll:true});
   }
-  $('#ngPlay').addEventListener('click',()=>{
+  function startPlaying(){
+    SFX.unlock();
     introStage='done';G.ngIntro=false;intro.hidden=true;document.body.classList.remove('ng-intro');
+    $('#ngTitle').hidden=true;
     clearDialogue();G.lastAct=G.time;G.lastSay=G.time;lastT=performance.now();fit();setHint();
     if(G.v){speak('', '', undefined, true);stats.openingLines++;}
-  });
+  }
+  $('#ngPlay').addEventListener('click',startPlaying);
+  // 시작 화면: 저장된 내가 있으면 이어서, 없으면 「새로 기르기」만 보인다.
+  function beginTitle(){
+    ready=true;G.ngIntro=true;introStage='title';
+    document.body.classList.add('ng-intro');intro.hidden=false;
+    nameForm.hidden=true;$('#ngReveal').hidden=true;$('#ngTitle').hidden=false;
+    $('#ngContinue').hidden=!APPEAR.seen;
+    intro.setAttribute('aria-labelledby','ngTitleHeading');
+    clearDialogue();if(G.v){G.v.state='stand';G.v.stateT=0;G.v.root.position.set(0,0,0);}
+    ($('#ngContinue').hidden?$('#ngRestart'):$('#ngContinue')).focus({preventScroll:true});
+  }
+  $('#ngContinue').addEventListener('click',()=>{if(introStage==='title')startPlaying();});
+  $('#ngRestart').addEventListener('click',()=>{if(introStage==='title')beginIntro();});
 
   /* Keep the eight-item grid intact; feeding and washing are mode buttons. */
   const modes=$('.modes');
@@ -11604,7 +11640,7 @@ function ngPoseHug(v,dt){
     updateSparkles(dt);v.root.updateMatrixWorld(true);protectPlayerArms();return result;
   };
   renderMode();showItemHelp();
-  window.__NG2={version:'NG4_20260919',config:CFG,beginIntro,afterAppearance,recover,dodgeChance,throwFood,cancelAux,
+  window.__NG2={version:'NG4_20260919',config:CFG,beginIntro,beginTitle,afterAppearance,recover,dodgeChance,throwFood,cancelAux,
     inspect:()=>({mode:G.mode,intro:introStage,foods:foods.length,foodPhases:foods.map(p=>p.phase),eating:!!eating,
       washing:!!auxPointer,water:water.count,waterDrops:waterDrops.length,stains:stains.length,crumbs:crumbs.length,foodPositions:foods.map(p=>({type:FOOD_MENU[p.type].name,phase:p.phase,xyz:p.g.position.toArray(),scale:p.g.scale.toArray()})),stats:{...stats},sparkles:sparks.count,health:G.v?health(G.v):0,dodgeChance:dodgeChance(G.v)})};
   if(window.__api)Object.assign(window.__api,{step,applyHit,comfort,startSocial,setHint,careSay,updateCareReply});
@@ -11730,13 +11766,11 @@ function boot() {
   fit();
   newVillain();
   // 처음 온 기기: 입장 연출 대신 기본 외모로 세워 두고 나를 떠올리기부터 띄운다. 한 번 열어 본 기기는 건너뛴다.
-  const firstVisit = !APPEAR.seen;
-  if (firstVisit) { const v = G.v; v.state = 'stand'; v.stateT = 0; v.root.position.set(0, 0, 0); v.root.rotation.set(0, 0, 0); }
-  else { $('#ngIntro').hidden = true; document.body.classList.remove('ng-intro'); }
+  { const v = G.v; v.state = 'stand'; v.stateT = 0; v.root.position.set(0, 0, 0); v.root.rotation.set(0, 0, 0); }
   requestAnimationFrame(t => { lastT = t; frame(t); });
   window.__game=G;window.__refreshGameFonts=()=>{document.fonts.ready.then(()=>{if(G.v)G.v.drawName();});};
   document.fonts?.ready?.then(()=>{bandCache.key='';fit();});window.__bootGuard.ready=true;$('#fallback').style.display='none';
-  if (firstVisit) window.__NG2.beginIntro();
+  window.__NG2.beginTitle();
   setHint();   // 편집기가 떠 있으면 안내문은 닫은 뒤에 뜬다
 }
 if (document.fonts && document.fonts.ready) {
@@ -11751,7 +11785,7 @@ if (document.fonts && document.fonts.ready) {
   let run=false;
   function start(){if(run)return;run=true;try{const s=document.createElement('script');s.textContent=document.getElementById('gameSource').textContent;document.body.appendChild(s);}catch(e){window.showGameError('게임을 시작하지 못했어요.',e.message);}}
   const sources=['https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js','https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js','https://unpkg.com/three@0.128.0/build/three.min.js'];
-  function load(i){if(window.THREE){start();return;}if(i>=sources.length){window.showGameError('3D 엔진을 불러오지 못했어요.','인터넷 연결이나 외부 콘텐츠 허용 상태를 확인한 뒤 다시 열어 주세요. 저장된 외모는 지워지지 않았어요.');return;}
+  function load(i){if(window.THREE){start();return;}if(i>=sources.length){window.showGameError('나를 떠올리지 못했어요.','인터넷 연결이나 외부 콘텐츠 허용 상태를 확인한 뒤 다시 열어 주세요. 저장된 외모는 지워지지 않았어요.');return;}
     const script=document.createElement('script');let settled=false;const end=()=>{if(settled)return;settled=true;clearTimeout(timer);script.onload=script.onerror=null;if(window.THREE)start();else{script.remove();load(i+1);}};
     script.src=sources[i];script.crossOrigin='anonymous';script.onload=end;script.onerror=end;const timer=setTimeout(end,4500);document.head.appendChild(script);
   }
