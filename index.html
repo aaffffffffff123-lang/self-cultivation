@@ -482,8 +482,9 @@ body .look-footer .look-history button{width:36px;min-width:36px;padding:0 5px}
 .ng-intro-card .ng-kicker{font:800 15px var(--body);margin:0 0 12px;word-break:break-all}
 .ng-intro-card #ngGameTitle{font-size:clamp(46px,13vw,64px);margin:12px 0 10px}
 .ng-intro-card #ngTitleHeading{font-size:clamp(46px,13vw,64px);margin:0 0 10px}
-.ng-intro-card .ng-second{margin-top:11px;background:var(--paper)}
 .ng-intro-card #ngContinue[hidden]{display:none}
+.ng-intro-card #ngContinue:not([hidden])~#ngRestart{margin-top:11px;background:var(--paper)}
+#ngTitleHeading:focus{outline:none}
 .ng-intro-card .ng-sub{font:800 18px var(--body);margin:0 0 32px}
 body.ng-intro .dock,body.ng-intro .top-buttons,body.ng-intro #bubble{visibility:hidden}
 body.ng-intro.look-editing #lookModal{visibility:visible}
@@ -570,7 +571,7 @@ body.look-editing #ngAvoidLabel,body.ng-intro #ngAvoidLabel{visibility:hidden}
       <h1 id="ngTitleHeading">나 기르기</h1>
       <p class="ng-sub">나를.</p>
       <button id="ngContinue" class="btn" type="button">이어서 기르기</button>
-      <button id="ngRestart" class="btn ng-second" type="button">새로 기르기</button>
+      <button id="ngRestart" class="btn" type="button">새로 기르기</button>
     </div>
     <div id="ngReveal" hidden>
       <p class="ng-kicker" id="ngIdentity"></p>
@@ -10118,16 +10119,16 @@ if (G.tool==='brick') {
     if(weight<0.001)return;
     v.root.updateMatrixWorld(true);
     const d=new THREE.Vector3(a.s*0.30,0.05,0.95).normalize();
-    const p=v.surfacePoint(d).addScaledVector(d,.10);   // 표면에서 실제 거리만큼 띄운다(좁은 얼굴에서도 손이 볼에 묻히지 않게)
+    const p=v.surfacePoint(d).addScaledVector(d,.115);   // 표면에서 실제 거리만큼 띄운다(좁은 얼굴에서도 손이 볼에 묻히지 않게)
     const world=v.headMesh.localToWorld(p.clone());
     const target=v.torso.worldToLocal(world);
     const origin=a.sh.position.clone(),delta=target.clone().sub(origin);
     const distance=delta.length();if(distance<0.001)return;
     const axis=delta.divideScalar(distance);
-    const L=Math.max(0.20,distance*0.58);
+    const L=Math.max(0.20,distance*0.54);
     armLengths(v,a,mix(0.20,L,weight));
     // 팔꿈치는 바깥·아래쪽으로 빠진다.
-    const pole=new THREE.Vector3(a.s*0.9,-0.45,0.20).projectOnPlane(axis);
+    const pole=new THREE.Vector3(a.s*0.55,-0.75,0.45).projectOnPlane(axis);
     if(pole.lengthSq()<0.00001)pole.set(a.s,0,0).projectOnPlane(axis);
     pole.normalize();
     const elbow=origin.clone().addScaledVector(axis,distance*0.5)
@@ -10842,7 +10843,7 @@ function ngPoseHug(v,dt){
     $('#ngContinue').hidden=!APPEAR.seen;
     intro.setAttribute('aria-labelledby','ngTitleHeading');
     clearDialogue();if(G.v){G.v.state='stand';G.v.stateT=0;G.v.root.position.set(0,0,0);}
-    ($('#ngContinue').hidden?$('#ngRestart'):$('#ngContinue')).focus({preventScroll:true});
+    $('#ngTitleHeading').setAttribute('tabindex','-1');$('#ngTitleHeading').focus({preventScroll:true});
   }
   $('#ngContinue').addEventListener('click',()=>{if(introStage==='title')startPlaying();});
   $('#ngRestart').addEventListener('click',()=>{if(introStage==='title')beginIntro();});
