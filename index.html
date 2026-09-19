@@ -508,10 +508,7 @@ body .ng-scroll-frame[hidden]{display:none!important}
 .ng-scroll-arrow[data-dir="-1"]{left:-4px}.ng-scroll-arrow[data-dir="1"]{right:-4px}
 .ng-scroll-arrow[hidden],body.tools-grid .ng-scroll-arrow{display:none!important}
 body .tool-scroll.more-right{mask-image:none!important;-webkit-mask-image:none!important}
-#ngAvoidHelp{margin:6px 0 10px;font-size:11px;line-height:1.55;color:var(--muted)}
-#ngSoundGuide{padding:12px 0;font-size:12px;line-height:1.65}
-#ngSoundGuide summary{cursor:pointer;font-weight:800}
-#ngSoundGuide p{margin:6px 0}
+
 #ngStorageInfo{font-size:11px;color:var(--muted);line-height:1.65;margin:8px 0}
 @keyframes ngHelpIn{from{opacity:.5;transform:translateY(2px)}to{opacity:1;transform:none}}
 @media(max-width:430px){.look-title h2{font-size:20px}.look-header-actions{gap:5px}.look-header-actions #lookCancel{font-size:11.5px;padding:0 9px}.look-footer-actions #lookApply{font-size:17px;padding:0 12px}.look-history{gap:5px}.look-history button{width:36px;min-width:36px;padding:0 5px}}
@@ -535,7 +532,7 @@ body .dock .mode{white-space:nowrap;font-size:clamp(12px,3.35vw,17px)!important}
 #ngAvoidLabel:active{transform:translateY(2px);box-shadow:0 1px 0 #c4156e}
 #ngAvoidLabel:has(input:checked){background:#ffe0ef}
 #ngAvoidLabel input{width:15px;height:15px;min-width:15px;margin:0;accent-color:#ff2e97;cursor:pointer}
-#ngAvoidLabel:focus-within{outline:2px solid var(--ink);outline-offset:2px}
+#ngAvoidLabel:has(input:focus-visible){outline:2px solid var(--ink);outline-offset:2px}
 /* 혐규오락실 얼굴 버튼: 바퀴벌레 게임과 같은 그림, 오른쪽 위 빈 귀퉁이 */
 #arcadeFace{position:fixed;z-index:61;right:calc(6px + env(safe-area-inset-right,0px));top:calc(11px + env(safe-area-inset-top,0px));display:block;width:38px;height:38px;padding:6px;line-height:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 #arcadeFace svg{display:block;width:100%;height:100%;filter:drop-shadow(0 0 1.5px #fff) drop-shadow(1px 2px 1.5px rgba(0,0,0,.35))}
@@ -3137,8 +3134,21 @@ function updateBubble(v) {
   // 머리 위 자리가 모자라면 화면 위에 붙이기만 한다. 반대편으로 넘기지 않는다(가로는 계속 머리를 따라간다).
   if (topPx < minTop) topPx = minTop;
   left = clamp(left, 8, innerWidth - bw - 8);
-  // 왼쪽 위 설정 버튼과 겹치면 버튼 오른쪽으로 비킨다.
-  if (topPx < btn.bottom + 6 && left < btn.right + 6) left = Math.min(btn.right + 8, innerWidth - bw - 8);
+  // 위쪽 띠(설정·회피형·오락실 얼굴)에 가리면 옆으로 비키고, 옆에도 자리가 없을 때만 띠 아래로 내린다.
+  const bars = [btn, $('#ngAvoidLabel'), $('#arcadeFace')]
+    .map(x => x instanceof Element ? x.getBoundingClientRect() : x)
+    .filter(r => r && r.width > 0 && r.height > 0);
+  const hits = (x, y) => bars.some(r => x < r.right + 6 && x + bw > r.left - 6 && y < r.bottom + 6 && y + bh > r.top - 6);
+  if (hits(left, topPx)) {
+    const lo = 8, hi = Math.max(8, innerWidth - bw - 8);
+    let best = null;
+    for (const r of bars) for (const x of [r.right + 8, r.left - 8 - bw]) {
+      const c = clamp(x, lo, hi);
+      if (!hits(c, topPx) && (best === null || Math.abs(c - left) < Math.abs(best - left))) best = c;
+    }
+    if (best !== null) left = best;
+    else topPx = Math.max(topPx, Math.max(...bars.map(r => r.bottom)) + 6);
+  }
   bubble.classList.toggle('side', beside);
   bubble.style.transform = `translate(${left}px,${topPx}px)`;
   bubble.style.setProperty('--tail', clamp(hx - left + 6, 16, bw - 30) + 'px');
@@ -3170,7 +3180,39 @@ const raycaster = new THREE.Raycaster();
 /* ================= 카메라 맞춤 ================= */
 // 도구칸 바로 위에 항상 비워 두는 띠(내 말풍선·안내문 자리). 캐릭터 발은 이 띠 위에 온다.
 // 세로가 짧은 화면에서는 캐릭터가 너무 작아지지 않게 띠를 한 줄 높이로 줄인다.
-const talkBand = () => innerHeight >= 760 ? 78 : 58;
+const BAND_GAP = 14;      // 말풍선 꼬리 끝과 도구칸 사이
+const BAND_CLEAR = 4;     // 말풍선 위와 발끝 사이
+const FOOT_MARGIN = .02;  // 발밑으로 남기는 바닥(월드 단위)
+let bandProbe = null, bandCache = { key: '', value: 0 };
+function bandSamples() {
+  // 띠에 뜰 수 있는 말 중 가장 긴 것 몇 개만 재면 충분하다.
+  const care = [];
+  for (const k in CARE_LINES) for (const t of CARE_LINES[k]) care.push(t);
+  const mine = window.__SC_PLAYER_BUBBLE_V1?.lines || [];
+  const longest = list => [...new Set(list)].sort((a, b) => b.length - a.length).slice(0, 4);
+  return [...longest(care).map(t => [false, t]), ...longest(mine).map(t => [t.length > 16, t])];
+}
+function talkBand() {
+  const key = innerWidth + 'x' + innerHeight;
+  if (bandCache.key === key) return bandCache.value;
+  if (!bandProbe) {
+    bandProbe = document.createElement('div');
+    bandProbe.setAttribute('aria-hidden', 'true');
+    bandProbe.innerHTML = '<span></span>';
+    $('.dock').append(bandProbe);
+  }
+  let tall = 0;
+  for (const [long, text] of bandSamples()) {
+    bandProbe.className = 'player-bubble' + (long ? ' long' : '');
+    bandProbe.style.cssText = 'position:absolute;left:0;right:auto;top:0;bottom:auto;visibility:hidden;animation:none';
+    bandProbe.firstChild.textContent = text;
+    tall = Math.max(tall, bandProbe.getBoundingClientRect().height);
+  }
+  bandProbe.className = '';
+  bandProbe.style.cssText = 'display:none';
+  bandCache = { key, value: Math.round((tall || 40) + BAND_GAP) };
+  return bandCache.value;
+}
 function fit() {
   if (G.editing) { AppearanceEditor.resize(); return; }
   const W = innerWidth, H = innerHeight;
@@ -3185,16 +3227,16 @@ function fit() {
   let grid = false;
   if (W <= 600) {
     document.body.classList.add('tools-grid');
-    const spare = dock.getBoundingClientRect().top - TALK_BAND - 10 - topH;
+    const spare = dock.getBoundingClientRect().top - TALK_BAND - BAND_CLEAR - topH;
     // 그리드로 해도 캐릭터가 8% 넘게 작아지지 않을 때만 그리드.
-    grid = spare >= 0.87 * 1.99 * W / 1.5;
+    grid = spare >= 0.87 * (1.93 + FOOT_MARGIN) * W / 1.5;
   }
   document.body.classList.toggle('tools-grid', grid);
 
-  const botH = H - dock.getBoundingClientRect().top + 10 + TALK_BAND;
+  const botH = H - dock.getBoundingClientRect().top + BAND_CLEAR + TALK_BAND;
   const avail = Math.max(100, H - topH - botH);
   const L = G.v?.look;
-  const y0 = -.06;
+  const y0 = -FOOT_MARGIN;
   const y1 = L
     ? Math.max(1.93, 1.06 * L.bodyH + G.v.headStandY() + HEAD_R * L.headH + (['spiky', 'mohawk'].includes(L.style) ? .17 : .07))
     : 1.93;
@@ -4569,22 +4611,35 @@ function releaseGrab() {
  * No microphone input, speech recognition, or sentiment meter is used.
  * Every social gesture is interruptible. Combat timings are not modified.
  */
-const CARE_LINES={
-  comfort:['힘들었지? 오늘도 정말 수고했어.','넌 잘하고 있어. 내가 알아.','오늘도 버티느라 애썼어.','잠깐 쉬어도 괜찮아.','괜찮아. 지금은 아무 말 안 해도 돼.','너무 애쓰지 않아도 괜찮아.','여기서는 괜찮은 척 안 해도 돼.','오늘 하루도 네 편이 되어줄게.'],
-  hand:['오늘도 정말 고생 많았어.','잘 버텼어. 정말로.','잠깐, 이렇게 쉬고 있자.'],
-  love:['사랑해. 그냥, 말해주고 싶었어.','네가 여기 있어서 좋아.','아무것도 안 해도 돼.'],
-  thumb:['잘했어. 정말 잘했어.','지금도 충분히 잘하고 있어.'],
-  clap:['오늘도 정말 수고했어.','너한테 박수 쳐주고 싶었어.','여기까지 온 것만으로도 잘했어.'],
-  five:['손 줘. 하이파이브.','천천히 해도 돼.'],
-  hug:['힘들었지?','말 안 해도 돼. 그냥 이러고 있자.','괜찮아. 잠깐 기대고 있어.','오늘도 버티느라 애썼어.','지금은 조금 쉬어도 괜찮아.']
-};
 
-function nextCareLine(group){
-  const own=CARE_LINES[group]||CARE_LINES.comfort;
-  // 풀이 최근 기록(5개)보다 작으면 "5회 안에 한 말 금지"가 성립할 수 없어 고정 순환이 된다. 공용 위로 대사를 섞어 넓힌다.
-  const list=own.length>6?own:[...own,...CARE_LINES.comfort];
-  return chooseDialogue(list,'player');
+// 어느 몸짓에서 해도 말이 되는 위로. 모든 몸짓이 여기서 고른다.
+const CARE_COMMON=[
+  '힘들었지? 오늘도 정말 수고했어.','넌 잘하고 있어. 내가 알아.','오늘도 버티느라 애썼어.','잠깐 쉬어도 괜찮아.',
+  '괜찮아. 지금은 아무 말 안 해도 돼.','너무 애쓰지 않아도 괜찮아.','여기서는 괜찮은 척 안 해도 돼.','오늘 하루도 네 편이 되어줄게.',
+  '오늘도 정말 고생 많았어.','잘 버텼어. 정말로.','네가 여기 있어서 좋아.','아무것도 안 해도 돼.',
+  '잘했어. 정말 잘했어.','지금도 충분히 잘하고 있어.','오늘도 정말 수고했어.','여기까지 온 것만으로도 잘했어.',
+  '천천히 해도 돼.','힘들었지?','지금은 조금 쉬어도 괜찮아.'
+];
+// 그 몸짓이 아니면 말이 안 되는 것만 따로 둔다. 그 몸짓을 시작할 때 먼저 나온다.
+const CARE_ONLY={
+  hand:['잠깐, 이렇게 쉬고 있자.'],
+  hug:['말 안 해도 돼. 그냥 이러고 있자.','괜찮아. 잠깐 기대고 있어.','잠깐, 이렇게 쉬고 있자.'],
+  love:['사랑해. 그냥, 말해주고 싶었어.'],
+  clap:['너한테 박수 쳐주고 싶었어.'],
+  five:['손 줘. 하이파이브.']
+};
+// 몸짓별로 나올 수 있는 말 전체(자막 띠 높이 계산·디버그용).
+const CARE_LINES=Object.fromEntries(['comfort','hand','love','thumb','clap','five','hug']
+  .map(k=>[k,[...(CARE_ONLY[k]||[]),...CARE_COMMON]]));
+
+function nextCareLine(group,opening=false){
+  const only=CARE_ONLY[group]||[];
+  // 몸짓을 막 시작했을 때는 전용 멘트를 먼저 쓰고, 최근에 한 말이면 공용에서 고른다.
+  return chooseDialogue([...only,...CARE_COMMON],'player',opening&&only.length?pick(only):'');
 }
+
+
+
 const CareVoice=(()=>{
   let speech=null,utterance=null,voices=[],serial=0,watch=0;
   try{speech=window.speechSynthesis||null;}catch(e){}
@@ -4605,7 +4660,7 @@ const CareVoice=(()=>{
 function careSay(group='comfort',force=false){
   if(G.mode!=='care'||G.editing||!G.v||!['stand','hug'].includes(G.v.state))return;
   if(!force && (G.time-(G.careLastVoice??-100)<3.4 || (G.react && (!G.react.fired || G.v.mouth.talk>0))))return;
-  const text=nextCareLine(group);if(!text)return;rememberDialogue('player',text);G.careLastVoice=G.time;G.lastCareLine={text,t:G.time};G.careCaptionUntil=G.time+Math.max(3.8,text.length*.16+1);
+  const text=nextCareLine(group,force);if(!text)return;rememberDialogue('player',text);G.careLastVoice=G.time;G.lastCareLine={text,t:G.time};G.careCaptionUntil=G.time+Math.max(3.8,text.length*.16+1);
   const box=$('#careCaption');box.hidden=false;$('#careCaptionText').textContent=text;window.__SC_ROOM_UI_V1?.hideHelp();
   CareVoice.say(text);G.lastAct=G.time;G.lastSay=G.time;
   // The character does not lip-sync the player's words; it answers afterwards in its own bubble.
@@ -7472,7 +7527,7 @@ window.__appearanceEditor=AppearanceEditor;
   window.__SC_TEXTURE_RESUME = { request, backup, status };
 })();
 /* SC_TEXTURE_RESUME_20260918A_END */
-window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,startSocial,stopSocial,requestHighFive,careSay,CARE_LINES,CareVoice,poseCareArm,careFace,careIsAwkward,clearAttacks,gestureExtra,step,poseAttack,doContact,RIG,scene,camera,renderer,TOOL_SPEC,normaliseLook,randomLook,impactStopDuration,moodOf,updateVillain,liveContactPoint});
+window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,startSocial,stopSocial,requestHighFive,careSay,CARE_LINES,CARE_COMMON,CARE_ONLY,CareVoice,poseCareArm,careFace,careIsAwkward,clearAttacks,gestureExtra,step,poseAttack,doContact,RIG,scene,camera,renderer,TOOL_SPEC,normaliseLook,randomLook,impactStopDuration,moodOf,updateVillain,liveContactPoint});
 
 
 
@@ -8824,7 +8879,7 @@ if (G.tool==='brick') {
     if (document.hidden) reset();
   });
 
-  window.__SC_PLAYER_BUBBLE_V1 = { say, hide, reset };
+  window.__SC_PLAYER_BUBBLE_V1 = { say, hide, reset, lines: [...LINES, ...Object.values(RETORTS)] };
 
   if (window.__api) {
     Object.assign(window.__api, {
@@ -10539,7 +10594,7 @@ if (marshmallowButton) {
 
     /* 내 말풍선(때리기의 욕 · 달래기의 위로 말). 도구칸 바로 위 띠 안, 오른쪽. */
     .dock > .player-bubble, .dock > #careCaption {
-      position:absolute; left:auto; right:16px; top:auto; bottom:calc(100% + 16px); transform:none;
+      position:absolute; left:auto; right:16px; top:auto; bottom:calc(100% + 14px); transform:none;
       width:max-content; max-width:min(300px, calc(100% - 32px)); box-sizing:border-box;
       padding:8px 13px; border:2.5px solid var(--ink); border-radius:17px;
       background:#fff2b3; color:var(--ink); box-shadow:0 3px 0 var(--ink);
@@ -10547,7 +10602,7 @@ if (marshmallowButton) {
       pointer-events:none; z-index:1; animation:playerBubbleIn .16s ease-out;
     }
     .dock > #careCaption p { margin:0; font:inherit }
-    .dock > .player-bubble.long { font-size:15px; max-width:min(330px, calc(100% - 32px)) }
+    .dock > .player-bubble.long { font-size:15px; max-width:min(344px, calc(100% - 24px)) }
     .dock > .player-bubble::after, .dock > #careCaption::after {
       content:''; position:absolute; right:28px; bottom:-10px; width:16px; height:16px;
       background:#fff2b3; border-right:2.5px solid var(--ink); border-bottom:2.5px solid var(--ink);
@@ -10878,13 +10933,12 @@ function ngPoseHug(v,dt){
 
   const settings=$('#settingsModal .sheet');
   const avoid=document.createElement('label');avoid.id='ngAvoidLabel';
-  avoid.innerHTML='<input type="checkbox" id="ngAvoid"><span>나는 회피형이야</span>';
+  avoid.innerHTML='<input type="checkbox" id="ngAvoid" aria-label="나는 회피형이야"><span>회피형</span>';
   $('#settingsBtn').after(avoid);
   const storage=document.createElement('p');storage.id='ngStorageInfo';
   storage.textContent='이름·외모·추가 대사는 이 브라우저에만 보관합니다. 서버 저장은 하지 않습니다.';
-  const sounds=document.createElement('details');sounds.id='ngSoundGuide';
-  sounds.innerHTML='<summary>효과음은 무슨 뜻인가요?</summary><p>퍽·짝: 주먹과 손바닥 타격<br>깡·텅: 금속 도구 타격<br>짤랑: 안경 파손 / 짧은 딩: 이빨이 빠짐<br>쿵·와장창: 바닥·벽 충돌이나 의자 충격<br>뜨득·까각: 줄을 걸거나 당기는 소리<br>띠링: 힘 모으기 완료<br>쩝·냠: 먹는 소리 / 탁: 가벼운 조각이 튕김<br>반짝: 치료·씻기기 완료</p><p>큰 파열음은 별도의 크리티컬 알림이 아니라 충돌·파손 효과입니다. 일반 타격음은 유지하고 큰 충돌음만 따로 낮췄습니다.</p>';
-  settings.append(sounds,storage);
+
+  settings.append(storage);
   PREF.avoid=!!PREF.avoid;
   $('#ngAvoid').checked=PREF.avoid;
   $('#ngAvoid').addEventListener('change',e=>{PREF.avoid=e.target.checked;store.set('badguy.prefs',PREF);});
@@ -11680,7 +11734,8 @@ function boot() {
   if (firstVisit) { const v = G.v; v.state = 'stand'; v.stateT = 0; v.root.position.set(0, 0, 0); v.root.rotation.set(0, 0, 0); }
   else { $('#ngIntro').hidden = true; document.body.classList.remove('ng-intro'); }
   requestAnimationFrame(t => { lastT = t; frame(t); });
-  window.__game=G;window.__refreshGameFonts=()=>{document.fonts.ready.then(()=>{if(G.v)G.v.drawName();});};window.__bootGuard.ready=true;$('#fallback').style.display='none';
+  window.__game=G;window.__refreshGameFonts=()=>{document.fonts.ready.then(()=>{if(G.v)G.v.drawName();});};
+  document.fonts?.ready?.then(()=>{bandCache.key='';fit();});window.__bootGuard.ready=true;$('#fallback').style.display='none';
   if (firstVisit) window.__NG2.beginIntro();
   setHint();   // 편집기가 떠 있으면 안내문은 닫은 뒤에 뜬다
 }
