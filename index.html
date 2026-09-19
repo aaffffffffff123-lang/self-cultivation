@@ -1712,25 +1712,301 @@ const rim = new THREE.DirectionalLight(col('#ffffff'), 0.55); rim.position.set(-
 /* ---- 방 ---- */
 const room = new THREE.Group(); scene.add(room);
 (function buildRoom() {
-  // 바닥 (반복 타일)
-  const ft = canvasTex(256, 256);
-  { const g = ft.g; g.fillStyle = '#ffe3b8'; g.fillRect(0, 0, 256, 256); g.fillStyle = '#ffd09a'; g.fillRect(0, 0, 128, 128); g.fillRect(128, 128, 128, 128);
-    g.strokeStyle = '#e9b27a'; g.lineWidth = 3; g.strokeRect(0, 0, 256, 256); g.beginPath(); g.moveTo(128, 0); g.lineTo(128, 256); g.moveTo(0, 128); g.lineTo(256, 128); g.stroke(); }
-  ft.t.wrapS = ft.t.wrapT = THREE.RepeatWrapping; ft.t.repeat.set(14, 10);
+  // 바닥: 어린이집 EVA 퍼즐매트 (한 칸 0.48, 네 색이 어긋나게 깔린다)
+  const ft = canvasTex(1024, 1024);
+  { const g = ft.g, S = 256, K = 34, N = 4;
+    const MAT = ['#bdaf97', '#bd9c4b', '#61a38e', '#6795b8'];  // 조명을 먹으면 크림·버터·민트·하늘색이 된다
+    const path = (x, y) => {
+      g.beginPath();
+      g.moveTo(x, y);
+      g.lineTo(x + S / 2 - K, y);
+      g.arc(x + S / 2, y, K, Math.PI, 0, true);                      // 위: 홈
+      g.lineTo(x + S, y);
+      g.lineTo(x + S, y + S / 2 - K);
+      g.arc(x + S, y + S / 2, K, -Math.PI / 2, Math.PI / 2, false);  // 오른쪽: 돌기
+      g.lineTo(x + S, y + S);
+      g.lineTo(x + S / 2 + K, y + S);
+      g.arc(x + S / 2, y + S, K, 0, Math.PI, false);                 // 아래: 돌기
+      g.lineTo(x, y + S);
+      g.lineTo(x, y + S / 2 + K);
+      g.arc(x, y + S / 2, K, Math.PI / 2, -Math.PI / 2, true);       // 왼쪽: 홈
+      g.closePath();
+    };
+    for (let j = -1; j <= N; j++) for (let i = -1; i <= N; i++) {
+      const ii = ((i % N) + N) % N, jj = ((j % N) + N) % N;
+      path(i * S, j * S);
+      g.fillStyle = MAT[(ii + 2 * jj) % MAT.length]; g.fill();
+      g.save(); g.clip();
+      g.strokeStyle = 'rgba(255,255,255,.22)'; g.lineWidth = 12; path(i * S, j * S); g.stroke();  // 매트 두께
+      g.restore();
+      g.strokeStyle = 'rgba(46,56,96,.50)'; g.lineWidth = 4; path(i * S, j * S); g.stroke();      // 이음매
+    }
+  }
+  ft.t.wrapS = ft.t.wrapT = THREE.RepeatWrapping; ft.t.repeat.set(28 / 1.92, 20 / 1.92);
   const floor = mesh(new THREE.PlaneGeometry(28, 20), mat('#ffffff', { map: ft.t, roughness: 0.8 }), room);
   floor.rotation.x = -Math.PI / 2; floor.castShadow = false;
-  // 벽 (민트 타일)
-  const wt = canvasTex(256, 256);
-  { const g = wt.g; g.fillStyle = '#9ce3d1'; g.fillRect(0, 0, 256, 256); g.fillStyle = '#b4ecde';
-    for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) if ((x + y) % 2 === 0) g.fillRect(x * 64 + 3, y * 64 + 3, 58, 58);
-    g.strokeStyle = '#f4fffb'; g.lineWidth = 5; for (let i = 0; i <= 4; i++) { g.beginPath(); g.moveTo(i * 64, 0); g.lineTo(i * 64, 256); g.moveTo(0, i * 64); g.lineTo(256, i * 64); g.stroke(); } }
-  wt.t.wrapS = wt.t.wrapT = THREE.RepeatWrapping; wt.t.repeat.set(10, 3.5);
-  const wall = mesh(new THREE.PlaneGeometry(28, 9.8), mat('#ffffff', { map: wt.t, roughness: 0.4 }), room);
-  wall.position.set(0, 4.9, -1.7); wall.castShadow = false;
+  // 벽: 위는 하늘 벽지, 허리 아래는 크림 벽지. 경계는 아래 노란 띠가 덮는다.
+  const WSPLIT = 1.18;
+  const wallTex = draw => { const t = canvasTex(256, 256); draw(t.g); t.t.needsUpdate = true; t.t.wrapS = t.t.wrapT = THREE.RepeatWrapping; return t.t; };
+  const skyTex = wallTex(g => {
+    const W = 256, C = 64;
+    g.fillStyle = '#bad2e8'; g.fillRect(0, 0, W, W);
+    const puff = (x, y, r) => {
+      g.fillStyle = '#cedeec';
+      [[-r * .9, r * .18, r * .62], [0, -r * .18, r * .82], [r * .92, r * .20, r * .58]].forEach(d => { g.beginPath(); g.arc(x + d[0], y + d[1], d[2], 0, Math.PI * 2); g.fill(); });
+      g.fillRect(x - r * 1.5, y + r * .18, r * 3, r * .62);
+    };
+    const dot = (x, y, r, c) => { g.fillStyle = c; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); };
+    const star = (x, y, r, c) => {
+      g.fillStyle = c; g.beginPath();
+      for (let k = 0; k < 8; k++) { const t = k / 8 * Math.PI * 2 - Math.PI / 2, q = k % 2 ? r * .34 : r; g[k ? 'lineTo' : 'moveTo'](x + Math.cos(t) * q, y + Math.sin(t) * q); }
+      g.closePath(); g.fill();
+    };
+    for (let j = 0; j < 4; j++) for (let i = 0; i < 4; i++) {
+      const x = i * C + (j % 2 ? C / 2 : 0) + C / 2, y = j * C + C / 2, k = (i + 2 * j) % 4;
+      for (const dx of [-W, 0, W]) {
+        const px = x + dx;
+        if (k === 0) puff(px, y, 11);
+        else if (k === 1) star(px, y, 8, '#cedeec');
+        else if (k === 2) dot(px, y, 5, '#a4c6e2');
+        else star(px, y, 6, '#a4c6e2');
+      }
+    }
+  });
+  const creamTex = wallTex(g => {
+    const W = 256, C = 64;
+    g.fillStyle = '#d6d4c8'; g.fillRect(0, 0, W, W);
+    g.fillStyle = '#d3cdbd';
+    for (let i = 0; i < 8; i++) g.fillRect(i * 32 + 9, 0, 14, W);
+    const petal = (x, y, r, c) => {
+      g.fillStyle = c;
+      for (let k = 0; k < 5; k++) { const t = k / 5 * Math.PI * 2 - Math.PI / 2; g.beginPath(); g.arc(x + Math.cos(t) * r * .95, y + Math.sin(t) * r * .95, r * .6, 0, Math.PI * 2); g.fill(); }
+      g.fillStyle = '#d0c7ad'; g.beginPath(); g.arc(x, y, r * .48, 0, Math.PI * 2); g.fill();
+    };
+    for (let j = 0; j < 4; j++) for (let i = 0; i < 4; i++) {
+      const x = i * C + (j % 2 ? C / 2 : 0) + C / 2, y = j * C + C / 2, k = (i + j) % 2;
+      for (const dx of [-W, 0, W]) petal(x + dx, y, k ? 7.5 : 6, k ? '#ccb1c2' : '#aec6aa');
+    }
+  });
+  skyTex.repeat.set(20, (9.8 - WSPLIT) / 1.4);
+  creamTex.repeat.set(20, WSPLIT / 1.4);
+  const wallUp = mesh(new THREE.PlaneGeometry(28, 9.8 - WSPLIT), mat('#ffffff', { map: skyTex, roughness: 0.4 }), room);
+  wallUp.position.set(0, WSPLIT + (9.8 - WSPLIT) / 2, -1.7); wallUp.castShadow = false;
+  const wall = mesh(new THREE.PlaneGeometry(28, WSPLIT), mat('#ffffff', { map: creamTex, roughness: 0.4 }), room);
+  wall.position.set(0, WSPLIT / 2, -1.7); wall.castShadow = false;
   // 걸레받이
-  const base = mesh(new THREE.BoxGeometry(28, 0.16, 0.06), mat('#ff8fb1'), room); base.position.set(0, 0.08, -1.66);
+  const base = mesh(new THREE.BoxGeometry(28, 0.16, 0.06), mat('#cac2b2'), room); base.position.set(0, 0.08, -1.66);
   // 벽 가운데 노란 띠
-  const band = mesh(new THREE.BoxGeometry(28, 0.12, 0.03), mat('#ffd23f'), room); band.position.set(0, 1.18, -1.68); band.castShadow = false;
+  const band = mesh(new THREE.BoxGeometry(28, 0.12, 0.03), mat('#c5bea6'), room); band.position.set(0, 1.18, -1.68); band.castShadow = false;
+
+  // 벽 장식: 오려 붙인 종이 그림
+  {
+    const CUT = '#d7dfe2', LINE = '#4c5788';
+    const cut = (g, draw, w) => {
+      g.save(); g.lineJoin = 'round'; g.lineCap = 'round';
+      g.strokeStyle = 'rgba(50,60,100,.20)'; g.lineWidth = w + 12; g.translate(4, 6); draw(g); g.stroke(); g.restore();
+      g.save(); g.lineJoin = 'round'; g.lineCap = 'round';
+      g.strokeStyle = CUT; g.lineWidth = w; draw(g); g.stroke(); g.restore();
+    };
+    const ink = (g, p, w, c) => { g.save(); g.lineJoin = 'round'; g.lineCap = 'round'; g.strokeStyle = c || LINE; g.lineWidth = w; p(g); g.stroke(); g.restore(); };
+
+    const drawSun = (g, W, H) => {
+      const cx = W / 2, cy = H / 2, r = W * .26;
+      const rays = gg => {
+        gg.beginPath();
+        for (let i = 0; i < 12; i++) {
+          const a = i / 12 * Math.PI * 2, l = i % 2 ? r * 1.66 : r * 1.44;
+          gg.moveTo(cx + Math.cos(a) * r * .92, cy + Math.sin(a) * r * .92);
+          gg.lineTo(cx + Math.cos(a) * l, cy + Math.sin(a) * l);
+        }
+      };
+      const body = gg => { gg.beginPath(); gg.arc(cx, cy, r, 0, Math.PI * 2); };
+      cut(g, rays, 30); cut(g, body, 26);
+      ink(g, rays, 18, '#d79e2a');
+      g.fillStyle = '#d7b63a'; body(g); g.fill();
+      g.fillStyle = '#d7c670'; g.beginPath(); g.arc(cx - r * .2, cy - r * .24, r * .56, 0, Math.PI * 2); g.fill();
+      ink(g, body, 8, '#b98c26');
+      g.fillStyle = '#d78ca6'; g.beginPath(); g.arc(cx - r * .5, cy + r * .24, r * .17, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.arc(cx + r * .5, cy + r * .24, r * .17, 0, Math.PI * 2); g.fill();
+      ink(g, gg => { gg.beginPath(); gg.moveTo(cx - r * .44, cy - r * .16); gg.quadraticCurveTo(cx - r * .28, cy - r * .44, cx - r * .12, cy - r * .16); gg.moveTo(cx + r * .12, cy - r * .16); gg.quadraticCurveTo(cx + r * .28, cy - r * .44, cx + r * .44, cy - r * .16); }, 12, '#3f4874');
+      ink(g, gg => { gg.beginPath(); gg.moveTo(cx - r * .32, cy + r * .2); gg.quadraticCurveTo(cx, cy + r * .66, cx + r * .32, cy + r * .2); }, 13, '#3f4874');
+    };
+
+    const drawBalloon = (g, W, H) => {
+      const cx = W / 2, top = H * .09, rw = W * .26, rh = H * .26, cy = top + rh;
+      const shell = gg => {
+        gg.beginPath();
+        gg.moveTo(cx, top);
+        gg.bezierCurveTo(cx + rw * 1.34, top + rh * .16, cx + rw * 1.10, cy + rh * .74, cx + rw * .30, cy + rh * 1.04);
+        gg.lineTo(cx - rw * .30, cy + rh * 1.04);
+        gg.bezierCurveTo(cx - rw * 1.10, cy + rh * .74, cx - rw * 1.34, top + rh * .16, cx, top);
+        gg.closePath();
+      };
+      const basket = gg => { gg.beginPath(); gg.moveTo(cx - rw * .32, cy + rh * 1.54); gg.lineTo(cx + rw * .32, cy + rh * 1.54); gg.lineTo(cx + rw * .25, cy + rh * 1.96); gg.lineTo(cx - rw * .25, cy + rh * 1.96); gg.closePath(); };
+      const ropes = gg => { gg.beginPath(); gg.moveTo(cx - rw * .27, cy + rh * 1.04); gg.lineTo(cx - rw * .30, cy + rh * 1.54); gg.moveTo(cx + rw * .27, cy + rh * 1.04); gg.lineTo(cx + rw * .30, cy + rh * 1.54); };
+      cut(g, shell, 26); cut(g, basket, 22);
+      g.save(); shell(g); g.clip();
+      const cols = ['#d77e93', '#d7b35b', '#78b7bc', '#d7b35b', '#d77e93'], bw = rw * 2.8 / cols.length;
+      for (let i = 0; i < cols.length; i++) { g.fillStyle = cols[i]; g.fillRect(cx - rw * 1.4 + i * bw, top - 10, bw + 1, rh * 3.2); }
+      g.fillStyle = 'rgba(255,255,255,.30)'; g.beginPath(); g.ellipse(cx - rw * .46, cy - rh * .5, rw * .32, rh * .46, -.3, 0, Math.PI * 2); g.fill();
+      g.fillStyle = 'rgba(40,50,90,.16)'; g.fillRect(cx + rw * .55, top - 10, rw, rh * 3.2);
+      g.restore();
+      ink(g, shell, 8, '#46507e');
+      ink(g, ropes, 7, '#5b6493');
+      g.fillStyle = '#ae8756'; basket(g); g.fill(); ink(g, basket, 8, '#46507e');
+    };
+
+    const drawWhale = (g, W, H) => {
+      const L = W * .09, R = W * .67, w = R - L, my = H * .60, hh = H * .215;
+      const body = gg => {
+        gg.beginPath();
+        gg.moveTo(L, my + hh * .20);
+        gg.bezierCurveTo(L - w * .02, my - hh * 1.10, L + w * .26, my - hh * 1.42, L + w * .60, my - hh * 1.02);
+        gg.bezierCurveTo(L + w * .84, my - hh * .76, R, my - hh * .46, R, my - hh * .20);
+        gg.lineTo(R, my + hh * .14);
+        gg.bezierCurveTo(L + w * .82, my + hh * 1.02, L + w * .38, my + hh * 1.28, L, my + hh * .20);
+        gg.closePath();
+      };
+      const fluke = gg => {
+        gg.beginPath();
+        gg.moveTo(R - w * .06, my - hh * .16);
+        gg.lineTo(R + w * .36, my - hh * 1.48);
+        gg.quadraticCurveTo(R + w * .17, my - hh * .30, R + w * .40, my + hh * .92);
+        gg.lineTo(R - w * .06, my + hh * .12);
+        gg.closePath();
+      };
+      const fin = gg => {
+        gg.beginPath();
+        gg.moveTo(L + w * .46, my + hh * .86);
+        gg.bezierCurveTo(L + w * .64, my + hh * 1.62, L + w * .88, my + hh * 1.34, L + w * .84, my + hh * .70);
+        gg.closePath();
+      };
+      const spout = gg => {
+        gg.beginPath();
+        gg.moveTo(L + w * .22, my - hh * 1.30);
+        gg.quadraticCurveTo(L + w * .05, my - hh * 2.10, L + w * .24, my - hh * 2.58);
+        gg.moveTo(L + w * .27, my - hh * 1.32);
+        gg.quadraticCurveTo(L + w * .42, my - hh * 2.04, L + w * .66, my - hh * 2.20);
+      };
+      cut(g, fluke, 24); cut(g, fin, 20); cut(g, body, 26);
+      g.fillStyle = '#408bc4'; fluke(g); g.fill(); ink(g, fluke, 8, '#32669c');
+      g.fillStyle = '#529ed5'; body(g); g.fill();
+      g.save(); body(g); g.clip();
+      g.fillStyle = '#b4d0e6'; g.beginPath();
+      g.moveTo(L - w * .1, my + hh * .12);
+      g.bezierCurveTo(L + w * .26, my + hh * .62, L + w * .70, my + hh * .34, R + w * .1, my - hh * .10);
+      g.lineTo(R + w * .1, my + hh * 2); g.lineTo(L - w * .1, my + hh * 2); g.closePath(); g.fill();
+      for (let i = 0; i < 6; i++) ink(g, gg => { gg.beginPath(); gg.moveTo(L + w * (.10 + i * .105), my + hh * .42); gg.lineTo(L + w * (.14 + i * .105), my + hh * 1.22); }, 6, 'rgba(70,110,150,.42)');
+      g.fillStyle = 'rgba(255,255,255,.24)'; g.beginPath(); g.ellipse(L + w * .40, my - hh * .92, w * .26, hh * .24, -.12, 0, Math.PI * 2); g.fill();
+      g.restore();
+      g.fillStyle = '#408bc4'; fin(g); g.fill(); ink(g, fin, 7, '#32669c');
+      ink(g, body, 8, '#32669c');
+      ink(g, spout, 14, '#a9cadf');
+      g.fillStyle = '#a9cadf';
+      [[.10, 2.86, .085], [.44, 2.50, .07], [.76, 2.34, .055]].forEach(d => { g.beginPath(); g.arc(L + w * d[0], my - hh * d[1], hh * d[2], 0, Math.PI * 2); g.fill(); });
+      ink(g, gg => { gg.beginPath(); gg.moveTo(L + w * .01, my + hh * .34); gg.quadraticCurveTo(L + w * .16, my + hh * .92, L + w * .40, my + hh * .74); }, 7.5, '#2f3a63');
+      g.fillStyle = '#2f3a63'; g.beginPath(); g.arc(L + w * .18, my - hh * .30, hh * .25, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#fff'; g.beginPath(); g.arc(L + w * .145, my - hh * .40, hh * .10, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#d78ca6'; g.beginPath(); g.arc(L + w * .10, my + hh * .10, hh * .15, 0, Math.PI * 2); g.fill();
+    };
+
+    const drawFlowers = (g, W, H) => {
+      const base = H * .92;
+      ink(g, gg => { gg.beginPath(); for (let i = 0; i < 10; i++) { const x = W * (.04 + i * .105); gg.moveTo(x, base); gg.quadraticCurveTo(x + W * .012, base - H * .22, x + W * .042, base - H * .34); } }, 9, '#6a9e65');
+      const stem = (x, h, c) => {
+        ink(g, gg => { gg.beginPath(); gg.moveTo(x, base); gg.quadraticCurveTo(x - h * .14, base - h * .5, x, base - h); }, 9, '#6a9e65');
+        const r = H * .10;
+        cut(g, gg => { gg.beginPath(); for (let k = 0; k < 6; k++) { const t = k / 6 * Math.PI * 2; gg.moveTo(x + Math.cos(t) * r * .95 + r * .6, base - h + Math.sin(t) * r * .95); gg.arc(x + Math.cos(t) * r * .95, base - h + Math.sin(t) * r * .95, r * .6, 0, Math.PI * 2); } }, 16);
+        g.fillStyle = c;
+        for (let k = 0; k < 6; k++) { const t = k / 6 * Math.PI * 2; g.beginPath(); g.arc(x + Math.cos(t) * r * .95, base - h + Math.sin(t) * r * .95, r * .6, 0, Math.PI * 2); g.fill(); }
+        g.fillStyle = '#d7ba63'; g.beginPath(); g.arc(x, base - h, r * .5, 0, Math.PI * 2); g.fill();
+      };
+      stem(W * .18, H * .52, '#d78ca6');
+      stem(W * .45, H * .70, '#d7ba63');
+      stem(W * .74, H * .46, '#8eb0dd');
+    };
+
+    const drawCloud = (g, W, H) => {
+      const c = gg => {
+        gg.beginPath();
+        gg.moveTo(W * .08, H * .74);
+        gg.arc(W * .30, H * .58, H * .30, Math.PI * .88, Math.PI * 1.72, false);
+        gg.arc(W * .56, H * .44, H * .36, Math.PI * 1.22, Math.PI * 1.88, false);
+        gg.arc(W * .78, H * .62, H * .26, Math.PI * 1.5, Math.PI * .28, false);
+        gg.closePath();
+      };
+      cut(g, c, 18);
+      g.fillStyle = '#d7dfe2'; c(g); g.fill();
+      ink(g, c, 6, 'rgba(90,105,150,.40)');
+    };
+
+    const drawRainbow = (g, W, H) => {
+      const cx = W / 2, cy = H * .99, R = W * .43, band = R * .125;
+      const cols = ['#d78ca6', '#d7a765', '#d7ba63', '#7fae79', '#8eb0dd', '#a795cc'];
+      const arcAt = i => gg => { gg.beginPath(); gg.arc(cx, cy, R - i * band, Math.PI, 0); };
+      g.save(); g.lineCap = 'butt';
+      g.strokeStyle = 'rgba(50,60,100,.18)'; g.lineWidth = band * 6 + 20; g.translate(4, 6); arcAt(2.5)(g); g.stroke(); g.restore();
+      g.save(); g.lineCap = 'butt';
+      g.strokeStyle = CUT; g.lineWidth = band * 6 + 20; arcAt(2.5)(g); g.stroke();
+      for (let i = 0; i < cols.length; i++) { g.strokeStyle = cols[i]; g.lineWidth = band; arcAt(i)(g); g.stroke(); }
+      g.restore();
+    };
+
+    const rrect = (gg, x, y, w, h, r) => {
+      gg.beginPath();
+      gg.moveTo(x + r, y); gg.lineTo(x + w - r, y); gg.arcTo(x + w, y, x + w, y + r, r);
+      gg.lineTo(x + w, y + h - r); gg.arcTo(x + w, y + h, x + w - r, y + h, r);
+      gg.lineTo(x + r, y + h); gg.arcTo(x, y + h, x, y + h - r, r);
+      gg.lineTo(x, y + r); gg.arcTo(x, y, x + r, y, r);
+      gg.closePath();
+    };
+
+    const drawPoster = (g, W, H) => {
+      const pad = W * .06, cw = W - pad * 2;
+      g.fillStyle = 'rgba(50,60,100,.20)'; rrect(g, pad + 5, pad + 7, cw, cw, W * .05); g.fill();
+      g.fillStyle = CUT; rrect(g, pad, pad, cw, cw, W * .05); g.fill();
+      ink(g, gg => rrect(gg, pad, pad, cw, cw, W * .05), 7, '#8b94b8');
+      const cell = cw / 2, shapes = ['#d78ca6', '#d7ba63', '#8eb0dd', '#78b7bc'];
+      for (let i = 0; i < 4; i++) {
+        const cx = pad + cell * (i % 2) + cell / 2, cy = pad + cell * ((i / 2) | 0) + cell / 2 - cell * .10;
+        const r = cell * .28;
+        g.fillStyle = shapes[i];
+        g.beginPath();
+        if (i === 0) g.arc(cx, cy, r, 0, Math.PI * 2);
+        else if (i === 1) { g.moveTo(cx, cy - r); g.lineTo(cx + r * .92, cy + r * .74); g.lineTo(cx - r * .92, cy + r * .74); g.closePath(); }
+        else if (i === 2) g.rect(cx - r * .86, cy - r * .86, r * 1.72, r * 1.72);
+        else { for (let k = 0; k < 10; k++) { const t = k / 10 * Math.PI * 2 - Math.PI / 2, q = k % 2 ? r * .46 : r; g[k ? 'lineTo' : 'moveTo'](cx + Math.cos(t) * q, cy + Math.sin(t) * q); } g.closePath(); }
+        g.fill();
+        ink(g, gg => { gg.beginPath(); if (i === 0) gg.arc(cx, cy, r, 0, Math.PI * 2); else if (i === 1) { gg.moveTo(cx, cy - r); gg.lineTo(cx + r * .92, cy + r * .74); gg.lineTo(cx - r * .92, cy + r * .74); gg.closePath(); } else if (i === 2) gg.rect(cx - r * .86, cy - r * .86, r * 1.72, r * 1.72); else { for (let k = 0; k < 10; k++) { const t = k / 10 * Math.PI * 2 - Math.PI / 2, q = k % 2 ? r * .46 : r; gg[k ? 'lineTo' : 'moveTo'](cx + Math.cos(t) * q, cy + Math.sin(t) * q); } gg.closePath(); } }, 6, '#6a739b');
+        g.fillStyle = '#6a739b'; g.font = '700 ' + Math.round(cell * .26) + 'px sans-serif';
+        g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText(String(i + 1), cx, cy + r + cell * .21);
+      }
+    };
+
+    const deco = (cw, ch, w, h, x, y, draw, flip) => {
+      const t = canvasTex(cw, ch); draw(t.g, cw, ch); t.t.needsUpdate = true;
+      const m = mesh(new THREE.PlaneGeometry(w, h), mat('#ffffff', { map: t.t, transparent: true, roughness: .85, depthWrite: false, side: THREE.DoubleSide }), room);
+      m.position.set(x, y, -1.655); m.castShadow = false;
+      if (flip) m.scale.x = -1;
+      return m;
+    };
+    // 폰에서도 보이는 자리 (가운데는 캐릭터가 선다)
+    deco(512, 512, .68, .68, -0.62, 2.32, drawSun);
+    deco(512, 256, .80, .40, -0.60, 1.58, drawWhale);
+    deco(512, 512, .64, .64, 0.62, 2.26, drawBalloon);
+    deco(256, 128, .55, .28, 0.05, 2.64, drawCloud);
+    deco(512, 256, .92, .46, 0.74, 0.31, drawFlowers);
+    deco(512, 256, .92, .46, -1.58, 0.31, drawFlowers);
+    // 넓은 화면에서만 보이는 자리 (시계는 x 1.2~1.8 / y 2.15~2.75 이므로 비워 둔다)
+    deco(512, 256, .95, .475, 1.60, 1.60, drawWhale, true);
+    deco(512, 256, 1.60, .80, 2.95, 1.75, drawRainbow);
+    deco(256, 128, .82, .41, -2.36, 2.38, drawCloud);
+    deco(512, 512, .58, .58, -3.18, 2.14, drawBalloon);
+    deco(512, 256, .92, .46, 3.34, 0.31, drawFlowers);
+    deco(512, 256, .92, .46, -3.22, 0.31, drawFlowers);
+    deco(512, 512, .86, .86, -2.40, 1.58, drawPoster);
+  }
   // 시계
   const clock = new THREE.Group(); clock.position.set(1.5, 2.45, -1.62); room.add(clock);
   const face = mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.06, 40), mat('#fffdf4'), clock); face.rotation.x = Math.PI / 2;
@@ -1740,17 +2016,10 @@ const room = new THREE.Group(); scene.add(room);
   const hm = mesh(new THREE.BoxGeometry(0.03, 0.14, 0.01), mat('#1f2a5c'), hh, false); hm.position.y = 0.06;
   const mm = mesh(new THREE.BoxGeometry(0.02, 0.21, 0.01), mat('#1f2a5c'), mh, false); mm.position.y = 0.09;
   room.userData.clock = { hh, mh };
-  // 반성 의자
+  // 어린이 의자 (원목 다리)
   const stool = new THREE.Group(); stool.position.set(-2.1, 0, -0.9); room.add(stool);
-  const seat = mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.07, 28), mat('#2f9bff', { roughness: 0.35 }), stool); seat.position.y = 0.48;
-  for (let i = 0; i < 3; i++) { const a = i / 3 * Math.PI * 2; const leg = mesh(new THREE.CylinderGeometry(0.02, 0.025, 0.48, 8), mat('#dfe3f2', { metalness: 0.5, roughness: 0.3 }), stool); leg.position.set(Math.cos(a) * 0.16, 0.24, Math.sin(a) * 0.16); }
-  // 대걸레 양동이
-  const bucket = new THREE.Group(); bucket.position.set(2.2, 0, -0.8); room.add(bucket);
-  mesh(new THREE.CylinderGeometry(0.22, 0.18, 0.36, 24, 1, true), mat('#ffd23f', { side: THREE.DoubleSide }), bucket).position.y = 0.18;
-  const water = mesh(new THREE.CircleGeometry(0.2, 24), mat('#7fc8f5', { roughness: 0.1 }), bucket); water.rotation.x = -Math.PI / 2; water.position.y = 0.3;
-  const stick = mesh(new THREE.CylinderGeometry(0.018, 0.018, 1.5, 8), mat('#b8834f'), bucket); stick.position.set(0.02, 0.9, 0); stick.rotation.z = -0.22;
-  const mop = mesh(new THREE.SphereGeometry(0.12, 12, 8), mat('#f4f4f4', { roughness: 1 }), bucket); mop.scale.set(1, 0.7, 1); mop.position.set(-0.06, 0.28, 0);
-  const handle = mesh(new THREE.TorusGeometry(0.2, 0.01, 6, 20, Math.PI), mat('#1f2a5c'), bucket); handle.position.y = 0.36;
+  const seat = mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.07, 28), mat('#b37754', { roughness: 0.55 }), stool); seat.position.y = 0.48;
+  for (let i = 0; i < 3; i++) { const a = i / 3 * Math.PI * 2; const leg = mesh(new THREE.CylinderGeometry(0.02, 0.025, 0.48, 8), mat('#a07e55', { roughness: 0.7 }), stool); leg.position.set(Math.cos(a) * 0.16, 0.24, Math.sin(a) * 0.16); }
 })();
 
 /* ---- 핏자국 바닥 (가운데만 고해상도) ---- */
@@ -1761,8 +2030,8 @@ const splat = canvasTex(1024, 1024);
   const cx = 512, cy = (0 - (SPLAT.cz - SPLAT.size / 2)) / SPLAT.size * 1024;
   const r = 0.72 / SPLAT.size * 1024;
   g.save(); g.translate(cx, cy);
-  g.fillStyle = '#1f2a5c'; g.beginPath(); g.arc(0, 0, r + 8, 0, Math.PI * 2); g.fill();
-  ['#ff3b3b', '#fffdf4', '#ff3b3b', '#fffdf4', '#ffd23f'].forEach((c, i) => { g.fillStyle = c; g.beginPath(); g.arc(0, 0, r * (1 - i * 0.19), 0, Math.PI * 2); g.fill(); });
+  g.fillStyle = '#6f82a0'; g.beginPath(); g.arc(0, 0, r + 8, 0, Math.PI * 2); g.fill();
+  ['#7fa89b', '#bdb4a4', '#bda265', '#bdb4a4', '#7fa89b'].forEach((c, i) => { g.fillStyle = c; g.beginPath(); g.arc(0, 0, r * (1 - i * 0.19), 0, Math.PI * 2); g.fill(); });
   g.restore();
   splat.base = g.getImageData(0, 0, 1024, 1024);
 })();
