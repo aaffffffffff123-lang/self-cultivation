@@ -2586,8 +2586,8 @@ ntag.renderOrder = 2;
   // 머리 중심에서 턱끝까지의 거리(얼굴 길이·턱 길이 반영).
   chinDrop(){const L=this.look;return HEAD_R*L.headH*(1+.43*(L.jawLength-1));}
   // 머리 중심을 목 관절에서 얼마나 위에 둘지. 얼굴·턱이 길어진 만큼 위로 올려
-  // 턱끝이 몸통 .50(칼라 위)보다 내려가지 않게 한다 → 얼굴이 가슴·이름표를 먹지 않는다.
-  headStandY(){return Math.max(.31,this.chinDrop()-.06);}
+  // 턱끝을 목 관절 위 .032에 둔다 → 얼굴 길이와 상관없이 칼라 위로 목이 한 마디 남는다 → 얼굴이 가슴·이름표를 먹지 않는다.
+  headStandY(){return Math.max(.31,this.chinDrop()+.032);}
 
   fitNeck(){
     const L=this.look,neck=this.neck;if(!neck)return;
@@ -7141,10 +7141,10 @@ const AppearanceEditor=(()=>{
     }else{
       const key=[E.full,E.w,E.h].concat(Object.keys(L).filter(k=>!R[k]&&k!=='name'&&!/^#/.test(String(L[k]))).map(k=>L[k])).join('|');
       if(!fitFrame||fitFrame.key!==key){
-        // 틀은 목 관절(pivotY) 기준으로 잡는다. 얼굴·턱을 끝까지 늘려도 턱끝은 목 관절 아래 .06을 넘지 않고
+        // 틀은 목 관절(pivotY) 기준으로 잡는다. 얼굴·턱을 끝까지 늘려도 턱끝은 목 관절 위 .032에 고정되고
         // 정수리만 올라가므로, 슬라이더를 움직이는 동안 틀이 흔들리지 않는다.
         const upW=R.headW[1]/L.headW;
-        const maxLift=Math.max(.31,HEAD_R*R.headH[1]*(1+.43*(R.jawLength[1]-1))-.06);
+        const maxLift=Math.max(.31,HEAD_R*R.headH[1]*(1+.43*(R.jawLength[1]-1))+.032);
         const hairTop=Math.max(0,headBox.max.y-headY-HEAD_R*L.headH);   // 머리카락이 정수리 위로 솟은 높이
         const headTop=maxLift+HEAD_R*R.headH[1]+hairTop+.02;
         const headBottom=.08;
