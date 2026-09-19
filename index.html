@@ -7799,6 +7799,7 @@ window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,startSoci
   };
 
   window.__SC_HYGIENE = {
+    followLegs(v) { if (!v) return; const s = state(v); if (s.stains.length) followLegShape(v, s); },
     level(v) { const s=state(v); return Math.max(s.wet,s.dirt); },
     wash(v, amount) {
       const s=state(v),a=Math.max(0,Number(amount)||0);
@@ -11472,6 +11473,7 @@ function ngPoseHug(v,dt){
   const oldRender=renderer.render;
   renderer.render=function(sc,cam){
     for(const v of actors)if(v.hostScene===sc)syncEyeMask(v);
+    if(window.__game&&window.__game.v&&window.__game.v.hostScene===sc)window.__SC_HYGIENE&&window.__SC_HYGIENE.followLegs(window.__game.v);
     return oldRender.call(this,sc,cam);
   };
   const oldStep=step;
