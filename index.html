@@ -5240,26 +5240,21 @@ function fixActorHandPose(v) {
     // 턱 아래나 얼굴 안에 들어간 손은 얼굴 앞쪽으로 빼낸다.
     // 공 하나로 어림잡지 않고 얼굴 길이·너비·턱이 반영된 실제 표면에서 잰다.
     const radius = v.surfacePoint(p.clone().normalize()).length() + padding;
-    if (p.lengthSq() < radius * radius) {
+    const pushed = p.lengthSq() < radius * radius;
+    if (pushed) {
       p.z = Math.sqrt(Math.max(
         0,
         radius * radius - p.x * p.x - p.y * p.y
       )) + .006;
     }
 
-    // 줄넘기에 걸려 있으면 목 옆의 줄을 쥔다.
-    const grip = ropeGripPoint(v, a);
-    const target = grip || v.torso.worldToLocal(
+    // 줄에 걸려 있어도 손을 줄에 붙이지 않는다. 버둥거리는 팔은 그대로 두고,
+    // 얼굴을 뚫는 손만 얼굴 앞으로 빼낸다.
+    if (v.state === 'tether' && !pushed) continue;
+
+    const target = v.torso.worldToLocal(
       v.headMesh.localToWorld(p)
     );
-
-    // 줄을 쥐었을 때 손가락이 뻗어야 할 방향: 목에서 플레이어 손 쪽으로 나가는 줄의 방향(몸통 좌표).
-    let ropeAxis = null;
-    if (grip && v._ropeFree) {
-      const [rf, rt] = v._ropeFree[a.s > 0 ? 0 : 1];
-      const d = v.torso.worldToLocal(rt.clone()).sub(v.torso.worldToLocal(rf.clone()));
-      if (d.lengthSq() > 1e-8) ropeAxis = d.normalize();
-    }
 
     const origin = a.sh.position.clone();
     const delta = target.clone().sub(origin);
@@ -5320,10 +5315,7 @@ function fixActorHandPose(v) {
 
     
     
-// 손가락(-Y)이 뻗는 방향. 손은 손목보다 .14쯤 더 아래로 뻗어 있어서,
-// 팔뚝을 그대로 이은 방향을 쓰면 줄을 쥘 때 손바닥·손가락이 목 안으로 들어간다.
-// 줄을 쥔 동안에는 손가락을 줄을 따라 목 바깥으로 뻗게 한다.
-const y = ropeAxis ? ropeAxis.clone().negate() : foreDir.clone().negate();
+const y = foreDir.clone().negate();
 
 // 손을 내미는 애원 자세에서는 손바닥을 위로 향하게 한다.
 // 손가락이 화면 쪽을 향해도 손목의 기준축이 뒤집히지 않는다.
@@ -5333,11 +5325,9 @@ const reaching =
   !v._guardV2 &&
   !v._wipeV2;
 
-const reference = ropeAxis
-  ? V3(target.x, 0, target.z)   // 손등이 목 바깥 → 손바닥이 목을 향한다
-  : reaching
-    ? V3(0, -1, 0)       // 손등 아래쪽 → 손바닥 위쪽
-    : V3(a.s * .15, 0, 1);
+const reference = reaching
+  ? V3(0, -1, 0)       // 손등 아래쪽 → 손바닥 위쪽
+  : V3(a.s * .15, 0, 1);
 
 const z = reference.projectOnPlane(y);
 
@@ -7692,7 +7682,7 @@ window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,startSoci
       v.headPivot.rotation.y = lerp(v.headPivot.rotation.y, Math.sin(t * 23) * .014 * q, k);
       v.headPivot.rotation.z = lerp(v.headPivot.rotation.z, Math.sin(t * 37) * .013 * q, k);
       v.body.rotation.x = lerp(v.body.rotation.x, -.035 * q, k);
-      neckHands(v, k);
+
       for (const e of v.eyes) {
         const open = .94 - .045 * Math.sin(t * 17 + e.s);
         e.lidU.rotation.x = lerp(e.lidU.rotation.x, lerp(1.62, -1.25, open), k);
@@ -8750,7 +8740,7 @@ if (G.tool==='brick') {
     '여기서는 괜찮은 척 안 해도 돼.': ['brush', '토 나와'],
     '오늘 하루도 네 편이 되어줄게.': ['inspect', '자위하고 있네'],
     '오늘도 정말 고생 많았어.': ['stop', '닥쳐 좀'],
-    '잘 버텼어. 정말로.': ['inspect', '맞어 니가 잘하는 건 기대도 안 함 ㅋㅋ'],
+    '잘 버텼어. 정말로.': ['inspect', '버티는 거나 겨우 해라'],
     '잠깐, 이렇게 쉬고 있자.': ['stop', '넌 이제 그만 좀 쉬어야 돼 진짜로'],
     '사랑해. 그냥, 말해주고 싶었어.': ['inspect', '이 새끼 자위해요!'],
     '네가 여기 있어서 좋아.': ['brush', '우웩'],
