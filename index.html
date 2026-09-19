@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#8fdcc9">
-<title>나쁜 놈 패기</title>
-<meta name="game-build" content="care-deadpan-20260917">
-<meta name="game-fix" content="SC_STABILITY_20260918A">
+<title>나 기르기</title>
+<meta name="game-build" content="nagireugi-1-20260918">
+<meta name="game-fix" content="NG1_20260919D">
 <!-- Based on eed8691 / blob 2a5cfb8; existing gameplay patches retained. -->
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' fill='%23ffd23f' stroke='%231f2a5c' stroke-width='5'/%3E%3Cpath d='M20 26l8 4M44 26l-8 4M22 44q10-8 20 0' stroke='%231f2a5c' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,15 +32,6 @@ button:focus-visible,textarea:focus-visible{outline:3px solid var(--care);outlin
 /* 상단 */
 .top{position:fixed;left:0;right:0;top:0;padding:calc(10px + var(--safe-t)) 14px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;pointer-events:none;z-index:5}
 .top > *{pointer-events:auto}
-.title-block{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0}
-.logo{font-family:var(--display);font-size:25px;line-height:1;letter-spacing:-.5px;color:var(--sun);
-  -webkit-text-stroke:5px var(--ink);paint-order:stroke fill;text-shadow:0 3px 0 var(--ink);margin:2px 0 0 2px;white-space:nowrap}
-.crime-tag{display:flex;align-items:center;gap:7px;max-width:min(62vw,430px);background:var(--paper);border:2.5px solid var(--ink);
-  border-radius:6px;padding:5px 10px 5px 6px;box-shadow:0 3px 0 var(--ink);transform:rotate(-1.2deg);transform-origin:left center}
-.crime-tag b{flex:none;font-family:var(--display);font-weight:400;font-size:13px;background:var(--hit);color:#fff;border-radius:3px;padding:3px 6px 2px}
-.crime-tag span{font-weight:800;font-size:13.5px;line-height:1.25;letter-spacing:-.3px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.crime-tag.stamp{animation:stamp .42s cubic-bezier(.2,1.6,.4,1)}
-@keyframes stamp{0%{transform:rotate(-8deg) scale(2.2);opacity:0}60%{opacity:1}100%{transform:rotate(-1.2deg) scale(1)}}
 .top-buttons{display:flex;gap:7px;flex:none}
 .pill{height:40px;min-width:40px;border:2.5px solid var(--ink);background:var(--paper);border-radius:12px;box-shadow:0 3px 0 var(--ink);
   display:flex;align-items:center;justify-content:center;gap:5px;padding:0 9px;font-weight:800;font-size:13.5px;white-space:nowrap}
@@ -88,10 +79,6 @@ button:focus-visible,textarea:focus-visible{outline:3px solid var(--care);outlin
 .sheet{width:min(100%,420px);max-height:calc(100% - 20px);overflow:auto;background:var(--paper);border:3px solid var(--ink);border-radius:20px;box-shadow:0 6px 0 var(--ink);padding:18px 18px 16px}
 .sheet h2{margin:0 0 12px;font-family:var(--display);font-weight:400;font-size:26px;letter-spacing:.3px}
 .sheet .close{float:right;margin:-4px -4px 0 0}
-.stats{display:grid;grid-template-columns:1fr auto;gap:0;margin:0 0 6px;border-top:2px solid var(--ink)}
-.stats div{padding:10px 2px;border-bottom:1.5px dashed #1f2a5c55;font-weight:700;font-size:15px}
-.stats div:nth-child(even){font-family:var(--display);font-size:22px;text-align:right}
-.stats .red{color:var(--hit)}.stats .blue{color:var(--care)}
 .small{font-size:12.5px;color:var(--muted);line-height:1.5;margin:8px 0 0}
 .row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1.5px dashed #1f2a5c40;font-weight:700}
 .switch{width:52px;height:30px;border-radius:15px;border:2.5px solid var(--ink);background:#dfe3f2;position:relative;flex:none}
@@ -103,34 +90,21 @@ textarea{width:100%;min-height:120px;margin-top:8px;border:2.5px solid var(--ink
 .btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
 .btn.wide{width:100%;margin-top:12px}
 
-/* 반성문 */
-.letter{width:min(100%,400px);max-height:calc(100% - 20px);overflow:auto;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='34'%3E%3Cpath d='M0 33.5h10' stroke='%23b9cdea' stroke-width='1'/%3E%3C/svg%3E");
-  border:3px solid var(--ink);border-radius:6px;box-shadow:0 6px 0 var(--ink);padding:18px 22px 20px;transform:rotate(-1deg);animation:paper .45s cubic-bezier(.2,1.3,.4,1)}
-@keyframes paper{from{transform:translateY(60px) rotate(6deg);opacity:0}}
-.letter h2{margin:0 0 6px;text-align:center;font-family:var(--display);font-weight:400;font-size:34px;letter-spacing:8px}
-.letter p{margin:0;font-weight:700;font-size:15.5px;line-height:34px;letter-spacing:-.3px;word-break:keep-all}
-.letter .sign{text-align:right;margin-top:6px}
-.letter .seal{display:inline-block;margin-left:6px;width:40px;height:40px;border:3px solid var(--hit);border-radius:50%;color:var(--hit);font-family:var(--display);font-size:14px;line-height:34px;text-align:center;transform:rotate(-14deg);vertical-align:middle}
-.letter .seal.drop{animation:seal .35s .35s cubic-bezier(.2,1.6,.4,1) backwards}
-@keyframes seal{from{transform:scale(2.4) rotate(-30deg);opacity:0}}
 
 #fallback{position:fixed;inset:0;display:none;align-items:center;justify-content:center;text-align:center;padding:30px;font-weight:800;z-index:30;background:var(--mint)}
 
 @media (min-width:760px){
-  .logo{font-size:32px}
-  .crime-tag span{font-size:15px}
   .tool svg{width:46px;height:46px}
   .tool{font-size:12.5px}
 }
 @media (max-width:460px){
   .pill .label{display:none}
   .hint{font-size:11.5px;padding:5px 11px}
-  .crime-tag{max-width:calc(100vw - 160px)}
 }
 @media (max-width:380px){
   .tool svg{width:36px;height:36px}
 }
-@media (prefers-reduced-motion:reduce){.pop,.crime-tag.stamp,.letter,.letter .seal.drop{animation-duration:.01s}}
+@media (prefers-reduced-motion:reduce){.pop{animation-duration:.01s}}
 /* ===== 외모 만들기: 독립 초안 / 실시간 3D ===== */
 .pill.appearance{background:#b9efdf;position:relative}
 .pill.appearance.locked::after{content:'';position:absolute;right:3px;top:3px;width:7px;height:7px;border:1.5px solid var(--ink);border-radius:50%;background:var(--hit)}
@@ -371,25 +345,19 @@ body.look-editing>.top,body.look-editing>.dock,body.look-editing>#bubble,body.lo
 /* In-game quick actions stay finger-sized as well. */
 @media(max-width:600px){
   .top{padding:calc(10px + var(--safe-t)) 8px 0;display:block}
-  .title-block{width:100%;gap:21px}
-  .logo{font-size:23px;margin-top:3px}
   .top-buttons{position:absolute;right:8px;top:calc(8px + var(--safe-t));gap:4px}
   .top-buttons .pill{height:44px;width:44px;min-width:44px;padding:0;border-radius:12px}
   .top-buttons .pill .label{display:none}
   .top-buttons .pill svg{width:23px;height:23px}
-  .crime-tag{max-width:100%;margin-top:0}
-  .crime-tag span{font-size:13px}
   .dock{padding-left:6px;padding-right:6px}
   .panel{padding:6px}.tools{gap:4px}
   .mode{height:44px}
   .tool{font-size:12px;min-height:64px}.tool svg{width:40px;height:40px}
 }
-@media(max-width:345px){.logo{font-size:20px}.top-buttons{gap:2px}}
+@media(max-width:345px){.top-buttons{gap:2px}}
 @media(prefers-reduced-motion:reduce){.look-status{transition:none}}
 
 /* Impact edition: existing mobile editor stays untouched. */
-.tool-label{position:absolute;right:10px;bottom:calc(100% + 6px);align-self:center;max-width:min(210px,64vw);padding:6px 12px;border-radius:10px;background:#fffdf4ef;border:2px solid var(--ink);font-size:11px;line-height:1.35;text-align:center;box-shadow:0 2px 0 var(--ink);pointer-events:none}
-.tool-label b{display:block;font-size:13px;letter-spacing:.4px}.tool-label small{display:block;font-size:10px;font-weight:700;color:var(--muted)}
 #hitTools .tool{min-height:64px;min-width:0}#hitTools .tool:active{transform:translateY(2px)}
 #fallback{flex-direction:column;gap:12px;word-break:keep-all}#fallback button{min-height:46px;padding:8px 16px;border:2px solid var(--ink);border-radius:12px;background:var(--paper);font-weight:800}
 #fallback small{font-size:12px;max-width:360px;line-height:1.5;color:var(--muted);word-break:break-word}
@@ -401,44 +369,25 @@ body.look-editing>.top,body.look-editing>.dock,body.look-editing>#bubble,body.lo
 .care-strip .tool{flex:1 0 62px;min-height:67px;font-size:12px;scroll-snap-align:start;touch-action:pan-x;white-space:nowrap}
 .care-strip .tool svg{width:39px;height:39px}
 .care-strip .tool.hold{touch-action:none}
-.care-actions{display:flex;gap:6px;border-top:1px solid #1f2a5c26;padding-top:6px}
-.care-action{height:40px;min-width:44px;border:2px solid #1f2a5c38;background:#edf5ff;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:5px;font-weight:800;font-size:12px;padding:0 9px}
-.care-action svg{width:20px;height:20px}.care-action:first-child{flex:1;background:#e9f8f0}.care-action[aria-expanded=true]{background:#ffe9cf;border-color:var(--ink)}
-.care-action:active{transform:translateY(1px)}
-.care-repair{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:#f7f0e0;border-radius:12px;padding:6px}
-.care-repair .tool{min-height:64px;font-size:12px}
-.care-caption{position:absolute;bottom:calc(100% + 9px);left:50%;transform:translateX(-50%);width:min(calc(100% - 18px),420px);background:#fffdf4ed;border:2px solid var(--ink);border-radius:15px;padding:10px 14px;box-shadow:0 3px 0 #1f2a5c38;pointer-events:none;text-align:center}
-.care-caption small{display:block;color:#427f78;font-weight:800;letter-spacing:.04em;font-size:10px;margin-bottom:4px}.care-caption p{font-size:17px;font-weight:800;line-height:1.4;word-break:keep-all;margin:0}
-#fiveTarget{position:fixed;width:70px;height:70px;border:2px dashed #fffdf4b8;box-shadow:0 0 0 2px #1f2a5c24;border-radius:50%;transform:translate(-50%,-50%);z-index:4;pointer-events:none}
-#fiveTarget span{position:absolute;top:calc(100% + 5px);left:50%;transform:translateX(-50%);white-space:nowrap;border-radius:12px;padding:4px 8px;font-size:11px;font-weight:800;color:#fff;background:#1f2a5ce6}
-body.look-editing #fiveTarget,body.look-editing .care-caption{visibility:hidden}
-@media(max-height:650px){.care-strip .tool{min-height:59px}.care-strip .tool svg{width:34px;height:34px}.care-caption{padding:7px 10px}.care-caption p{font-size:15px}.care-caption small{font-size:9px;margin-bottom:2px}}
+body.look-editing .care-caption{visibility:hidden}
 
 </style>
 </head>
 <body>
-<canvas id="world" aria-label="나쁜 놈이 서 있는 화면. 누르거나 쓸어서 때리고, 달래기 모드에서는 쓰다듬습니다."></canvas>
+<canvas id="world" aria-label="캐릭터가 서 있는 화면. 누르거나 쓸어서 때리고, 달래기 모드에서는 쓰다듬습니다."></canvas>
 <div id="fxLayer"></div>
 <div class="bubble" id="bubble" aria-live="polite"></div>
 
 <header class="top">
-  <div class="title-block">
-    <div class="logo">나쁜 놈 패기</div>
-    <div class="crime-tag" id="crimeTag"><b>죄목</b><span id="crimeText">끌려오는 중</span></div>
-  </div>
   <div class="top-buttons">
     <button class="pill appearance" id="appearanceBtn" aria-label="외모 만들기" title="외모 만들기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10C3 21 9 23 12 23s9-2 8-13Q11 12 8 6Z"/><path d="M5 9C4 2 18 0 19 8M8 14h1m6 0h1m-7 4q3 2 6-1M21 1v4m-2-2h4"/></svg><span class="label">외모</span></button>
-    <button class="pill" id="statsBtn" aria-label="오늘 기록"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 20V11M12 20V5M19 20v-6"/></svg><span class="label">기록</span></button>
     <button class="pill" id="settingsBtn" aria-label="설정"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2.6" fill="#fffdf4"/><circle cx="15" cy="17" r="2.6" fill="#fffdf4"/></svg></button>
-    <button class="pill next" id="nextBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg><span class="label">다음 놈</span></button>
   </div>
 </header>
 
-<div id="fiveTarget" hidden><span>손바닥을 톡</span></div>
 <div class="dock">
-  <div class="care-caption" id="careCaption" role="status" aria-live="polite" hidden><small>내가 건네는 말</small><p id="careCaptionText"></p></div>
+  <div class="care-caption" id="careCaption" role="status" aria-live="polite" hidden><p id="careCaptionText"></p></div>
   <div class="hint" id="hint"></div>
-  <div id="toolLabel" class="tool-label" aria-live="polite" hidden></div>
   <div class="panel">
     <div class="modes" role="group" aria-label="모드">
       <button class="mode on" data-mode="hit" aria-pressed="true">때리기</button>
@@ -452,37 +401,21 @@ body.look-editing #fiveTarget,body.look-editing .care-caption{visibility:hidden}
       <button class="tool" data-tool="rope" aria-label="줄넘기"><svg viewBox="0 0 48 48"><use href="#i-rope"/></svg>줄넘기</button>
       <button class="tool" data-tool="tissue"><svg viewBox="0 0 48 48"><use href="#i-tissue"/></svg>휴지</button>
     </div>
-    <div id="careTools" role="group" aria-label="달래는 방법" hidden>
-      <div class="care-strip">
-        <button class="tool on" data-care="hand" aria-pressed="true"><svg viewBox="0 0 48 48"><use href="#i-palm"/></svg>쓰다듬기</button>
-        <button class="tool" data-care="love" aria-pressed="false"><svg viewBox="0 0 48 48"><use href="#i-love"/></svg>사랑해</button>
-        <button class="tool" data-care="thumb" aria-pressed="false"><svg viewBox="0 0 48 48"><use href="#i-thumb"/></svg>엄지척</button>
-        <button class="tool" data-care="clap" aria-pressed="false"><svg viewBox="0 0 48 48"><use href="#i-clap"/></svg>박수</button>
-        <button class="tool" data-care="five" aria-pressed="false"><svg viewBox="0 0 48 48"><use href="#i-five"/></svg>하이파이브</button>
-        <button class="tool hold" data-care="hug"><svg viewBox="0 0 48 48"><use href="#i-hug"/></svg>꾹 안기</button>
-      </div>
-      <div class="care-actions">
-        <button class="care-action" id="careTalk"><svg viewBox="0 0 24 24"><path d="M4 4h16v12H9l-5 4z" fill="#fff" stroke="currentColor" stroke-width="2"/><path d="M8 8h8M8 12h5" fill="none" stroke="currentColor" stroke-width="2"/></svg>위로 한마디</button>
-        <button class="care-action" id="careRepair" aria-expanded="false" aria-controls="careRepairs">돌보기 ▾</button>
-        <button class="care-action" id="careVoiceToggle" aria-label="위로 목소리" aria-pressed="true">목소리</button>
-      </div>
-      <div class="care-repair" id="careRepairs" hidden>
-        <button class="tool" data-care="bandage"><svg viewBox="0 0 48 48"><use href="#i-bandage"/></svg>반창고</button>
-        <button class="tool" data-care="glasses" disabled><svg viewBox="0 0 48 48"><use href="#i-tape"/></svg>안경 수리</button>
-        <button class="tool" data-care="tooth" disabled><svg viewBox="0 0 48 48"><use href="#i-tooth"/></svg>이빨 줍기<span class="badge" id="toothBadge" hidden>0</span></button>
-      </div>
-    </div>
+<div id="careTools" role="group" aria-label="달래는 방법" hidden>
+<div class="care-strip">
+<button class="tool on" data-care="hand" aria-pressed="true"><svg viewBox="0 0 48 48"><use href="#i-palm"/></svg>쓰다듬기</button>
+<button class="tool hold" data-care="hug"><svg viewBox="0 0 48 48"><use href="#i-hug"/></svg>꾹 안기</button>
+<button class="tool" data-care="bandage" aria-label="약 바르기" title="선택한 뒤 캐릭터를 눌러 약 바르기"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="m12 11 11-7 17 25-11 7z" fill="#fffdf4" stroke="#1f2a5c" stroke-width="2.5"/><path d="m29 36 4 6 6-4-4-6M12 11l-3-4 11-7 3 4" fill="#8fdcc9" stroke="#1f2a5c" stroke-width="2.5"/><path d="m21 15 7 10m-9-2 11-7" stroke="#2f9b79" stroke-width="4"/><path d="M7 34q-8 10 0 10t0-10" fill="#c8f0dc" stroke="#1f2a5c" stroke-width="2"/></svg><span>약 바르기</span><span id="medicineProgress" class="badge" hidden></span></button>
+<button class="tool" id="careTalk" data-care="comfort" aria-label="위로 한마디" aria-pressed="false"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M5 7h38v26H20L8 43V33H5z" fill="#fffdf4" stroke="#1f2a5c" stroke-width="3"/><path d="M13 16h22M13 24h15" stroke="#2f9b79" stroke-width="3" stroke-linecap="round"/></svg><span>위로한마디</span></button>
+<button class="tool" data-care="love" aria-pressed="false"><svg viewBox="0 0 48 48"><use href="#i-love"/></svg>사랑해</button>
+<button class="tool" data-care="thumb" aria-pressed="false"><svg viewBox="0 0 48 48"><use href="#i-thumb"/></svg>엄지척</button>
+<button class="tool" data-care="clap" aria-pressed="false"><svg viewBox="0 0 48 48"><use href="#i-clap"/></svg>박수</button>
+<button class="tool" data-care="five" aria-pressed="false"><svg viewBox="0 0 48 48"><use href="#i-five"/></svg>하이파이브</button>
+</div>
+</div>
   </div>
 </div>
 
-<div class="modal" id="statsModal" hidden>
-  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="statsTitle">
-    <button class="pill close" data-close aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-    <h2 id="statsTitle">오늘 기록</h2>
-    <div class="stats" id="statsList"></div>
-    <p class="small">기록은 이 기기에만 남고, 날짜가 바뀌면 새로 셉니다.</p>
-  </div>
-</div>
 
 <div class="modal" id="settingsModal" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="setTitle">
@@ -514,7 +447,7 @@ body.look-editing #fiveTarget,body.look-editing .care-caption{visibility:hidden}
 <div class="modal" id="lookModal" hidden>
   <section class="look-sheet" role="dialog" aria-modal="true" aria-labelledby="lookTitle">
     <header class="look-header">
-      <div class="look-title"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M10 12Q9 3 20 3T30 12" fill="#1f2a5c"/><path d="M8 15C6 33 15 37 20 37s14-4 12-22Q19 18 13 10Z" fill="#ffcfaa"/><path d="M14 21h2m8 0h2m-10 8q4 3 8-1"/><path d="m31 4 1 4 4 1-4 1-1 4-1-4-4-1 4-1Z" fill="#fffdf4" stroke-width="1.5"/></svg><div><h2 id="lookTitle">외모 만들기</h2><p>인상은 달라도, 같은 나쁜 놈.</p></div></div>
+      <div class="look-title"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M10 12Q9 3 20 3T30 12" fill="#1f2a5c"/><path d="M8 15C6 33 15 37 20 37s14-4 12-22Q19 18 13 10Z" fill="#ffcfaa"/><path d="M14 21h2m8 0h2m-10 8q4 3 8-1"/><path d="m31 4 1 4 4 1-4 1-1 4-1-4-4-1 4-1Z" fill="#fffdf4" stroke-width="1.5"/></svg><div><h2 id="lookTitle">외모 만들기</h2><p>인상은 달라도, 같은 나.</p></div></div>
       <div class="look-header-actions">
 
 
@@ -539,11 +472,11 @@ body.look-editing #fiveTarget,body.look-editing .care-caption{visibility:hidden}
       </div>
     </div>
     <footer class="look-footer"><div class="look-history" role="group" aria-label="편집 되돌리기"><button class="look-mini" id="lookUndo" aria-label="실행 취소" title="실행 취소"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5 3 10l5 5M4 10h10a6 6 0 0 1 0 12" transform="translate(0 -2)"/></svg></button><button class="look-mini" id="lookRedo" aria-label="다시 실행" title="다시 실행"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m16 5 5 5-5 5m4-5H10a6 6 0 0 0 0 12" transform="translate(0 -2)"/></svg></button></div><span class="look-status" id="lookStatus" role="status" aria-live="polite"></span><div class="look-footer-actions"><button class="btn secondary" id="lookCancel">취소</button><button class="btn apply" id="lookApply">이 외모로 적용</button></div></footer>
-    <div id="lookSaveParking" hidden><section class="look-save-settings" id="lookSaveSettings"><h3>지금 외모 보관하기</h3><div class="look-name-row"><input id="lookName" type="text" maxlength="12" placeholder="별명 (선택)" aria-label="캐릭터 별명" autocomplete="off"><button class="look-mini" id="lookSavePreset">보관하기</button></div><label class="look-check"><input id="lookLock" type="checkbox">다음 놈도 이 외모로</label><p class="look-save-help">보관한 외모는 이 브라우저에 남습니다.<br>다음 놈의 외모 설정은 「이 외모로 적용」을 누르면 저장됩니다.</p></section></div>
+    <div id="lookSaveParking" hidden><section class="look-save-settings" id="lookSaveSettings"><h3>지금 외모 보관하기</h3><div class="look-name-row"><input id="lookName" type="text" maxlength="12" placeholder="별명 (선택)" aria-label="캐릭터 별명" autocomplete="off"><button class="look-mini" id="lookSavePreset">보관하기</button></div><p class="look-save-help">보관한 외모는 이 브라우저에 남습니다.</p></section></div>
   </section>
 </div>
 
-<div id="fallback" role="status" style="display:flex"><div id="fallbackTitle">반성실 문 여는 중…</div><small id="fallbackDetail">3D 화면을 준비하고 있어요.</small><button id="retryGame" type="button" hidden>화면 다시 열기</button></div>
+<div id="fallback" role="status" style="display:flex"><div id="fallbackTitle">문 여는 중…</div><small id="fallbackDetail">3D 화면을 준비하고 있어요.</small><button id="retryGame" type="button" hidden>화면 다시 열기</button></div>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
 <defs>
@@ -1296,13 +1229,68 @@ S.batOffscreenCrash = (pan = 0) => {
     group.play(src,t,t+dur+.012,R(0,1.3));
   }
 
-  S.ropePullSound=(pan=0,strength=.6)=>{
+  // 팽팽한 줄이 서로 긁히며 끊어 나는 소리. ka = 까각(밝고 딱딱), tteu = 뜨득(낮고 묵직).
+  // 한 번의 소리 안에서는 틱마다 음높이를 바꾸지 않는다. 음이 오르내리면 실로폰 치는 소리처럼 들린다.
+  const ropeTicks={ka:[],tteu:[]};
+  function ropeTickBuffer(kind){
+    const sr=ctx.sampleRate,len=Math.floor(sr*(kind==='ka'?.05:.095));
+    const buf=ctx.createBuffer(1,len,sr),d=buf.getChannelData(0);
+    const modes=kind==='ka'
+      ?[[1480,.0085,1],[2230,.0055,.55],[860,.0115,.50],[3300,.0028,.18]]
+      :[[385,.016,1],[610,.011,.70],[980,.0065,.26],[195,.022,.45]];
+    const ph=modes.map(()=>Math.random()*6.283);
+    const click=kind==='ka'?.0016:.0032,a=kind==='ka'?.42:.16,mix=kind==='ka'?.55:.35;
+    let lp=0,peak=0;
+    for(let i=0;i<len;i++){
+      const t=i/sr;let v=0;
+      for(let m=0;m<modes.length;m++)v+=modes[m][2]*Math.sin(6.283*modes[m][0]*t+ph[m])*Math.exp(-t/modes[m][1]);
+      lp+=((Math.random()*2-1)*Math.exp(-t/click)-lp)*a;
+      d[i]=(v*.5+lp*mix)*Math.min(1,i/(sr*.0004))*Math.min(1,(len-i)/(sr*.004));
+      peak=Math.max(peak,Math.abs(d[i]));
+    }
+    for(let i=0;i<len;i++)d[i]*=.9/peak;
+    return buf;
+  }
+  function ropeTick(o,t,kind,level,rate){
+    if(!ropeTicks.ka.length)for(let k=0;k<3;k++){ropeTicks.ka.push(ropeTickBuffer('ka'));ropeTicks.tteu.push(ropeTickBuffer('tteu'));}
+    const list=ropeTicks[kind],src=o.node(ctx.createBufferSource());
+    src.buffer=list[(Math.random()*list.length)|0];src.playbackRate.value=rate;
+    const g=o.node(ctx.createGain());g.gain.value=level;
+    src.connect(g);g.connect(o.gate);
+    o.play(src,t,t+src.buffer.duration/rate+.01);
+  }
+  // mode: 'pull' 당기는 중 = 까가각 · 'hold' 팽팽한 채 버티는 중 = 뜨득 · 'release' 풀릴 때.
+  // 돌려주는 값은 소리 길이(초). 0이면 이번에는 소리를 내지 못한 것.
+  S.ropeCreak=(pan=0,strength=.6,mode='pull')=>{
     const q=ropeClamp(strength,0,1),o=ropeLayer(pan,ropeAudioConfig.ropeVolume);
-    if(!o)return;const t=ctx.currentTime+.003,d=.12+q*.09;
-    // Friction rises with the pull, with little irregular strand/handle creaks.
-    ropeNoise(o,t,d,.28+q*.18,420+q*360,2.3,1050+q*550);
-    ropeNoise(o,t+.016,d*.76,.13,1900,1.2,2500);
-    for(let i=0;i<3;i++)ropeNoise(o,t+.026+i*.04,.023,.12/(1+i*.3),R(520,1100),4.8);
+    if(!o)return 0;
+    let t=ctx.currentTime+.003;const t0=t,pitch=.9+q*.32;
+    if(mode==='pull'){
+      const n=3+Math.round(q*3)+(Math.random()<.5?1:0);
+      let gap=(.072-.028*q)*R(.9,1.12);
+      for(let i=0;i<n;i++){
+        const last=i===n-1,u=i/(n-1);
+        ropeTick(o,t,'ka',last?1:(.38+.40*u)*R(.85,1.1),pitch);
+        if(last||(i%2===0&&Math.random()<.5))ropeTick(o,t+.002,'tteu',last?.62:.26,pitch);
+        t+=gap;gap=Math.max(.024,gap*R(.78,.95));
+      }
+      ropeNoise(o,t0,t-t0,.045+q*.035,900+q*300,1.4,1500+q*500);
+      return t-t0;
+    }
+    if(mode==='hold'){
+      const reps=Math.random()<.35?2:1;
+      for(let r=0;r<reps;r++){
+        const g=R(.078,.112);
+        ropeTick(o,t,'tteu',.46*R(.85,1.1),pitch*.92);
+        ropeTick(o,t+g,'tteu',.74*R(.9,1.1),pitch*1.06);
+        ropeTick(o,t+g+.003,'ka',.13,pitch*.8);
+        t+=g+R(.17,.23);
+      }
+      return t-t0;
+    }
+    ropeTick(o,t,'tteu',.34,pitch*.82);
+    ropeTick(o,t+R(.08,.11),'tteu',.24,pitch*.68);
+    return .2;
   };
   S.ropeGrunt=(pan=0,strength=.8,pitch=155)=>{
     const q=ropeClamp(strength,0,1),o=ropeLayer(pan,ropeAudioConfig.voiceVolume);
@@ -1352,102 +1340,13 @@ S.batOffscreenCrash = (pan = 0) => {
   return S;
 })();
 
-/* ================= 죄목·대사 ================= */
-const CRIMES = [
-  { c: '엘리베이터 닫힘 버튼 연타범', ex: ['나 바빠서 그랬지.', '문 닫히는 거 기다리다 늙겠어.'], cf: '뛰어오시는 거 봤어요… 보고도 눌렀어요…', es: '저는 뛰어오는 사람을 보고도 닫힘 버튼을 눌렀습니다. 그것도 세 번 눌렀습니다. 앞으로는 열림 버튼이 어디 있는지부터 외우겠습니다.' },
-  { c: '새치기 상습범', ex: ['원래 여기 서 있었는데?', '줄이 너무 길잖아.'], cf: '아는 사람 있는 척하고 끼어들었어요…', es: '저는 앞사람과 아는 사이인 척 손을 흔들며 줄에 끼어들었습니다. 그분은 저를 모르셨습니다. 앞으로는 맨 뒤가 어딘지 먼저 찾겠습니다.' },
-  { c: '단톡방 읽씹하고 자기 할 말만 올리는 자', ex: ['읽었으면 됐지 뭘 또 답을 해.', '내 공지는 다들 봤지?'], cf: '남의 말은 안 읽고 제 말만 올렸어요…', es: '저는 단톡방에서 남의 질문에는 답하지 않고 제 홍보만 올렸습니다. 앞으로는 올리기 전에 위로 세 번 스크롤하겠습니다.' },
-  { c: '공용 냉장고 음식 도둑', ex: ['이름 안 써 놨잖아.', '상하기 직전이라 구해 준 거야.'], cf: '이름 써 있는 푸딩도 먹었어요…', es: '저는 공용 냉장고에서 남의 푸딩을 꺼내 먹고, 빈 통을 다시 넣어 두었습니다. 앞으로는 제 음식에만 손대고, 먹었으면 사다 놓겠습니다.' },
-  { c: '남의 택배 뜯어본 자', ex: ['우리 집 건 줄 알았지.', '뜯어 보니 별거 없던데?'], cf: '이름 확인하고도 궁금해서 뜯었어요…', es: '저는 받는 사람 이름을 확인하고도 궁금해서 남의 택배를 뜯었습니다. 다시 테이프를 붙여 두었지만 티가 났습니다. 앞으로는 궁금해도 참겠습니다.' },
-  { c: '주차 두 칸 차지한 자', ex: ['문콕 당할까 봐 그랬지.', '내 차는 소중하거든.'], cf: '제 차만 소중한 줄 알았어요…', es: '저는 제 차에 문콕이 생길까 봐 주차 칸 두 개를 차지했습니다. 그동안 다른 분들은 주차장을 세 바퀴 도셨습니다. 앞으로는 선 안에 한 칸만 대겠습니다.' },
-  { c: '30분 늦으면서 "거의 다 왔어" 하는 자', ex: ['진짜 거의 다 왔었어.', '차가 막혔다니까?'], cf: '그때 저는 아직 집에서 씻고 있었어요…', es: '저는 "거의 다 왔어"라고 보낼 때 아직 샤워 중이었습니다. 앞으로는 출발할 때 출발했다고 보내고, 늦으면 늦는다고 먼저 말하겠습니다.' },
-  { c: '빌린 돈 안 갚고 여행 사진 올린 자', ex: ['갚을 거야, 언젠가.', '여행은 할부로 간 거야.'], cf: '돈 갚을 날에 공항에 있었어요…', es: '저는 돈을 빌려 놓고 갚기로 한 날 공항에서 사진을 올렸습니다. 앞으로는 빌린 돈부터 갚고, 여행은 그다음에 가겠습니다.' },
-  { c: '층간소음 유발자', ex: ['내 집에서 걷지도 못해?', '난 안 뛰었는데?'], cf: '밤 열두 시에 줄넘기했어요…', es: '저는 밤 열두 시에 거실에서 줄넘기를 했습니다. 아랫집에서 올라오셨을 때 없는 척했습니다. 앞으로는 매트를 깔고, 밤에는 뒤꿈치를 들고 걷겠습니다.' },
-  { c: '회의 끝나기 1분 전에 "하나만 더" 하는 자', ex: ['중요한 거라서 그래.', '금방 끝나.'], cf: '하나만 더가 열한 개였어요…', es: '저는 회의 끝나기 1분 전에 "하나만 더"라고 말하고 40분을 더 이야기했습니다. 앞으로는 할 말을 회의 처음에 하겠습니다.' },
-  { c: '남이 한 일을 자기가 했다고 보고한 자', ex: ['우리 팀 성과잖아.', '내가 발표했으니까 내 거지.'], cf: '저는 파일 이름만 바꿨어요…', es: '저는 동료가 밤새 만든 자료의 파일 이름만 바꿔서 제 이름으로 보고했습니다. 앞으로는 만든 사람 이름을 첫 장에 크게 적겠습니다.' },
-  { c: '퇴근 5분 전에 일 던지는 자', ex: ['내일 아침까지만 하면 돼.', '간단한 거야.'], cf: '오전에 받은 걸 일부러 들고 있었어요…', es: '저는 오전에 받은 일을 쥐고 있다가 퇴근 5분 전에 넘겼습니다. 앞으로는 받은 일은 받은 날 오전에 넘기겠습니다.' },
-  { c: '지하철 쩍벌남', ex: ['다리가 원래 이렇게 생겼어.', '편하게 앉아야지.'], cf: '옆 사람이 반쯤 떠서 가셨어요…', es: '저는 지하철에서 다리를 넓게 벌리고 앉아 옆자리 절반을 차지했습니다. 앞으로는 무릎을 모으고 한 사람 몫만 앉겠습니다.' },
-  { c: '영화 결말 스포일러 뿌린 자', ex: ['다들 본 줄 알았지.', '결말 알고 봐도 재밌어.'], cf: '개봉 첫날 범인 이름 올렸어요…', es: '저는 개봉 첫날 범인 이름을 댓글로 달았습니다. 앞으로는 결말을 혼자 알고, 입이 근질거려도 참겠습니다.' },
-  { c: '자리 맡아 놓고 한 시간 안 오는 자', ex: ['가방이 앉아 있었잖아.', '금방 온다고 했잖아.'], cf: '가방 두고 밥 먹고 왔어요…', es: '저는 카페 자리에 가방을 두고 나가서 밥을 먹고 한 시간 뒤에 돌아왔습니다. 앞으로는 자리를 비울 거면 짐도 챙기겠습니다.' },
-  { c: '식당 리뷰로 서비스 뜯어낸 자', ex: ['별 다섯 개 줬잖아.', '그게 장사야.'], cf: '서비스 받고 별 하나 줬어요…', es: '저는 리뷰를 약속하고 서비스를 받은 뒤 별 하나를 남겼습니다. 앞으로는 받은 만큼 솔직하게, 약속은 약속대로 지키겠습니다.' },
-  { c: '공연장에서 휴대폰 높이 들고 찍는 자', ex: ['추억은 남겨야지.', '나중에 너도 보여 줄게.'], cf: '뒷사람은 제 휴대폰 화면으로 공연 봤어요…', es: '저는 공연 내내 휴대폰을 머리 위로 들고 찍었습니다. 뒷사람은 제 화면으로 공연을 보셨습니다. 앞으로는 눈으로 보고 기억하겠습니다.' },
-  { c: '카톡 "ㅇㅇ"으로 대화 끝내는 자', ex: ['ㅇㅇ', '할 말 다 했잖아.'], cf: 'ㅇ 하나로 끝낸 적도 있어요…', es: '저는 상대가 긴 글을 보냈을 때 "ㅇㅇ"으로 답했습니다. 기분이 안 좋을 때는 "ㅇ"만 보냈습니다. 앞으로는 적어도 한 문장으로 답하겠습니다.' }
-];
+/* ================= 추임새 ================= */
 
 const LINES = {
-  smug: ['내가 뭘 잘못했는데?', '다들 그러잖아.', '왜 나만 가지고 그래?', '증거 있어?', '그래서 어쩌라고.', '이 정도는 괜찮지 않나?', '너도 해 봤잖아.', '나 원래 이런 사람이야.'],
-  fluster: ['아니 잠깐만.', '말로 해, 말로!', '아야, 아프잖아!', '이거 폭력이야!', '내가 뭘 어쨌다고!', '신고할 거야!', '얼굴은 안 돼!'],
-  beg: ['잘못했어요, 잘못했어요.', '한 번만 봐주세요.', '다시는 안 그럴게요.', '제발요…', '살려 주세요…', '제가 다 잘못했어요.'],
-  cry: ['흐어어엉…', '엄마아…', '제가 나빴어요오…', '끄흡… 끅…', '으아아앙…'],
   ouch: ['억!', '악!', '꾸엑!', '어푸!', '끽!', '으갹!', '켁!', '아얏!'],
-  tool: {
-    hammer: ['으억!', '망치는 잠깐!'],
-    pan: ['그거 코팅팬 아니잖아!', '계란은 어디 갔는데?!', '팬이… 안 찌그러지네?'],
-    bat: ['여기 야구장 아니잖아!', '타임! 타임!'],
-    rope: ['줄넘기는 혼자 하는 거잖아!', '줄이 왜 이쪽으로 와!'],
-    tissue: ['…이건 안 아프네.', '부드럽네?']
-  },
-  tooth: ['내 이빨!!', '이빠알…', '임플란트 비싼데!'],
-  glasses: ['내 안경 비싼 거야!', '안 보여!', '렌즈! 렌즈!'],
-  hair: ['머리는 안 돼!!', '그거 심은 거야!'],
-  nose: ['코! 코오!', '코 떨어져!'],
-  cheek: ['으에에에', '이거 놔아아'],
-  flick: ['뭐, 뭐 하려고…', '딱밤은 좀…'],
-  throw: ['으아아아!', '내려 줘!!'],
-  buttons: ['단추!', '새로 산 셔츠야!'],
-  cheeky: ['거봐, 내가 맞다니까.', '그니까 내 말은…', '이제 좀 알아듣네.', '역시 나한테는 이유가 있었어.'],
-  soft: ['…왜 잘해 줘요?', '고… 고마워요.', '흐윽… 따뜻해…', '저 같은 걸…'],
-  pet: ['헤헤…', '…좋다.', '머리 쓰다듬어 준 사람 처음이에요.'],
-  wipe: ['흐읍… 고마워요.', '코, 코도요…'],
-  bandage: ['반창고… 곰돌이네…', '안 아파요… 이제…'],
-  toothBack: ['이거… 다시 붙여요?', '고마워요… 근데 이걸 어떡해요…', '평생 간직할게요…'],
-  glassesFix: ['테이프… 튼튼하네요.', '잘 보여요… 흑…'],
-  hug: ['…흐어어엉', '저 이런 거 처음이에요…', '조금만 더요…'],
-  idle: ['뭐야, 끝났어?', '할 거 없으면 간다?', '이제 가도 되지?']
 };
 
-/* 이빨이 빠지면 발음이 샌다: ㅅ·ㅆ·ㅈ·ㅉ·ㅊ → ㄸ */
-function lisp(text, lost) {
-  if (lost < 3) return text;
-  let out = '';
-  for (const ch of text) {
-    const code = ch.charCodeAt(0) - 0xac00;
-    if (code >= 0 && code < 11172) {
-      let ini = Math.floor(code / 588); const rest = code % 588;
-      if ([9, 10, 12, 13, 14].includes(ini)) ini = 4;
-      else if (lost >= 6 && ini === 11 && Math.random() < 0.35) ini = 18;
-      out += String.fromCharCode(0xac00 + ini * 588 + rest);
-    } else out += ch;
-  }
-  return out;
-}
 
-function letterHTML(v, stats) {
-  const d = new Date();
-  const date = `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
-  const body = v.crime.es || `저는 ${v.crime.c}입니다. 그게 잘못인 줄 알면서도 모른 척했습니다. 앞으로는 모른 척하지 않겠습니다.`;
-  const hugSec = Math.round(stats.hugMs / 1000);
-  const p = [];
-  p.push(`저는 <b>${esc(v.crime.c)}</b>입니다.`);
-  p.push(esc(body));
-  let tally = `오늘 저는 ${stats.hits}대를 맞았고`;
-  if (stats.teeth) tally += `, 이빨 ${stats.teeth}개를 잃었고`;
-  if (stats.glasses) tally += `, 안경이 부러졌고`;
-  tally += ', ';
-  const cares = [];
-  if (stats.bandages) cares.push(`반창고 ${stats.bandages}장`);
-  if (stats.toothBack) cares.push(`주워 주신 이빨 ${stats.toothBack}개`);
-  if (stats.fixed) cares.push('테이프 감은 안경');
-  if (hugSec) cares.push(`${hugSec}초 동안의 포옹`);
-  if (stats.pets) cares.push('쓰다듬어 주신 손');
-  tally += cares.length ? `${cares.join(', ')}을 받았습니다.` : '그래도 끝까지 들어 주셨습니다.';
-  p.push(tally);
-  if (hugSec >= 3 && stats.hits > 0) p.push(`맞은 ${stats.hits}대보다 안겨 있던 ${hugSec}초가 더 오래 기억날 것 같습니다.`);
-  else if (stats.hits > 40) p.push('솔직히 맞은 게 더 기억에 남습니다. 그래도 반성은 진심입니다.');
-  else p.push('다시는 이 방에 끌려오지 않겠습니다.');
-  return p.map(t => `<p>${t}</p>`).join('') +
-    `<p class="sign">${date}<br>${esc(v.look.name||'나쁜 놈')} 올림 <span class="seal drop">반성</span></p>`;
-}
 function esc(s) { return String(s).replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m])); }
 const pick = a => a[(Math.random() * a.length) | 0];
 
@@ -1583,17 +1482,6 @@ const room = new THREE.Group(); scene.add(room);
   const base = mesh(new THREE.BoxGeometry(28, 0.16, 0.06), mat('#ff8fb1'), room); base.position.set(0, 0.08, -1.66);
   // 벽 가운데 노란 띠
   const band = mesh(new THREE.BoxGeometry(28, 0.12, 0.03), mat('#ffd23f'), room); band.position.set(0, 1.18, -1.68); band.castShadow = false;
-  // 표어 액자
-  const st = canvasTex(1024, 512);
-  { const g = st.g; g.fillStyle = '#fffdf4'; g.fillRect(0, 0, 1024, 512); g.strokeStyle = '#1f2a5c'; g.lineWidth = 24; g.strokeRect(12, 12, 1000, 488);
-    g.fillStyle = '#ff3b3b'; g.fillRect(40, 40, 944, 150);
-    g.fillStyle = '#fff'; g.font = '110px "Black Han Sans","Noto Sans CJK KR",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('반 성 실', 512, 118);
-    g.fillStyle = '#1f2a5c'; g.font = '800 58px "Gothic A1","Noto Sans CJK KR",sans-serif';
-    g.fillText('맞을 짓은 하지 맙시다', 512, 270); g.fillText('맞았으면 반성합시다', 512, 350);
-    g.font = '700 38px "Gothic A1","Noto Sans CJK KR",sans-serif'; g.fillStyle = '#5b6493'; g.fillText('반성실 관리 사무소', 512, 440); }
-  room.userData.signTex = st;
-  const sign = mesh(new THREE.PlaneGeometry(1.5, 0.75), mat('#ffffff', { map: st.t, roughness: 0.7 }), room);
-  sign.position.set(-1.35, 2.25, -1.64);
   // 시계
   const clock = new THREE.Group(); clock.position.set(1.5, 2.45, -1.62); room.add(clock);
   const face = mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.06, 40), mat('#fffdf4'), clock); face.rotation.x = Math.PI / 2;
@@ -1693,6 +1581,7 @@ const LOOK_DEFAULT = {
   glassesStyle:'round',glassSize:1,glassY:0,stacheStyle:'none',stache:false,stubble:false,mole:false,moleX:.3,moleY:-.35,moleSize:1,freckles:false,
   hairFlip:false,hairSeed:1731,bodyH:1,bodyW:1,hasTie:true,pitch:155,square:false
 };
+function basicLook(){return normaliseLook(Object.assign({},LOOK_DEFAULT,{glassesStyle:'none',topStyle:'tee',hasTie:false,shirt:'#ffffff'}));}
 const LOOK_RANGES = {
   headW:[.78,1.24,.01],headH:[.82,1.26,.01],eyeGap:[.22,.53,.01],eyeY:[-.02,.24,.01],eyeSize:[.65,1.32,.01],eyeTilt:[-.45,.45,.01],
   brow:[.55,2.1,.05],browWidth:[.65,1.5,.01],browGap:[.22,.55,.01],browY:[.20,.59,.01],browTilt:[-.5,.5,.01],
@@ -1753,11 +1642,11 @@ const faceXY = d => [(Math.atan2(d.z, -d.x) / Math.PI) * 1024, (Math.acos(clamp(
 const dirN = (x, y, z) => V3(x, y, z).normalize();
 
 class Villain {
-  constructor(crime, look=null, hostScene=scene) {
-    this.crime=crime;this.hostScene=hostScene;
-    const L=this.look=look?normaliseLook(look):randomLook();
-    this.st = { hits: 0, teeth: 0, glasses: 0, bandages: 0, toothBack: 0, fixed: 0, hugMs: 0, pets: 0 };
-    this.fear = 0; this.damage = 0; this.comfort = 0; this.confessed = false; this.lettered = false;
+  constructor(look=null, hostScene=scene) {
+    this.hostScene=hostScene;
+    const L=this.look=look?normaliseLook(look):basicLook();
+    this.st = { hits: 0, teeth: 0, glasses: 0 };
+    this.fear = 0; this.damage = 0; this.comfort = 0;
     this.bumps = []; this.grab = null; this.grabOff = V3(); this.grabVel = V3(); this.grabDir = V3(0, 0, 1);
     this.faceDirty = true; this.headDirty = true;
     this.impacts=[];this.bodyImpulse=[];this.recoil=V3();this.recoilVel=V3();
@@ -2419,7 +2308,7 @@ ntag.renderOrder = 2;
   const H = g.canvas.height;
 
   const chars = Array.from(
-    String(this.look.name || '나쁜 놈').replace(/\s+/g, '')
+    String(this.look.name || '나 자신').replace(/\s+/g, '')
   );
 
   if (!chars.length) chars.push('나', '쁜', '놈');
@@ -2898,15 +2787,28 @@ function say(text, dur = 1.8, kind = '') {
 function updateBubble(v) {
   if (!BUB.text) return;
   if (performance.now() > BUB.until) { bubble.classList.remove('show'); if (performance.now() > BUB.until + 200) BUB.text = ''; return; }
-  const top = v.headMesh.localToWorld(V3(0, HEAD_R * 1.05, 0));
-  const side = v.headMesh.localToWorld(V3(HEAD_R, 0, 0));
-  const [hx, hy] = toScreen(top), [sx] = toScreen(side);
-  const r = Math.abs(sx - hx);
+  // 머리의 화면상 중심과 반지름. 서 있든 누워 있든 '화면에서 머리 위'를 기준으로 삼는다.
+  const centre = v.headMesh.getWorldPosition(V3());
+  const edge = v.headMesh.localToWorld(V3(HEAD_R, 0, 0));
+  const [hx, cy] = toScreen(centre), [ex, ey] = toScreen(edge);
+  const r = Math.hypot(ex - hx, ey - cy);
+  const hy = cy - r * 1.08;
   const bw = bubble.offsetWidth, bh = bubble.offsetHeight;
-  let left = hx + r * 0.35, topPx = hy - bh - 6;
-  const minTop = innerWidth < 600 ? 104 : 80;
-  if (topPx < minTop) { topPx = minTop; left = hx + r * 0.95; }
+  // 말풍선은 머리 위에 둔다. 얼굴을 덮지 않는다.
+  const btn = $('#settingsBtn').getBoundingClientRect();
+  const minTop = 8;
+  let left = hx + r * 0.2 - bw * 0.25, topPx = hy - bh - 14, beside = false;
+  if (topPx < minTop) {
+    // 꾹 안기처럼 머리 위에 자리가 없으면 얼굴 옆(빈 쪽)으로 보낸다.
+    beside = true;
+    topPx = clamp(hy + r * 0.15, minTop, innerHeight * 0.45);
+    left = hx + r * 1.02;
+    if (left + bw > innerWidth - 8) left = hx - r * 1.02 - bw;
+  }
   left = clamp(left, 8, innerWidth - bw - 8);
+  // 왼쪽 위 설정 버튼과 겹치면 버튼 오른쪽으로 비킨다.
+  if (topPx < btn.bottom + 6 && left < btn.right + 6) left = Math.min(btn.right + 8, innerWidth - bw - 8);
+  bubble.classList.toggle('side', beside);
   bubble.style.transform = `translate(${left}px,${topPx}px)`;
   bubble.style.setProperty('--tail', clamp(hx - left + 6, 16, bw - 30) + 'px');
 }
@@ -2916,68 +2818,69 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } }
 };
-const today = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
 const PREF = Object.assign({ sound: true, vibe: true, shake: true, careVoice:true }, store.get('badguy.prefs', {}));
-let DAY = store.get('badguy.day', null);
-if (!DAY || DAY.date !== today()) DAY = { date: today(), villains: 0, hits: 0, teeth: 0, bandages: 0, hugMs: 0, letters: 0, glasses: 0, throws: 0, pets: 0 };
-let customCrimes = store.get('badguy.crimes', []);
 
 let customCharacterLines = normaliseCharacterLines(
   store.get('badguy.characterLines.v1', [])
 );
 
-let saveTimer = 0;
-function saveDay() { if (DAY.date !== today()) DAY = { date: today(), villains: 0, hits: 0, teeth: 0, bandages: 0, hugMs: 0, letters: 0, glasses: 0, throws: 0, pets: 0 }; clearTimeout(saveTimer); saveTimer = setTimeout(() => store.set('badguy.day', DAY), 400); }
 SFX.setOn(PREF.sound);
 
 /* ================= 상태 ================= */
 const G = {
   mode: 'hit', tool: 'hand', care: 'hand', v: null,
   time: 0, hitstop: 0, shake: 0, shakeT: 0, combo: [], lastSay: 0, lastAct: 0, lastIdle: 0,
-  attacks: [], ptr: null, hug: false, hugHands: 0, nextHand: 1, floorTeeth: [], floorGlasses: null, junk: [],
-  viewH: 3, camDist: 6, letterTimer: 0, crimeBag: [], careAnim: null, busy: 0
+  attacks: [], ptr: null, hug: false, hugHands: 0, nextHand: 1, junk: [],
+  viewH: 3, camDist: 6, careAnim: null, busy: 0
 };
 const raycaster = new THREE.Raycaster();
 
-function nextCrime() {
-  if (customCrimes.length && Math.random() < 0.6) {
-    const c = pick(customCrimes);
-    return { c, ex: ['그게 뭐 어때서?', '나만 그런 거 아니잖아.'], cf: `${c}… 그게 저였어요…`, es: null };
-  }
-  if (!G.crimeBag.length) G.crimeBag = CRIMES.slice().sort(() => Math.random() - 0.5);
-  return G.crimeBag.pop();
-}
 
 /* ================= 카메라 맞춤 ================= */
+// 도구칸 바로 위에 항상 비워 두는 띠(내 말풍선·안내문 자리). 캐릭터 발은 이 띠 위에 온다.
+// 세로가 짧은 화면에서는 캐릭터가 너무 작아지지 않게 띠를 한 줄 높이로 줄인다.
+const talkBand = () => innerHeight >= 760 ? 78 : 58;
 function fit() {
-  if(G.editing){AppearanceEditor.resize();return;}
+  if (G.editing) { AppearanceEditor.resize(); return; }
   const W = innerWidth, H = innerHeight;
   renderer.setSize(W, H, false);
   camera.aspect = W / H;
-  const topEl = $('.title-block').getBoundingClientRect();
-  const dockEl = $('.dock').getBoundingClientRect();
-  const topH=topEl.bottom+8,botH=H-dockEl.top+8;
-  const avail = Math.max(200, H - topH - botH);
-  const portrait = W < H;
-  const L=G.v?.look;
-  const y0=portrait?.32:.22,y1=L?Math.max(1.93,1.06*L.bodyH+.31+L.headH*(HEAD_R+(['spiky','mohawk'].includes(L.style)?.17:.07))):1.93,wReq=portrait?1.15:1.6;
-  const tanH = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
-  const h = Math.max((y1 - y0) * H / avail, wReq / camera.aspect);
+
+  const topH = $('#settingsBtn').getBoundingClientRect().bottom + 10;
+  const dock = $('.dock'), TALK_BAND = talkBand();
+
+  // 도구 배치 자동 전환(좁은 화면만): 2줄 그리드로 해도 캐릭터가 거의 그대로면 그리드, 아니면 한 줄 가로 스크롤.
+  // 캐릭터 크기는 화면 폭이 한계이므로, 그리드일 때 남는 높이를 그 크기와 견준다.
+  let grid = false;
+  if (W <= 600) {
+    document.body.classList.add('tools-grid');
+    const spare = dock.getBoundingClientRect().top - TALK_BAND - 10 - topH;
+    // 그리드로 해도 캐릭터가 8% 넘게 작아지지 않을 때만 그리드.
+    grid = spare >= 0.92 * 1.99 * W / 1.5;
+  }
+  document.body.classList.toggle('tools-grid', grid);
+
+  const botH = H - dock.getBoundingClientRect().top + 10 + TALK_BAND;
+  const avail = Math.max(100, H - topH - botH);
+  const L = G.v?.look;
+  const y0 = -.06;
+  const y1 = L
+    ? Math.max(1.93, 1.06 * L.bodyH + .31 + L.headH * (HEAD_R + (['spiky', 'mohawk'].includes(L.style) ? .17 : .07)))
+    : 1.93;
+  const h = Math.max((y1 - y0) * H / avail, 1.5 / camera.aspect);
   G.viewH = h;
-  G.camDist = h / (2 * tanH);
-  const mid = (y0 + y1) / 2;
-  const dPx = (topH - botH) / 2;
-  const targetY = mid + dPx * h / H;
-  camBase.set(0, targetY, G.camDist);
-  G.camTarget = V3(0, targetY, 0);
+  G.camDist = h / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
+  const aim = (y0 + y1) / 2 + (topH - botH) * h / (2 * H);
+  camBase.set(0, aim, G.camDist);
+  G.camTarget = V3(0, aim, 0);
   camera.updateProjectionMatrix();
+  window.__syncToolScroll?.();
 }
 addEventListener('resize', () => setTimeout(fit, 30));
 
 /* ================= 나쁜 놈 교체 ================= */
 function clearJunk() {
   for (let i = particles.length - 1; i >= 0; i--) removeParticle(i);
-  G.floorTeeth = []; G.floorGlasses = null;
 }
 function newVillain() {
   stopSocial();
@@ -2985,25 +2888,13 @@ function newVillain() {
   clearJunk();
   if (G.v) { G.v.dispose(); G.v = null; }
   clearJunk(); fadeSplats();
-  const chosen=APPEAR.look&&(APPEAR.locked||appearanceFirst)?APPEAR.look:null;appearanceFirst=false;
-  const v = G.v = new Villain(nextCrime(),chosen);
+  const chosen=APPEAR.look||null;
+  const v = G.v = new Villain(chosen);
   refreshAppearanceButton();
   v.state = 'enter'; v.stateT = 0;
   v.root.position.set(3.2, 0, 0.1);
-  $('#crimeText').textContent = '끌려오는 중';
-  G.lettered = false; G.letterTimer = 0;
-  DAY.villains++; saveDay();
   SFX.drag();
   updateCareButtons(true);fit();
-}
-function sendAway() {
-  stopSocial();
-  if(G.editing)return;
-  const v = G.v;
-  if (!v || v.state === 'exit') return;
-  endHug(); cancelPointer(); clearAttacks();
-  v.state = 'exit'; v.stateT = 0;
-  bubble.classList.remove('show'); BUB.text = '';
 }
 
 /* ================= 대사 ================= */
@@ -3092,58 +2983,35 @@ function pickCharacterLine() {
 }
 
 function speak(line, kind = '', dur, force = false) {
-  if (G.editing) return;
-
   const v = G.v;
-  if (!v) return;
+  if (!v || G.editing) return;
+  if (!force && G.mode === 'care' && ['stand', 'hug'].includes(v.state)) return;
+  // 목이 졸리는 동안에는 말하지 않는다.
+  if (G.ptr?.kind === 'ropeHold' && G.ptr.toolHold) return;
 
-  if (
-    !force &&
-    G.mode === 'care' &&
-    ['stand', 'hug'].includes(v.state)
-  ) return;
+  // 피격 추임새와 달래기 대꾸는 받은 문장 그대로, 그 밖에는 독백 중에서 고른다.
+  const ouch = LINES.ouch.includes(line);
+  const chosen = (ouch || G.mode === 'care') ? line : pickCharacterLine();
+  const text = String(chosen ?? '');
+  if (!text.trim()) return;
 
-  // 피격 추임새만 원문 유지.
-  const isOuch = LINES.ouch.includes(line);
-  const spokenLine = isOuch ? line : pickCharacterLine();
-
-  const text = lisp(spokenLine, v.st.teeth);
-  const seconds = dur || clamp(
-    0.9 + text.length * 0.08,
-    1.3,
-    3.2
-  );
-
+  // 맞는 중에도 읽을 수 있게 넉넉히 띄운다.
+  const seconds = dur || clamp(1.1 + text.length * 0.1, 1.8, 3.6);
   say(text, seconds, kind);
-
   v.mouth.talk = clamp(text.length * 0.07, 0.3, 2.2);
 
-  const n = clamp(
-    Math.round(
-      text.replace(/[^가-힣a-z]/gi, '').length * 0.8
-    ),
-    1,
-    14
-  );
-
-  const mood = v.fear;
-
-  if (kind === 'cry') {
-    SFX.sob({ pitch: v.look.pitch });
-  } else {
-    SFX.babble(n, { pitch: v.look.pitch, mood });
-  }
+  const n = clamp(Math.round(text.replace(/[^가-힣a-z]/gi, '').length * 0.8), 1, 14);
+  if (kind === 'cry') SFX.sob({ pitch: v.look.pitch });
+  else SFX.babble(n, { pitch: v.look.pitch, mood: v.fear });
 
   G.lastSay = G.time;
-
-  if (!isOuch) {
-    // 일반 대사를 한 뒤 다음 중얼거림까지 3~5초.
-    // 피격 추임새는 이 타이머를 초기화하지 않는다.
-    v._mutterLeft = rnd(MUTTER_MIN, MUTTER_MAX);
-
-    // 대사가 뜨자마자 피격 추임새로 덮이지 않도록 보호.
-    v._characterLineUntil =
-      G.time + Math.min(seconds, 2.2);
+  if (!ouch) {
+    // 일반 대사를 한 뒤 다음 중얼거림까지 3~5초. 피격 추임새는 이 타이머를 건드리지 않는다.
+    v._mutterLeft = Math.max(rnd(MUTTER_MIN, MUTTER_MAX), seconds + 0.6);
+    // 대사가 떠 있는 동안에는 맞아도 말풍선을 지우지 않고, 피격 추임새 글자로 덮지도 않는다(비명 소리와 표정은 그대로 나온다).
+    v._characterLineUntil = G.time + seconds;
+    // 방금 한 독백. 이 뒤에 때리면 내 욕이 이 독백을 받아친다.
+    if (G.mode === 'hit') G.lastWhine = { text, t: G.time, used: false };
   }
 }
 
@@ -3151,6 +3019,8 @@ function updateCharacterMutter(dt) {
   const v = G.v;
 
   if (!v || G.editing || document.hidden) return;
+  // 독백은 때리기 모드에서만 한다. 달래기에서는 위로에 대한 대꾸만 한다.
+  if (G.mode !== 'hit') return;
 
   // 설정·외모 편집 등 모달을 연 동안에는 중얼거림을 멈춘다.
   if (document.querySelector('.modal:not([hidden])')) return;
@@ -3181,19 +3051,10 @@ function moodOf(v) {
   if(careIsAwkward(v))return 'awkward';
   if (G.hug) return 'hug';
   if(v.ouch>0 || v.guardHold>0) return v.fear>=.78?'cry':v.fear>=.5?'beg':'fluster';
-  if (v.confessed && v.comfort > 0.45) return 'soft';
   if (v.fear < 0.22) return v.hardHits>0 && v.comfort<.35?'fluster':'smug';
   if (v.fear < 0.5) return 'fluster';
   if (v.fear < 0.78) return 'beg';
   return 'cry';
-}
-function moodLine(v) {
-  const m = moodOf(v);
-  if (m === 'smug') return [Math.random() < 0.45 ? pick(v.crime.ex) : pick(LINES.smug), ''];
-  if (m === 'fluster') return [pick(LINES.fluster), 'shout'];
-  if (m === 'beg') return [pick(LINES.beg), 'cry'];
-  if (m === 'soft') return [pick(LINES.soft), ''];
-  return [pick(LINES.cry), 'cry'];
 }
 
 /* ================= 타격 ================= */
@@ -3390,12 +3251,12 @@ function registerHurt(v,h,power){
   v.paintMouth();
   for(const e of v.eyes){
     e.lidU.rotation.x=1.62;e.lidL.rotation.x=lerp(-1.62,1.4,.4);
-    e.pupilG.scale.setScalar(.57);
+    e.pupilG.scale.set(.57,.57,1);
     const b=e.brow.userData.inner;
     b.rotation.z=Math.PI/2-e.s*.52-e.s*v.look.browTilt;b.position.y=-.018;
   }
-  // Cut the visual quip at the same frame; speech resumes after the flinch.
-  BUB.text='';bubble.classList.remove('show');
+  // 맞는 순간 말풍선을 끊는다. 단, 독백이 떠 있는 동안에는 읽을 수 있게 그대로 둔다.
+  if(G.time>=(v._characterLineUntil||0)){BUB.text='';bubble.classList.remove('show');}
   for(const a of v.armRig){a.cur.sx=Math.min(a.cur.sx,-.55);a.cur.ex=Math.min(a.cur.ex,-.65);}
 }
 function impactStopDuration(h,P){
@@ -3888,8 +3749,6 @@ G.lastAct = G.time;
 
 if (!soft) {
   v.st.hits++;
-  DAY.hits++;
-  saveDay();
 
   v.damage += P;
   v.fear = clamp(v.fear + P * 0.065, 0, 1);
@@ -4017,18 +3876,10 @@ if (!soft) {
   feedMarshmallow(v);
 }
 
-if (!soft) checkConfess();
 
 
 }
 
-function checkConfess() {
-  const v = G.v;
-  if (!v.confessed && v.damage >= 42 && v.fear > 0.72) {
-    v.confessed = true;
-    setTimeout(() => { if (G.v === v) speak(v.crime.cf, 'cry', 3.4); }, 350);
-  }
-}
 
 function loseTooth(h, n = 1) {
   const v = G.v;
@@ -4039,20 +3890,17 @@ function loseTooth(h, n = 1) {
     if (idx < 0) for (const i of order) { if (v.lower[i]) { arr = v.lower; idx = i; break; } }
     if (idx < 0) return;
     arr[idx] = 0;
-    v.st.teeth++; DAY.teeth++; saveDay();
+    v.st.teeth++;
     v.lipBlood = Math.min(1, v.lipBlood + 0.3);
     const tooth = makeTooth();
     const vel = h.force.clone().multiplyScalar(-0.6).add(V3(rnd(-1.2, 1.2) + (h.side || 0) * -1.2, rnd(1.8, 3), rnd(0.6, 1.6)));
-    const p = spawn(tooth, v.mouthWorld(), vel, { kind: 'tooth', r: 0.022, persist: true, life: 1e9, bounce: 0.45, sound: sp => SFX.tink(clamp(tooth.position.x, -1, 1), Math.min(1, sp / 3)), flat: { x: Math.PI / 2, z: 0 } });
-    G.floorTeeth.push(p);
+    spawn(tooth, v.mouthWorld(), vel, { kind: 'tooth', r: 0.022, persist: true, life: 1e9, bounce: 0.45, sound: sp => SFX.tink(clamp(tooth.position.x, -1, 1), Math.min(1, sp / 3)), flat: { x: Math.PI / 2, z: 0 } });
     for (let i = 0; i < 4; i++) spawnDrop(v.mouthWorld(), vel.clone().multiplyScalar(0.6).add(V3(rnd(-.4, .4), 0, rnd(-.4, .4))), 'blood', 0.01);
   }
   SFX.tooth(0);
   popText('팅!', v.mouthWorld(), 'tooth', 42);
   G.slowmo = 0.35;
   v.faceDirty = true;
-  if (G.time - G.lastSay > 0.6) speak(pick(LINES.tooth), 'shout');
-  updateCareButtons();
 }
 
 function breakGlasses() {
@@ -4064,8 +3912,7 @@ function breakGlasses() {
   if (lv === 1) { SFX.tink(0, 1); }
   else if (lv === 2) {
     v.lenses[0].crack.visible = true; v.lensCrack[0] = 1; SFX.glass(-0.3); popText('쩍!', gw(), 'glass', 38);
-    v.st.glasses = 1; DAY.glasses++; saveDay();
-    if (G.time - G.lastSay > 0.6) speak(pick(LINES.glasses), 'shout');
+    v.st.glasses = 1;
   } else if (lv === 3) {
     if (!v.lensGone[1]) {
       v.lensGone[1] = 1; v.lenses[1].lens.visible = false; v.lenses[1].crack.visible = false;
@@ -4086,10 +3933,9 @@ function breakGlasses() {
     const wp = v.glasses.getWorldPosition(V3()), wq = v.glasses.getWorldQuaternion(new THREE.Quaternion());
     clone.quaternion.copy(wq);
     clone.scale.copy(v.headMesh.scale);
-    G.floorGlasses = spawn(clone, wp, V3(rnd(-1.5, 1.5), rnd(1.5, 2.5), rnd(0.8, 1.5)), { kind: 'glasses', r: 0.02, persist: true, life: 1e9, sound: () => SFX.tink(0, 0.8), flat: { x: -Math.PI / 2 + 0.2, z: rnd(-1, 1) } });
+    spawn(clone, wp, V3(rnd(-1.5, 1.5), rnd(1.5, 2.5), rnd(0.8, 1.5)), { kind: 'glasses', r: 0.02, persist: true, life: 1e9, sound: () => SFX.tink(0, 0.8), flat: { x: -Math.PI / 2 + 0.2, z: rnd(-1, 1) } });
     SFX.glass(0); popText('휘익!', wp, 'glass', 40);
   }
-  updateCareButtons();
 }
 
 function loseHair(d, n, force) {
@@ -4112,7 +3958,6 @@ function loseHair(d, n, force) {
     v.capAlpha.t.needsUpdate = true; }
   SFX.rip(0, 0.2);
   popText('뭉텅!', v.headWorld(d, 0.05), 'hair', 32);
-  if (G.time - G.lastSay > 1) speak(pick(LINES.hair), 'shout');
 }
 
 function popButton(h) {
@@ -4125,7 +3970,6 @@ function popButton(h) {
   spawn(b, wp, V3(rnd(-1, 1), rnd(1.5, 2.5), rnd(1, 2)), { kind: 'button', r: 0.008, persist: true, life: 1e9, sound: () => SFX.tink(0, 0.5), flat: { x: Math.PI / 2, z: 0 } });
   SFX.pop(clamp(wp.x, -1, 1));
   popText('툭!', wp, 'button', 30);
-  if (G.time - G.lastSay > 1.2 && Math.random() < 0.5) speak(pick(LINES.buttons), 'shout');
 }
 
 /* ================= Impact edition: rigid contact, rope and sustained input ================= */
@@ -4256,6 +4100,7 @@ function updateIdleTool(dt){
   const dock=$('.dock').getBoundingClientRect(),y=Math.min(innerHeight*.69,dock.top-35),center=planePoint(innerWidth*.82,Math.max(120,y),.68);
   const n=V3(.18,.05,1).normalize(),q=contactBasis(n,1,'bonk');r.quaternion.copy(q);
   r.position.copy(center).sub(V3(0,r.userData.L,0).applyQuaternion(q));
+  if(r.position.y<.03)r.position.y=.03;   // 화면 기준 자리가 바닥보다 낮게 잡혀도 바닥 위에 세운다
   r.position.y+=Math.sin(G.time*1.6)*.004;
   if(G.tool==='rope'){
     r.quaternion.identity();r.userData.otherHand.visible=false;const p0=r.position.clone().add(V3(0,.17,0));
@@ -4275,16 +4120,13 @@ function startGrab(kind, info, e) {
     v.grabDir.copy(info.dir);
     RIG.open[1].visible = true;
     SFX.creak(0);
-    speak(pick(LINES.cheek), 'shout');
   } else if (kind === 'nose') {
     RIG.open[1].visible = true;
     SFX.honk(0);
-    speak(pick(LINES.nose), 'shout');
   } else if (kind === 'flick') {
     RIG.flick.visible = true;
     G.ptr.grab.t0 = G.time;
     SFX.chargeStart();
-    speak(pick(LINES.flick), '');
     G.charge = { el: chargeEl(e.clientX, e.clientY), t: 0 };
   } else if (kind === 'body') {
     v.state = 'grabbed'; v.stateT = 0;
@@ -4294,7 +4136,6 @@ function startGrab(kind, info, e) {
     G.ptr.grab.vel = V3(); G.ptr.grab.last = v.root.position.clone();
     RIG.open[1].visible = true;
     SFX.rip(0, 0.12);
-    speak(pick(LINES.throw), 'shout');
   }
 }
 function planePoint(cx, cy, z) {
@@ -4390,7 +4231,7 @@ function releaseGrab() {
     const vel = g.vel.clone();
     const sp = vel.length();
     v.phys = { vel: vel.multiplyScalar(sp > 2.2 ? 1.25 : 0.4), spin: clamp(vel.x * -2.2, -12, 12), hard: sp > 2.2 };
-    if (sp > 2.2) { v.phys.vel.y += 1.2; SFX.whoosh(0, true); DAY.throws++; }
+    if (sp > 2.2) { v.phys.vel.y += 1.2; SFX.whoosh(0, true); }
     v.state = 'air'; v.stateT = 0;
   }
 }
@@ -4402,11 +4243,11 @@ function releaseGrab() {
  */
 const CARE_LINES={
   comfort:['힘들었지? 오늘도 정말 수고했어.','넌 잘하고 있어. 내가 알아.','오늘도 버티느라 애썼어.','잠깐 쉬어도 괜찮아.','괜찮아. 지금은 아무 말 안 해도 돼.','너무 애쓰지 않아도 괜찮아.','여기서는 괜찮은 척 안 해도 돼.','오늘 하루도 네 편이 되어줄게.'],
-  hand:['오늘도 정말 고생 많았어.','천천히 해도 돼.','잘 버텼어. 정말로.','잠깐, 이렇게 쉬고 있자.'],
-  love:['사랑해. 그냥, 말해주고 싶었어.','네가 여기 있어서 좋아.','아무것도 안 해도 돼. 그냥 있어줘.'],
-  thumb:['넌 잘하고 있어.','잘했어. 정말 잘했어.','지금도 충분히 잘하고 있어.'],
+  hand:['오늘도 정말 고생 많았어.','잘 버텼어. 정말로.','잠깐, 이렇게 쉬고 있자.'],
+  love:['사랑해. 그냥, 말해주고 싶었어.','네가 여기 있어서 좋아.','아무것도 안 해도 돼.'],
+  thumb:['잘했어. 정말 잘했어.','지금도 충분히 잘하고 있어.'],
   clap:['오늘도 정말 수고했어.','너한테 박수 쳐주고 싶었어.','여기까지 온 것만으로도 잘했어.'],
-  five:['손 줘. 하이파이브.','천천히 해도 돼. 기다릴게.'],
+  five:['손 줘. 하이파이브.','천천히 해도 돼.'],
   hug:['힘들었지?','말 안 해도 돼. 그냥 이러고 있자.','괜찮아. 잠깐 기대고 있어.','오늘도 버티느라 애썼어.','지금은 조금 쉬어도 괜찮아.']
 };
 const careBags={},careSeen=new Set();let lastCareLine='';
@@ -4420,7 +4261,7 @@ const CareVoice=(()=>{
   let speech=null,utterance=null,voices=[],serial=0,watch=0;
   try{speech=window.speechSynthesis||null;}catch(e){}
   function refresh(){try{voices=speech?speech.getVoices().filter(v=>/^ko(?:[-_]|$)/i.test(v.lang)):[];}catch(e){voices=[];}}
-  if(speech){refresh();speech.addEventListener?.('voiceschanged',()=>{refresh();setTimeout(()=>{if(typeof syncCareVoice==='function')syncCareVoice();},0);});}
+  if(speech){refresh();speech.addEventListener?.('voiceschanged',()=>{refresh();});}
   function stop(){serial++;clearTimeout(watch);if(utterance&&speech)try{speech.cancel();}catch(e){}utterance=null;}
   function say(text){
     stop();if(!PREF.sound||!PREF.careVoice||!speech||typeof SpeechSynthesisUtterance==='undefined')return false;
@@ -4436,65 +4277,19 @@ const CareVoice=(()=>{
 function careSay(group='comfort',force=false){
   if(G.mode!=='care'||G.editing||!G.v||!['stand','hug'].includes(G.v.state))return;
   if(!force && G.time-(G.careLastVoice??-100)<4.5)return;
-  const text=nextCareLine(group);G.careLastVoice=G.time;G.careCaptionUntil=G.time+Math.max(3.8,text.length*.16+1);
-  const box=$('#careCaption');box.hidden=false;$('#careCaptionText').textContent=text;
-  CareVoice.say(text);if(typeof syncCareVoice==='function')syncCareVoice();G.lastAct=G.time;G.lastSay=G.time;
+  const text=nextCareLine(group);G.careLastVoice=G.time;G.lastCareLine={text,t:G.time};G.careCaptionUntil=G.time+Math.max(3.8,text.length*.16+1);
+  const box=$('#careCaption');box.hidden=false;$('#careCaptionText').textContent=text;window.__SC_ROOM_UI_V1?.hideHelp();
+  CareVoice.say(text);G.lastAct=G.time;G.lastSay=G.time;
   // The character does not lip-sync the player's words; it answers afterwards in its own bubble.
   G.v.mouth.talk=0;BUB.text='';bubble.classList.remove('show');
   if(group!=='five')queueCareReply(group);
 }
 function careIsAwkward(v){return G.mode==='care'&&!G.editing&&['stand','hug'].includes(v.state)&&!(v.ouch>0);}
-/* 달래기 대답: 플레이어 말이 끝나면 나쁜 놈이 말풍선으로 받아친다. 민망하면 플레이어에게 뻐큐를 날린다. */
-const CARE_REPLY={
-  comfort:['…뭐래.','갑자기 왜 이래요.','그런 말 처음 들어 봐요.','…저한테 한 말이에요?','아까 때리던 사람 맞아요?','…어쩌라고요.'],
-  hand:['머리 만지지 마요…','…제가 강아지예요?','아 간지러워요.','…언제까지 할 건데요.'],
-  love:['…갑자기요?','아 소름 돋았어요.','그런 말 함부로 하는 거 아니에요.','…저 그런 사람 아닌데.'],
-  thumb:['…뭘 잘했는데요.','그 손가락 치워요.','아까는 때렸잖아요.','…네, 뭐.'],
-  clap:['박수는 왜 쳐요…','구경났어요?','그만 쳐요, 민망하게.'],
-  fiveHit:['…이러면 된 거죠?','손 아파요.','…한 번만이에요.'],
-  fiveMiss:['안 해요.','…손 내려요.','그런 거 안 해요.'],
-  hug:['…놔요.','숨 막혀요…','아 진짜 왜 이래요…','…조금만이에요.'],
-  release:['…다 했어요?','이상한 사람이야, 진짜.','…옷 구겨졌잖아요.'],
-  soft:['…고마워요.','왜 잘해 줘요…','저 같은 걸…','흐윽… 따뜻해…'],
-  flip:['에라이, 이거나 먹어요.','보지 마요, 민망하니까!','아 몰라요!','…이게 제 대답이에요.','민망하게 진짜…','뭘 봐요!']
-};
+/* 달래기 대꾸: 내 말이 끝나면 캐릭터가 말풍선으로 받아친다. 대사·몸짓 선택은 아래 CARE_SNUB 구역에 있다. */
 const CARE_REPLY_DELAY={comfort:1.4,hand:1.2,love:2.35,thumb:1.45,clap:.75,fiveHit:1.3,fiveMiss:.55,hug:1.8,release:.6};
-const careReplyLast={};
-function queueCareReply(group){
-  const v=G.v;if(!v||G.mode!=='care'||G.editing||!['stand','hug'].includes(v.state))return;
-  const n=v.careReplies||0;let flip=false;
-  if(group!=='hug'&&!G.hug){
-    let p=v.confessed?.2:.42;if(v.lastFlip)p*=.45;
-    if(n>=1&&!v.flipped)p=1; // 두 번째 대답에서는 반드시 한 번 보여 준다.
-    flip=Math.random()<p;
-  }
-  v.careReplies=n+1;v.lastFlip=flip;if(flip)v.flipped=true;
-  G.react={group,t:0,delay:CARE_REPLY_DELAY[group]??1.3,flip,fired:false,v};
-  // 뻐큐를 날릴 때는 엄지·하트·박수 따라 하기를 하지 않는다.
-  if(flip&&G.social&&['thumb','love','clap'].includes(G.social.kind))G.social.noEcho=true;
-}
-function careReplyLine(r){
-  const v=r.v;let key=r.flip?'flip':r.group;
-  if(!r.flip&&v.confessed&&v.comfort>.45&&r.group!=='fiveMiss')key='soft';
-  const list=CARE_REPLY[key]||CARE_REPLY.comfort;
-  let line=pick(list);if(list.length>1&&line===careReplyLast[key])line=list[(list.indexOf(line)+1)%list.length];
-  return careReplyLast[key]=line;
-}
-function updateCareReply(dt){
-  const r=G.react;if(!r)return;
-  if(r.v!==G.v){G.react=null;return;}
-  const a=G.social;
-  // 박수는 박수를 멈춘 뒤에 대답한다.
-  if(r.group==='clap'&&!r.fired&&a?.kind==='clap'&&(a.clapT<.32||a.queued>0||a.t-a.lastBeat<.6))r.t=0;
-  r.t+=dt;
-  if(!r.fired&&r.t>=r.delay){
-    r.fired=true;const v=r.v;
-    if(r.flip&&G.hug)r.flip=false;
-    speak(careReplyLine(r),r.flip?'shout':'',undefined,true);
-    if(r.flip){v.blush=Math.max(v.blush,.6);v.faceDirty=true;SFX.whoosh(.25);vib(12);}
-  }
-  if(r.fired){const since=r.t-r.delay;if(since>(r.flip?2.45:.3)&&!(r.v.mouth.talk>0))G.react=null;}
-}
+function queueCareReply(group){}
+function careReplyLine(r){return r.line||'';}
+function updateCareReply(dt){}
 function careFlipWeight(){
   const r=G.react;if(!r||!r.flip||!r.fired)return 0;
   return careWindow(r.t-r.delay,0,.26,1.9,2.35);
@@ -4531,7 +4326,7 @@ function hideSocialHands(){
   for(const h of RIG.open)if(!G.hug&&!G.ptr?.rubbing&&!G.attacks.some(a=>a.rig===h))h.visible=false;
 }
 function stopSocial(){
-  G.social=null;G.react=null;G.careAnim=null;G.careCaptionUntil=0;CareVoice.stop();$('#careCaption').hidden=true;$('#fiveTarget').hidden=true;
+  G.social=null;G.react=null;G.careAnim=null;G.careCaptionUntil=0;CareVoice.stop();$('#careCaption').hidden=true;
   hideSocialHands();if(G.v)restoreCareActorHands(G.v);
 }
 function startSocial(kind){
@@ -4572,7 +4367,7 @@ function updateSocial(dt){
   const a=G.social;if(!a)return;a.t+=dt;G.lastAct=G.time;G.lastSay=G.time;
   if(a.kind==='clap'){
     a.clapT+=dt;
-    if(!a.clapContact&&a.clapT>=.15){a.clapT=.15;a.clapContact=true;a.lastBeat=a.t;a.echo=0;SFX.clap(.75);countCare('claps');}
+    if(!a.clapContact&&a.clapT>=.15){a.clapT=.15;a.clapContact=true;a.lastBeat=a.t;a.echo=0;SFX.clap(.75);}
     if(a.clapT>=.32&&a.queued>0){a.queued--;a.clapT=0;a.clapContact=false;}
     const since=a.t-a.lastBeat;
     if(a.clapT>.32&&a.queued===0){
@@ -4584,15 +4379,14 @@ function updateSocial(dt){
     if(a.phase==='invite'&&a.requested&&a.t>=1.12){a.phase='contact';a.hitT=0;}
     if(a.phase==='contact'){
       a.hitT+=dt;
-      if(a.hitT>=.16&&!a.contact){a.hitT=.16;a.contact=true;SFX.clap(1);vib(10);countCare('highfives');v.careBlink=.12;queueCareReply('fiveHit');}
-      if(a.hitT>1.22){G.social=null;hideSocialHands();$('#fiveTarget').hidden=true;}
-    }else if(a.phase==='invite'&&a.t>5.2){a.phase='miss';a.hitT=0;$('#fiveTarget').hidden=true;queueCareReply('fiveMiss');}
+      if(a.hitT>=.16&&!a.contact){a.hitT=.16;a.contact=true;SFX.clap(1);vib(10);v.careBlink=.12;queueCareReply('fiveHit');}
+      if(a.hitT>1.22){G.social=null;hideSocialHands();}
+    }else if(a.phase==='invite'&&a.t>5.2){a.phase='miss';a.hitT=0;queueCareReply('fiveMiss');}
     else if(a.phase==='miss'){a.hitT+=dt;if(a.hitT>1.5){G.social=null;hideSocialHands();}}
   }else if(a.kind==='hugRelease'){if(a.t>1.1){G.social=null;hideSocialHands();}}
   else if(a.kind==='groom'){if(a.t>1.1){G.social=null;hideSocialHands();}}
   else if(a.t>3.8){G.social=null;hideSocialHands();}
 }
-function countCare(key){const v=G.v;if(v)v.st[key]=(v.st[key]||0)+1;DAY[key]=(DAY[key]||0)+1;saveDay();}
 
 // Player gestures: a recognisable upright thumb / crossed fingertips, not floating icons.
 function buildCareHand(kind,material=mySkin,sleeve=true){
@@ -4791,7 +4585,7 @@ function renderSocialHands(dt){
       else{const q=clamp((u-.16)/.85,0,1);p=at.clone().addScaledVector(n,Math.sin(Math.min(1,q*3)*Math.PI)*.17).lerp(camRest(-1,-.85),easeOut(q));}
     }else if(a.phase==='miss')p.lerp(camRest(-1,-.85),easeOut(clamp(a.hitT/.45,0,1)));
     h.position.copy(p);orient(h,V3(0,0,-1),V3(0,1,0));
-    const target=$('#fiveTarget');target.hidden=a.phase!=='invite'||t<.65;
+    
     if(!target.hidden){const xy=toScreen(actual);target.style.left=clamp(xy[0],38,innerWidth-38)+'px';target.style.top=clamp(xy[1],110,innerHeight-170)+'px';}
   }
   return true;
@@ -4808,8 +4602,6 @@ function careAct(kind, info, e) {
     SFX.pat(clamp(p.x, -1, 1)); setTimeout(() => SFX.pat(clamp(p.x, -1, 1)), 180);
     popText('토닥', p, 'pat', 30);
     comfort(0.05, 'soft');
-  } else if (kind === 'bandage') {
-    placeBandage(info);
   }
 }
 function comfort(amt,lineKey){
@@ -4817,100 +4609,7 @@ function comfort(amt,lineKey){
   // No blush, smile, sobbing or confession prerequisite for social actions.
   if(lineKey&&['soft','pet'].includes(lineKey))careSay('hand');
 }
-const bandTex = (() => {
-  const t = canvasTex(256, 96), g = t.g;
-  g.fillStyle = '#f2c48f'; roundRect(g, 2, 2, 252, 92, 44); g.fill();
-  g.fillStyle = '#fff4e2'; roundRect(g, 84, 14, 88, 68, 14); g.fill();
-  g.fillStyle = '#b07638'; for (let i = 0; i < 8; i++) { g.beginPath(); g.arc(24 + (i % 2) * 20 + (i > 3 ? 180 : 0), 30 + ((i / 2) | 0) % 2 * 36, 3, 0, 7); g.fill(); }
-  // 곰돌이
-  g.fillStyle = '#a8703c'; [[108, 30], [148, 30]].forEach(([x, y]) => { g.beginPath(); g.arc(x, y, 9, 0, 7); g.fill(); });
-  g.beginPath(); g.arc(128, 50, 22, 0, 7); g.fill();
-  g.fillStyle = '#f7dcb8'; g.beginPath(); g.ellipse(128, 57, 10, 8, 0, 0, 7); g.fill();
-  g.fillStyle = '#1f2a5c'; [[120, 45], [136, 45]].forEach(([x, y]) => { g.beginPath(); g.arc(x, y, 2.6, 0, 7); g.fill(); });
-  g.beginPath(); g.arc(128, 54, 3, 0, 7); g.fill();
-  return t.t;
-})();
-bandTex.userData={shared:true};
 function roundRect(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
-function placeBandage(info) {
-  const v = G.v;
-  const p = hitWorld(info), n = hitNormal(info);
-  G.careAnim = { kind: 'press', t: 0, p, n };
-  setTimeout(() => {
-    if (G.v !== v) return;
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(0.1, 0.038), new THREE.MeshStandardMaterial({ map: bandTex, transparent: true, roughness: 0.8, polygonOffset: true, polygonOffsetFactor: -4 }));
-    m.renderOrder = 3;
-    if (info.part === 'head' || info.part === 'nose') {
-      const d = v.localDir(p);
-      v.headMesh.add(m);
-      m.userData = { d, onHead: true };
-      orient(m, d, V3(rnd(-1, 1), 1, 0));
-      v.headDirty = true;
-      const [fx, fy] = faceXY(d);
-      for (const b of v.bruises) if (Math.hypot(b.x - fx, b.y - fy) < 80) { b.heal *= 0.35; b.lv *= 0.6; }
-      for (const e of v.eyes) if (d.dot(e.d) > 0.9) e.swell *= 0.5;
-      if (d.dot(v.noseDir) > 0.9) v.noseBlood *= 0.3;
-      v.faceDirty = true;
-    } else {
-      info.obj.add(m);
-      m.position.copy(info.local).addScaledVector(info.nLocal, 0.006);
-      const tmp = new THREE.Object3D(); orient(tmp, info.nLocal, V3(rnd(-1, 1), 1, 0)); m.quaternion.copy(tmp.quaternion);
-    }
-    v.bandages.push(m);
-    if (v.bandages.length > 30) { const o = v.bandages.shift(); o.parent && o.parent.remove(o); }
-    v.st.bandages++; DAY.bandages++; saveDay();
-    SFX.bandage(clamp(p.x, -1, 1));
-    popText('착!', p, 'pat', 30);
-    comfort(0.1, 'bandage');
-  }, 160);
-}
-function fixGlasses() {
-  const v = G.v; if (!v || v.look.glassesStyle==='none' || v.state !== 'stand' || (v.glassLv === 0 && !v.glassOff)) return;
-  G.lastAct = G.time;
-  const finish = () => {
-    if (G.v !== v) return;
-    v.glassLv = 0; v.glassOff = false; v.glassHit = 0;
-    v.glasses.visible = true; v.rightArm.visible = true;
-    v.lensGone = [0, 0]; v.lenses.forEach((l, i) => { l.lens.visible = true; l.crack.visible = !!v.lensCrack[i]; });
-    v.tapeM.visible = true; v.taped = true;
-    v.st.fixed++;
-    SFX.tape();
-    popText('칭칭!', v.glasses.getWorldPosition(V3()), 'glass', 32);
-    comfort(0.25, 'glassesFix');
-    updateCareButtons();
-  };
-  if (G.floorGlasses) {
-    const p = G.floorGlasses; const i = particles.indexOf(p);
-    if (i >= 0) { p.homing = { from: p.obj.position.clone(), to: () => v.glasses.getWorldPosition(V3()), t: 0, dur: 0.55, arc: 0.4, done: finish }; }
-    G.floorGlasses = null;
-    SFX.whoosh(0);
-  } else {
-    G.careAnim = { kind: 'press', t: 0, p: v.glasses.getWorldPosition(V3()), n: V3(0, 0, 1) };
-    setTimeout(finish, 180);
-  }
-  // 떨어진 파편 정리
-  for (let i = particles.length - 1; i >= 0; i--) if (particles[i].kind === 'lens' || (particles[i].kind === 'junk')) removeParticle(i);
-}
-function returnTooth() {
-  const v = G.v; if (!v || v.state !== 'stand') return;
-  const p = G.floorTeeth.shift(); if (!p) return;
-  G.lastAct = G.time;
-  v.toothHold = 3.2;
-  const i = particles.indexOf(p);
-  if (i < 0) return;
-  const target = () => v.palm.localToWorld(V3(rnd(-0.01, 0.01), 0.01 + v.palmTeeth.length * 0.004, 0));
-  p.homing = { from: p.obj.position.clone(), to: target, t: 0, dur: 0.6, arc: 0.35, done: () => {
-    if (G.v !== v) return;
-    const t = makeTooth(); t.scale.setScalar(0.8);
-    v.palm.add(t); t.position.set(rnd(-0.02, 0.02), 0.02, rnd(-0.015, 0.015)); t.rotation.set(Math.PI / 2, 0, rnd(0, 6));
-    v.palmTeeth.push(t);
-    v.st.toothBack++;
-    SFX.ding();
-    comfort(0.2, 'toothBack');
-  } };
-  SFX.whoosh(0);
-  updateCareButtons();
-}
 function startHug(){
   const v=G.v;if(!v||v.state!=='stand'||G.hug||G.mode!=='care'||G.editing)return;
   cancelPointer();stopSocial();clearAttacks();G.hug=true;v.state='hug';v.stateT=0;v.careAge=0;G.lastAct=G.time;
@@ -5021,7 +4720,7 @@ function careRub(P, sx, sy, e) {
   h.visible = true;
   const speed = Math.hypot(sx, sy);
   G.rub = Math.min(1, (G.rub || 0) + speed * 0.02);
-  if (!P.rubbing) { P.rubbing = true; SFX.rubStart(); if (P.kind === 'pet') { v.st.pets++; DAY.pets++; saveDay(); } }
+  if (!P.rubbing) { P.rubbing = true; SFX.rubStart(); }
   G.lastAct = G.time;
   if (P.kind === 'pet') {
     const top = v.headWorld(dirN(0, 1, 0.15), 0.05);
@@ -5083,7 +4782,7 @@ canvas.addEventListener('contextmenu', e => e.preventDefault());
 
 /* ================= UI ================= */
 const HINTS = {
-  hand: '누르기 잽 · 옆으로 쓸기 훅 · 좌우 흔들기 싸대기<br>위로 쓸기 어퍼컷 · 이마 꾹 딱밤<br>볼·코 꾹 잡아당기기 · 몸통 꾹 잡아 던지기',
+  hand: '톡 잽 · 쓸기 훅 · 위로 쓸기 어퍼컷 · 흔들기 싸대기<br>꾹: 이마 딱밤 · 볼·코 당기기 · 몸통 잡아 내려치기',
   tool:'누르기 내려치기 · 쓸기 휘두르기<br>빠르게 쓸수록 강하게 · 좌우 연속 가능',
   pan:'톡 누르면 묵직한 한 방 · 옆으로 쓸면 스윙<br>빠르게 쓸수록 강하게 · 두꺼운 스테인 바닥',
   bat:'톡 누르기 짧은 스윙 · 꾹 눌렀다 놓기 충전 스윙<br>옆으로 쓸기 후려치기 · 위로 쓸기 올려치기',
@@ -5099,7 +4798,7 @@ const HINTS = {
 };
 function setHint() {
   $('#hint').innerHTML = G.mode === 'hit' ? (HINTS[G.tool]||HINTS.tool) : (HINTS[G.care==='hand'?'carehand':G.care]||HINTS.carehand);
-  const label=$('#toolLabel');label.hidden=G.mode!=='hit'||G.tool!=='pan';label.innerHTML=G.tool==='pan'?'<b>TRI-CLAD 28</b><small>STAINLESS · 3-PLY · 게임 속 가상 모델</small>':'';
+
   setTimeout(fit,0);
 }
 $$('.mode').forEach(b => b.addEventListener('click', () => {
@@ -5133,41 +4832,16 @@ $$('[data-care]').forEach(b => {
   b.addEventListener('click', () => {
     SFX.unlock();
     if(G.hug)endHug();stopSocial();
-    if (k === 'glasses') return fixGlasses();
-    if (k === 'tooth') return returnTooth();
     G.care = k;
     syncCareSelection();
     setHint();
   });
 });
 $('#careTalk').addEventListener('click',()=>{SFX.unlock();careSay('comfort',true);});
-$('#careRepair').addEventListener('click',()=>{const box=$('#careRepairs');box.hidden=!box.hidden;$('#careRepair').setAttribute('aria-expanded',String(!box.hidden));if(G.hug)endHug();stopSocial();fit();});
-function syncCareVoice(){const b=$('#careVoiceToggle');b.setAttribute('aria-pressed',String(!!PREF.careVoice));const available=CareVoice.available();b.textContent=!PREF.careVoice?'목소리 끔':available?'목소리 켬':'자막만';b.title=available?'한국어 기기 음성을 켜거나 끕니다.':'현재 한국어 기기 음성이 없어 자막으로 표시합니다.';}
-$('#careVoiceToggle').addEventListener('click',()=>{PREF.careVoice=!PREF.careVoice;store.set('badguy.prefs',PREF);if(!PREF.careVoice)CareVoice.stop();syncCareVoice();});
-syncCareVoice();
-let careCache = '';
-function updateCareButtons(force) {
-  const v = G.v;
-  const glass = !!(v && v.look.glassesStyle!=='none' && (v.glassLv > 0 || v.glassOff));
-  const teeth = G.floorTeeth.length;
-  const key = glass + '|' + teeth;
-  if (key === careCache && !force) return;
-  careCache = key;
-  $('[data-care=glasses]').disabled = !glass;
-  $('[data-care=tooth]').disabled = !teeth;
-  const bd = $('#toothBadge'); bd.hidden = !teeth; bd.textContent = teeth;
-}
-$('#nextBtn').addEventListener('click', () => { SFX.unlock(); if (G.v && G.v.state !== 'enter') sendAway(); });
+function updateCareButtons(force) {}
 function openModal(id){$(id).hidden=false;cancelPointer();endHug();stopSocial();clearAttacks();}
 $$('.modal:not(#lookModal)').forEach(m => m.addEventListener('click', e => { if (e.target === m || e.target.closest('[data-close]')) m.hidden = true; }));
-addEventListener('keydown', e => { if (e.key === 'Escape') $$('.modal').forEach(m => { if (m.id !== 'letterModal' && m.id !== 'lookModal') m.hidden = true; }); });
-$('#statsBtn').addEventListener('click', () => {
-  saveDay();
-  const rows = [['끌려온 놈', DAY.villains + '명', ''], ['날린 주먹', DAY.hits + '방', 'red'], ['빠진 이빨', DAY.teeth + '개', 'red'], ['깨진 안경', DAY.glasses + '개', 'red'], ['집어 던진 횟수', DAY.throws + '번', 'red'],
-    ['붙여 준 반창고', DAY.bandages + '장', 'blue'], ['쓰다듬은 횟수', DAY.pets + '번', 'blue'], ['안아 준 시간', Math.round(DAY.hugMs / 1000) + '초', 'blue'], ['하이파이브', (DAY.highfives||0)+'번','blue'],['쳐 준 박수',(DAY.claps||0)+'번','blue']];
-  $('#statsList').innerHTML = rows.map(r => `<div>${r[0]}</div><div class="${r[2]}">${r[1]}</div>`).join('');
-  openModal('#statsModal');
-});
+addEventListener('keydown', e => { if (e.key === 'Escape') $$('.modal').forEach(m => { if (m.id !== 'lookModal') m.hidden = true; }); });
 $('#settingsBtn').addEventListener('click', () => {
   $('#customCrimes').value = customCharacterLines.join('\n');
   openModal('#settingsModal');
@@ -5221,7 +4895,6 @@ $('#saveCrimes').addEventListener('click', () => {
 
 
 
-function showLetter() {}
 
 
 
@@ -5410,7 +5083,7 @@ function updateVillain(v, dt) {
   const mood = moodOf(v),cf=careIsAwkward(v)?careFace(v):null;
   // 상태별 루트
   const R = v.root;
-  let lean = 0, armMode = mood === 'smug' ? (v.crossArms ? 'cross' : 'hips') : mood === 'fluster' ? 'guard' : mood === 'beg' ? 'pray' : mood === 'cry' ? 'wipe' : mood === 'soft' ? 'soft' : 'hug';
+  let lean = 0, armMode = mood === 'smug' ? (v.crossArms ? 'cross' : 'hips') : mood === 'fluster' ? 'guard' : mood === 'beg' ? 'pray' : mood === 'cry' ? 'wipe' : 'hug';
   if(cf)armMode='limp';
   let flail = 0, walk = 0;
   if (v.state === 'enter') {
@@ -5419,17 +5092,8 @@ function updateVillain(v, dt) {
     walk = 1 - u; lean = -0.15 * (1 - u); armMode = 'limp';
     if (u >= 1) {
       v.state = 'stand'; v.stateT = 0;
-      $('#crimeText').textContent = v.crime.c;
-      const tag = $('#crimeTag'); tag.classList.remove('stamp'); void tag.offsetWidth; tag.classList.add('stamp');
-      SFX.stamp(); vib(20);
       v.crossArms = Math.random() < 0.4;
-      setTimeout(() => { if (G.v===v && !v.hardHits) speak(pick(v.crime.ex)); }, 450);
     }
-  } else if (v.state === 'exit') {
-    const u = clamp(v.stateT / 1.3, 0, 1);
-    R.position.x = lerp(0, -3.4, easeIn(u)); R.rotation.y = lerp(0, -1.2, Math.min(1, u * 3));
-    walk = 1; lean = 0.2; armMode = 'limp';
-    if (u >= 1) { newVillain(); return; }
   } else if (v.state === 'stand') {
     R.position.x = damp(R.position.x, 0, 5, dt); R.position.y = damp(R.position.y, 0, 8, dt); R.position.z = damp(R.position.z, 0, 5, dt);
     R.rotation.set(damp(R.rotation.x, 0, 8, dt), damp(R.rotation.y, 0, 8, dt), damp(R.rotation.z, 0, 8, dt));
@@ -5440,8 +5104,6 @@ function updateVillain(v, dt) {
   } else if (v.state === 'hug') {
     R.position.z = damp(R.position.z, 0.25, 4, dt);
     lean=.025;armMode='limp';
-    v.st.hugMs += dt * 1000; DAY.hugMs += dt * 1000;
-    if (((DAY.hugMs / 1000) | 0) !== (((DAY.hugMs - dt * 1000) / 1000) | 0)) saveDay();
     comfort(dt * 0.09, null);
     // The player talks; the held character stays quiet.
   } else if (v.state === 'grabbed') {
@@ -5469,7 +5131,7 @@ function updateVillain(v, dt) {
         popText('쿠당탕!!', R.position.clone().add(V3(0, 0.5, 0)), 'slam', 58);
         shakeCam(0.07); vib([30, 20, 50]); G.hitstop = 0.09;
         const P = clamp(sp / 3, 1, 2);
-        v.st.hits++; DAY.hits++; v.damage += P * 2.2; v.fear = clamp(v.fear + 0.2, 0, 1);
+        v.st.hits++; v.damage += P * 2.2; v.fear = clamp(v.fear + 0.2, 0, 1);
         v.eyeShut = 0.8; v.dizzy = 2.8;
         v.bruises.push({ x: rnd(300, 720), y: rnd(250, 700), r: 70, lv: 1.5, heal: 1 }); v.faceDirty = true;
         v.addBump(dirN(rnd(-1, 1), rnd(0, 1), rnd(-0.5, 0.5)), 0.03, 0.04);
@@ -5477,7 +5139,6 @@ function updateVillain(v, dt) {
         if (v.look.glassesStyle!=='none' && !v.glassOff && Math.random() < 0.7) breakGlasses();
         for (let i = 0; i < 8; i++) spawnDrop(v.mouthWorld(), V3(rnd(-1.5, 1.5), rnd(1, 2.5), rnd(-0.5, 1)), 'blood', rnd(0.01, 0.02));
         for (let i = 0; i < 2; i++) popButton({});
-        checkConfess();
       }
       if (Math.abs(ph.vel.y) > 1.2) { ph.vel.y = Math.abs(ph.vel.y) * 0.3; ph.vel.x *= 0.5; ph.vel.z *= 0.5; ph.spin *= 0.4; }
       else {
@@ -5565,11 +5226,9 @@ a.hand.rotation.set(0, c.hy, 0);
   else if (mood === 'fluster') { tx = 0.05; ty = Math.sin(T * 7) * 0.05; }
   else if (mood === 'beg') { tx = 0.2; tz = Math.sin(T * 1.5) * 0.08; }
   else if (mood === 'cry') { tx = 0.25 + Math.sin(T * 8) * 0.04; tz = Math.sin(T * 1.2) * 0.1; }
-  else if (mood === 'soft') { tx = 0.1; tz = 0.12; }
   else if (mood === 'hug') { tx = 0.35; tz = 0.3; }
   if (v.petT > 0) { v.petT -= dt; tz += -v.petX * 0.25; tx += 0.15; }
   if(cf){tx=cf.x;ty=cf.y;tz=cf.z;}
-  if (v.state === 'exit') tx = 0.45;
   v.headPivot.rotation.set(tx + S.hx + idle * 0.3, ty + S.hy, tz + S.hz + idle);
   const sq = S.sq;
   v.head.scale.set(1 - sq * 0.35, 1 + sq, 1 - sq * 0.35);
@@ -5604,14 +5263,13 @@ a.hand.rotation.set(0, c.hy, 0);
     if(cf){px=cf.px;py=cf.py;ps=1;}
     if (v.ouch > 0) ps = 0.6;
     e.pupilG.position.set(px, py, 0);
-    e.pupilG.scale.setScalar(ps);
+    e.pupilG.scale.set(ps,ps,1);
     // 눈썹
     const bi = e.brow.userData.inner;
     let br = 0, by = 0;
     if (mood === 'smug') { br = e.s > 0 ? 0.25 : -0.05; by = e.s > 0 ? 0.03 : -0.01; }
     else if (mood === 'fluster') { br = -e.s * 0.3; by = 0.025; }
     else if (mood === 'beg' || mood === 'cry' || mood === 'hug') { br = -e.s * 0.5; by = 0.012; }
-    else if (mood === 'soft') { br = -e.s * 0.2; }
     if(cf){br=e.s>0?-.10:0;by=e.s>0?cf.brow:0;}
     if (v.ouch > 0) { br=e.s*(v.hitAge<.14?.52:.38);by=-.018; }
     bi.rotation.z = Math.PI / 2 - br - e.s*v.look.browTilt;
@@ -5630,7 +5288,6 @@ a.hand.rotation.set(0, c.hy, 0);
   else if (mood === 'fluster') Object.assign(TG, { open: 0.3, smile: -0.45, smirk: 0, wide: 0.7 }), M.shape = 'o';
   else if (mood === 'beg') Object.assign(TG, { open: 0.15, smile: -0.6, smirk: 0, wide: 0.8 }), M.shape = 'frown';
   else if (mood === 'cry') Object.assign(TG, { open: 0.55 + Math.sin(T * 9) * 0.1, smile: -0.9, smirk: 0, wide: 1.2 }), M.shape = 'wail';
-  else if (mood === 'soft') Object.assign(TG, { open: 0, smile: 0.55, smirk: 0, wide: 0.7 }), M.shape = 'smile';
   else Object.assign(TG, { open: 0.3, smile: -0.5, smirk: 0, wide: 1 }), M.shape = 'wail';
   if (v.petT > 0 && v.ouch<=0&&!cf) Object.assign(TG, { open: 0, smile: 0.7, smirk: 0 });
   if (v.state === 'grabbed' || v.state === 'air') Object.assign(TG, { open: 0.85, smile: -0.5, smirk: 0, wide: 1.1 });
@@ -5673,7 +5330,7 @@ if (v._marshmallowChew > 0 && v.ouch <= 0) {
   let tearT = cf ? v.tear
     : mood === 'cry' ? 0.9
     : mood === 'beg' ? 0.45
-    : mood === 'soft' ? 0.25 : 0;
+    : 0;
 
   v.tearClear = Math.max(0, (v.tearClear || 0) - dt);
   if (v.tearClear > 0) tearT = Math.min(tearT, v.tear);
@@ -5775,7 +5432,7 @@ if (v._marshmallowChew > 0 && v.ouch <= 0) {
 
   
 
-  if (!v.confessed) v.fear = Math.max(0, v.fear - dt * 0.012);
+  v.fear = Math.max(0, v.fear - dt * 0.012);
   v.blush = Math.max(0, v.blush - dt * 0.02);
   if (v.headDirty) v.applyDeform();
   v.faceT = (v.faceT || 0) - dt;
@@ -5860,7 +5517,7 @@ function updateCamera(dt) {
   let want = V3();
   if (v && v.state === 'hug') {
     const head=v.headMesh.getWorldPosition(V3()),H=innerHeight,W=innerWidth;
-    const top=$('.title-block').getBoundingClientRect().bottom+14;
+    const top=$('#settingsBtn').getBoundingClientRect().bottom+14;
     const bottom=H-$('.dock').getBoundingClientRect().top+78;
     const avail=Math.max(150,H-top-bottom),span=.91*v.look.headH;
     const view=Math.max(span*H/avail,1.02/(W/H));
@@ -5894,13 +5551,12 @@ function frame(now) {
   ck.mh.rotation.z = -(d.getMinutes() / 60) * Math.PI * 2; ck.hh.rotation.z = -((d.getHours() % 12 + d.getMinutes() / 60) / 12) * Math.PI * 2;
   updateCamera(dt);
   if (v) updateBubble(v);
-  if(G.social?.kind==='five'&&G.social.phase==='invite'&&G.social.t>.65){const xy=toScreen(v.armRig[0].hand.getWorldPosition(V3()));$('#fiveTarget').style.left=clamp(xy[0],38,innerWidth-38)+'px';$('#fiveTarget').style.top=clamp(xy[1],110,innerHeight-170)+'px';}
   const _p1 = performance.now();
   renderer.render(scene, camera);
   PERF.logic += _p1 - _p0; PERF.render += performance.now() - _p1; PERF.n++;
 }
 window.__advance = (sec, h = 1 / 60) => { for (let t = 0; t < sec; t += h) { step(h); updateCamera(h); scene.updateMatrixWorld(); } };
-window.__api = { applyHit, startAttack, headTarget, loseTooth, breakGlasses, startHug, endHug, fixGlasses, returnTooth, placeBandage, pick3D, G, speak, careAct };
+window.__api = { applyHit, startAttack, headTarget, loseTooth, breakGlasses, startHug, endHug, pick3D, G, speak, careAct };
 
 /* ================= 외모 편집기 =================
  * 게임과 독립된 초안 모델을 같은 WebGL 캔버스로 그린다.
@@ -6686,7 +6342,6 @@ const Slapstick = (() => {
     v.dizzy=Math.max(v.dizzy||0,1.2+P*.45);
     G.hitstop=Math.max(G.hitstop,.075+P*.014);shakeCam(.025+P*.010);
     puff(point,8+Math.round(P*2),.7);vib([24,14,22]);
-    saveDay();
   }
   function newFlight(v,velocity,spin,source='drop'){
     const previous=v._slapMotion;
@@ -6705,7 +6360,7 @@ const Slapstick = (() => {
     const side=Math.sign(h.force.x)||-(h.side||1);
     const m=newFlight(v,V3(side*(3.4+P*.5),4.0+P*.42,.12),-side*3.4,'chair');
     m.reach=Math.max(1.5,1.1*v.look.bodyH+.5);m.viewTop=m.reach+2.1;
-    G.attackQueue=[];G.hitstop=Math.max(G.hitstop,.11);shakeCam(.055);DAY.throws++;saveDay();
+    G.attackQueue=[];G.hitstop=Math.max(G.hitstop,.11);shakeCam(.055);
   }
   const oldHit=applyHit;
   applyHit=function(h){
@@ -6866,7 +6521,7 @@ const Slapstick = (() => {
     const moving=m.vel.length()>1.2;
     const velocity=moving?m.vel.clone().clampLength(0,6):V3();
     newFlight(v,velocity,moving?clamp(m.omega,-3,3):0,'drop');
-    DAY.throws++;saveDay();G.lastAct=G.time;setHint();return true;
+    G.lastAct=G.time;setHint();return true;
   }
   const oldRelease=releaseGrab;
   releaseGrab=function(){if(releaseAnkle(inputCancelled))return;return oldRelease();};
@@ -6904,7 +6559,7 @@ const Slapstick = (() => {
     const m=customState(G.v)?G.v._slapMotion:null;
     wideMix=damp(wideMix,m?1:0,m?6:4,clamp(safe(Number(dt)),0,.05));
     if(wideMix<.001){wideHeight=0;return;}
-    const W=innerWidth,H=innerHeight,top=$('.title-block').getBoundingClientRect().bottom+14;
+    const W=innerWidth,H=innerHeight,top=$('#settingsBtn').getBoundingClientRect().bottom+14;
     const bottom=H-$('.dock').getBoundingClientRect().top+18,avail=Math.max(120,H-top-bottom);
     if(m){
       // Holding needs less lateral space than a chair launch. Keep the toy readable
@@ -6938,7 +6593,6 @@ const Slapstick = (() => {
   });
   if(typeof HINTS==='object'){
     HINTS.chair='누르거나 쓸어서 체어샷 · 큰 준비동작 뒤에 통째로 날리기';
-    HINTS.hand=(HINTS.hand||'').replace('몸통 꾹 잡아 던지기','몸통 꾹 발목 잡기 · 좌우로 크게 쓸어 내려치기');
   }
   const style=document.createElement('style');style.textContent='#hitTools{grid-template-columns:repeat(7,minmax(0,1fr))!important}#hitTools .tool{min-width:0}@media(max-width:420px){#hitTools .tool svg{width:34px;height:34px}#hitTools .tool{font-size:10px}}';document.head.append(style);
   if(window.__api)Object.assign(window.__api,{applyHit,updateVillain,startGrab,releaseGrab,updateCamera,randomLook});
@@ -6952,15 +6606,14 @@ const Slapstick = (() => {
 const APPEAR_KEY='badguy.appearance.v1';
 const APPEAR=(()=>{
   const s=store.get(APPEAR_KEY,{}),r=s&&typeof s==='object'?s:{};
-  return {version:1,look:r.look?normaliseLook(r.look):null,locked:r.locked!==false,
+  return {version:1,look:r.look?normaliseLook(r.look):null,seen:!!r.seen||!!r.look,
     presets:(Array.isArray(r.presets)?r.presets:[]).filter(p=>p&&typeof p==='object'&&p.look).slice(0,12).map((p,i)=>({
       id:typeof p.id==='string'?p.id.slice(0,60):'old-'+i,name:String(p.name||'외모 '+(i+1)).slice(0,12),look:normaliseLook(p.look),
       thumb:typeof p.thumb==='string'&&/^data:image\/(png|jpeg|webp);base64,[a-z0-9+/=]+$/i.test(p.thumb)&&p.thumb.length<200000?p.thumb:''
     }))};
 })();
-let appearanceFirst=true;
 function persistAppearance(){try{localStorage.setItem(APPEAR_KEY,JSON.stringify(APPEAR));return true;}catch(e){return false;}}
-function refreshAppearanceButton(){const b=$('#appearanceBtn');b.classList.toggle('locked',!!APPEAR.look&&APPEAR.locked);b.title=APPEAR.look&&APPEAR.locked?'외모 만들기 · 고정된 외모 사용 중':'외모 만들기';}
+function refreshAppearanceButton(){const b=$('#appearanceBtn');b.classList.remove('locked');b.title='외모 만들기';}
 const LOOK_TABS=[['face','얼굴'],['hair','머리'],['eyes','눈'],['brows','눈썹'],['nose','코'],['mouth','입'],['glasses','안경'],['details','수염·점'],['clothes','옷·체형'],['saved','보관함']];
 /* 직접 그린 벡터 아이콘. 외부 이미지/게임 에셋을 사용하지 않는다. */
 function lookIcon(kind,value='',L=LOOK_DEFAULT){
@@ -7126,28 +6779,29 @@ const AppearanceEditor=(()=>{
   function frame(dt){if(!E.isOpen||!E.model)return;if(E.dirty){E.model.applyLook(E.draft);E.dirty=false;cameraFit();}previewPose(dt);renderer.render(E.scene,E.camera);}
   function open(){
     if(E.isOpen||!G.v)return;
-    if(!['stand','hug'].includes(G.v.state)){say('잠깐, 똑바로 서면 바꿔 주세요!',1.6);return;}
+    if(!['stand','hug','down'].includes(G.v.state)){say('잠깐, 똑바로 서면 바꿔 주세요!',1.6);return;}
     SFX.unlock();endHug();cancelPointer();stopSocial();clearAttacks();G.attacks=[];G.careAnim=null;handsRoot.children.forEach(o=>o.visible=false);G.hitstop=0;G.slowmo=0;G.shake=0;
     E.draft=clone(G.v.look);E.history=[clone(E.draft)];E.at=0;E.yaw=0;E.full=false;E.expression='neutral';E.time=0;E.drag=null;E.dirty=false;
-    $$('.modal:not(#lookModal)').forEach(m=>{if(m.id!=='letterModal')m.hidden=true;});
-    initScene();E.model=new Villain(G.v.crime,E.draft,E.scene);E.model.state='stand';E.model.root.position.set(0,0,0);
+    $$('.modal:not(#lookModal)').forEach(m=>{m.hidden=true;});
+    initScene();E.model=new Villain(E.draft,E.scene);E.model.state='stand';E.model.root.position.set(0,0,0);
     E.isOpen=true;G.editing=true;document.body.classList.add('look-editing');$('#lookModal').hidden=false;$('#lookStage').prepend(canvas);
-    $('#lookName').value=E.draft.name;$('#lookLock').checked=APPEAR.locked;syncZoom();syncHistory();renderTabs();renderControls();
+    $('#lookName').value=E.draft.name;syncZoom();syncHistory();renderTabs();renderControls();
     $$('[data-look-expression]').forEach(b=>{const on=b.dataset.lookExpression===E.expression;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);});
     expandPreview(false);setExpressionMenu(false);status('적용 전까지 게임에는 바뀌지 않아요.');syncVisualViewport();previewPose(0);resize();frame(0);$('#lookClose').focus({preventScroll:true});
   }
   function close(apply=false){
     if(!E.isOpen)return;let stored=true,failed=null;
-    try{if(apply){const L=clone(E.draft);G.v.applyLook(L);APPEAR.look=L;APPEAR.locked=$('#lookLock').checked;stored=persistAppearance();}}
+    try{if(apply){const L=clone(E.draft);G.v.applyLook(L);APPEAR.look=L;APPEAR.seen=true;stored=persistAppearance();}}
     catch(e){failed=e;console.error(e);}
     finally{
-      clearTimeout(statusTimer);$('#lookStatus').classList.remove('show');setExpressionMenu(false);$('#lookModal').classList.remove('look-keyboard','look-preview-expanded');
+      if(!APPEAR.seen){APPEAR.seen=true;persistAppearance();}clearTimeout(statusTimer);$('#lookStatus').classList.remove('show');setExpressionMenu(false);$('#lookModal').classList.remove('look-keyboard','look-preview-expanded');
       if(E.drag&&canvas.hasPointerCapture(E.drag.id))canvas.releasePointerCapture(E.drag.id);E.drag=null;
       try{if(E.model)E.model.dispose();}catch(e){console.warn(e);}E.model=null;E.isOpen=false;G.editing=false;
       document.body.insertBefore(canvas,$('#fxLayer'));$('#lookModal').hidden=true;document.body.classList.remove('look-editing');
       G.lastAct=G.time;G.lastSay=G.time;G.hitstop=0;G.slowmo=0;G.camOff=V3();G.kick=0;G.punchIn=0;lastT=performance.now();BUB.text='';bubble.classList.remove('show');
-      if(G.v){G.v.root.visible=true;G.v.root.position.set(0,0,0);G.v.root.rotation.set(0,0,0);G.v.state='stand';G.v.stateT=0;G.v.root.updateMatrixWorld(true);}
-      fit();updateCamera(.05);scene.updateMatrixWorld(true);renderer.render(scene,camera);updateCareButtons(true);refreshAppearanceButton();$('#appearanceBtn').focus({preventScroll:true});
+      const lying=!!(G.v&&window.__SC_FATIGUE_V1?.active(G.v));
+      if(G.v&&!lying){G.v.root.visible=true;G.v.root.position.set(0,0,0);G.v.root.rotation.set(0,0,0);G.v.state='stand';G.v.stateT=0;G.v.root.updateMatrixWorld(true);}
+      setHint();fit();if(lying)updateVillain(G.v,0);updateCamera(.05);scene.updateMatrixWorld(true);renderer.render(scene,camera);updateCareButtons(true);refreshAppearanceButton();$('#appearanceBtn').focus({preventScroll:true});
     }
     if(failed)say('외모 적용 중 문제가 생겨 게임 화면으로 돌아왔어요.',3);
     else if (apply) {
@@ -7291,7 +6945,7 @@ window.__appearanceEditor=AppearanceEditor;
   window.__SC_TEXTURE_RESUME = { request, backup, status };
 })();
 /* SC_TEXTURE_RESUME_20260918A_END */
-window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,CARE_REPLY,startSocial,stopSocial,requestHighFive,careSay,CARE_LINES,CareVoice,poseCareArm,careFace,careIsAwkward,clearAttacks,gestureExtra,step,poseAttack,doContact,RIG,scene,camera,renderer,TOOL_SPEC,normaliseLook,randomLook,impactStopDuration,moodOf,updateVillain,liveContactPoint});
+window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,startSocial,stopSocial,requestHighFive,careSay,CARE_LINES,CareVoice,poseCareArm,careFace,careIsAwkward,clearAttacks,gestureExtra,step,poseAttack,doContact,RIG,scene,camera,renderer,TOOL_SPEC,normaliseLook,randomLook,impactStopDuration,moodOf,updateVillain,liveContactPoint});
 
 
 
@@ -7625,7 +7279,7 @@ window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,CARE_REPL
         const open = .94 - .045 * Math.sin(t * 17 + e.s);
         e.lidU.rotation.x = lerp(e.lidU.rotation.x, lerp(1.62, -1.25, open), k);
         e.lidL.rotation.x = lerp(e.lidL.rotation.x, 1.33, k);
-        e.pupilG.scale.lerp(V3(.55, .55, .55), k);
+        e.pupilG.scale.lerp(V3(.55, .55, 1), k);
         e.pupilG.position.y = lerp(e.pupilG.position.y, .012 + Math.sin(t * 29) * .002, k);
         e.brow.userData.inner.rotation.z = lerp(e.brow.userData.inner.rotation.z,
           Math.PI / 2 + e.s * .48 - e.s * v.look.browTilt, k);
@@ -7673,11 +7327,6 @@ window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,CARE_REPL
     if (P.info) startToolHold(P, e);
     if (!P.kind) P.kind = 'ropeNoop'; // 빈 곳을 눌렀을 때 채찍 공격으로 새지 않게.
   });
-  const oldSpeak = speak;
-  speak = function() {
-    if (G.ptr?.kind === 'ropeHold' && G.ptr.toolHold) return;
-    return oldSpeak.apply(this, arguments);
-  };
   const oldHint = setHint;
   setHint = function() {
     const out = oldHint.apply(this, arguments);
@@ -7845,10 +7494,10 @@ window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,CARE_REPL
     G.attackQueue=[];G.lastAct=G.time;
     if(kind==='side'){
       m.wall=Math.min(2.85,Math.max(1.02,frameHalfWidth()*.86));
-      m.vel.set(side*CFG.chairSideSpeed,1.25,0);m.spin=-side*8.5;showWalls(m.wall);DAY.throws++;saveDay();
+      m.vel.set(side*CFG.chairSideSpeed,1.25,0);m.spin=-side*8.5;showWalls(m.wall);
     }else if(kind==='homerun'){
       m.offX=side*(frameHalfWidth()+2.0);m.vel.set(side*CFG.fullBatSpeed,2.0,0);m.spin=-side*10;
-      m.phase='fly';DAY.throws++;saveDay();hideWalls();
+      m.phase='fly';hideWalls();
     }else if(kind==='press'){
       v._crownV2=Math.min(CFG.crownDent,(v._crownV2||0)+.050);v.headDirty=true;
       m.emitT=.23;m.emitAcc=0;SFX.downGush?.();
@@ -7976,10 +7625,11 @@ function updateHomerun(v, m, dt) {
     v.headPivot.rotation.set(.04*k,0,0);v.torso.position.y=.5-.048*k;
     for(const a of v.armRig){a.sh.rotation.set(-.25*k,0,a.s*(.12+1.38*k));a.el.rotation.set(-.12,0,0);a.hand.rotation.set(0,a.s*1.4,0);}
     v.legs.forEach((l,i)=>l.rotation.set(0,0,(i?1:-1)*.07*k));
+    window.__SC_LEGS?.squat(v,k*ease(clamp(t/.09,0,1)));
     Object.assign(v.mouth,{open:.72*k,smile:-.8*k,smirk:0,wide:.85});v.mouth.shape='o';v.mouth.talk=0;v.paintMouth();
     v.root.updateMatrixWorld(true);
     if(m.emitT>0){const h=Math.min(dt,m.emitT);m.emitT-=h;m.emitAcc+=h*340;const n=Math.min(16,Math.floor(m.emitAcc));m.emitAcc-=n;if(n)emitDown(v,n);}
-    if(t>=1.16){finish(v);v.guardHold=Math.max(v.guardHold,1.6);}
+    if(t>=1.16){window.__SC_LEGS?.squat(v,0);finish(v);v.guardHold=Math.max(v.guardHold,1.6);}
   }
 
   /* Two-link IK in torso-local space. It remains stable with nonuniform body scale. */
@@ -8285,7 +7935,7 @@ if (
     if(!G.editing&&G.mode==='hit'&&G.tool==='brick'&&G.v?.state==='stand'){
       if (document.querySelector('.modal:not([hidden])')) return;
       brickRig.visible=true;brickVisual.visible=true;
-      const dock=$('.dock').getBoundingClientRect();brickRig.position.copy(planePoint(innerWidth*.82,Math.max(120,dock.top-45),.75));
+      const dock=$('.dock').getBoundingClientRect();brickRig.position.copy(planePoint(innerWidth*.82,Math.max(120,dock.top-45),.75));if(brickRig.position.y<.09)brickRig.position.y=.09;
       brickRig.rotation.set(-.26,-.40,.1);return;
     }
     return oldIdle(dt);
@@ -8322,8 +7972,8 @@ if (
     if(text){b.classList.add('impact-special');b.setAttribute('aria-label',b.textContent.trim());b.title=text;}
   }
   HINTS.chair='누른 채 의자 들기 · 움직여 조준<br><b class="impact-key">아래로 쓸고 놓기: 내려찍기</b> · <b class="impact-key">좌우로 쓸고 놓기: 후려치기</b>';
-  HINTS.brick='누른 채 조준 · <b class="impact-key">손을 놓으면 벽돌 던지기</b><br>허공으로 던진 벽돌은 맞지 않습니다';
-  HINTS.bat='톡: 일반 스윙 · <b class="impact-key">꾹 눌러 FULL → 놓기: 장외 홈런</b><br>카메라는 그대로 · 화면 밖으로 날아간 뒤 절뚝거리며 복귀';
+  HINTS.brick='누른 채 조준 · <b class="impact-key">손을 놓으면 벽돌 던지기</b>';
+  HINTS.bat='톡: 일반 스윙 · <b class="impact-key">꾹 눌러 FULL → 놓기: 장외 홈런</b>';
   const oldHint=setHint;
   setHint=function(...args){const r=oldHint(...args);if(G.mode==='hit'&&G.tool==='rope')$('#hint').innerHTML='캐릭터 누르기 · <b class="impact-key">드래그: 목 전용 당기기</b> · 놓으면 풀기';return r;};
   const css=document.createElement('style');css.textContent=`
@@ -8371,8 +8021,21 @@ if (
     const movingOut=distance-prevDistance>.35;
     const loading=q-previousTension>.007;
     const pan=clamp((H.pullX||0)*2,-.65,.65);
-    if(q>.53&&(movingOut||loading)&&G.time-lastPull>=CFG.pullEvery){
-      SFX.ropePullSound(pan,q);lastPull=G.time;
+    const falling=previousTension-q>.006;
+    // 줄이 목에 처음 걸리는 순간: 뜨득 한 번.
+    if(!H.creakGrab){H.creakGrab=true;const len=SFX.ropeCreak(pan,.5,'hold');if(len)H.holdCreakAt=G.time+len+.5;}
+    if(q>.5&&(movingOut||loading)){
+      // 당기는 중: 까가각. 앞 소리가 끝난 뒤에 다음 소리를 낸다.
+      if(G.time>=(H.creakAt||0)){
+        const len=SFX.ropeCreak(pan,q,'pull');
+        if(len){H.creakAt=G.time+len+rnd(.05,.14);H.holdCreakAt=G.time+len+rnd(.25,.5);lastPull=G.time;}
+      }
+    }else if(falling){
+      if(G.time>=(H.releaseAt||0)){SFX.ropeCreak(pan,q,'release');H.releaseAt=G.time+.32;}
+    }else if(q>.58&&G.time>=(H.holdCreakAt||0)&&G.time>=(H.creakAt||0)){
+      // 손을 멈추고 팽팽하게 버티는 중: 뜨득… 뜨득. 세게 당길수록 자주.
+      const len=SFX.ropeCreak(pan,q,'hold');
+      if(len)H.holdCreakAt=G.time+len+lerp(.62,.24,(q-.58)/.42)*rnd(.8,1.35);
     }
     if(q>=CFG.voiceAt&&G.time>=nextVoice){
       SFX.ropeGrunt(pan,q,v.look.pitch);
@@ -8384,7 +8047,12 @@ if (
     prevDistance=distance;previousTension=q;return out;
   };
   const oldEnd=endToolHold;
-  endToolHold=function(){stop();return oldEnd.apply(this,arguments);};
+  endToolHold=function(){
+    const H=G.ptr?.kind==='ropeHold'?G.ptr.toolHold:null,q=H?H.tension:0,pan=clamp((H?.pullX||0)*2,-.65,.65);
+    stop();
+    if(q>.55&&PREF.sound)SFX.ropeCreak(pan,q,'release');
+    return oldEnd.apply(this,arguments);
+  };
   const oldCancel=cancelPointer;
   cancelPointer=function(){stop();return oldCancel.apply(this,arguments);};
   const oldNew=newVillain;
@@ -8400,10 +8068,11 @@ if (
 /* SC_ROPE_AUDIO_INPUT_V1_END */
 
 
-/* PLAYER_BUBBLE_V1 */
+/* 내 말풍선 — 때리기에서 내가 뱉는 욕. 도구칸 바로 위 띠 안에 뜬다. (달래기의 위로 말은 #careCaption이 같은 모양으로 뜬다) */
 (() => {
   if (window.__SC_PLAYER_BUBBLE_V1) return;
 
+  // 기존 욕. 받아칠 독백이 없을 때 여기서 고른다.
   const LINES = [
     '죽어',
     '씨발아',
@@ -8413,80 +8082,46 @@ if (
     '니 인생',
     '꼴값 떨지 마',
     '지랄하네'
-
   ];
 
-  const SHOW_MS = 1700; // 말풍선 표시 시간
-  const GAP_MS = 2600;  // 다음 말을 하기까지 최소 간격
+  // 이어치기: 캐릭터 독백 → 그 말을 받아치는 욕(독백마다 하나).
+  // 독백이 뜨고 PAIR_SEC초 안에 때리면 이 욕이 나오고, 아니면 위 LINES에서 고른다.
+  const RETORTS = {
+    '아무도 내 편이 아니야': '남들이 왜 그래야 되는데 이 개씹 멍청한 새끼야',
+    '연락 오는 사람이 없어': '니한테 왜 해 븅신아',
+    '내가 없어져도 아무도 모를 거야': '있어도 몰라 새끼야',
+    '대화할 사람이 없어': '그럼 걍 입 다물고 살아 씨발아',
+    '나 좀 알아봐 줘': '나대지 마 씨발롬아',
+    '잘했다고 한 번만 말해 줘': '못.했.어.',
+    '칭찬받고 싶어': '개나소나 받으면 그게 칭찬이냐?',
+    '사랑 받고 싶어': '나가서 사랑 구걸이나 해 걸뱅아',
+    '기대고 싶어': '똑바로 서 이 씨발롬아',
+    '나는 왜 이 모양일까': '너니까 씨발아',
+    '나는 뭘 해도 안 돼': '그럼 씨발아 뭘 기대한 건데',
+    '나 같은 게 뭘 하겠어': '징징대지 마 새끼야',
+    '다들 나보다 잘나 보여': '남들이 너보다 잘난 게 억울하냐 이 미친 나르시시스트 새끼야?',
+    '나는 쓸모가 없어': '개폐급 새끼',
+    '너무 힘들어': '엄살 부리지 마 씨발아',
+    '그냥 다 그만두고 싶어': '제대로 하는 것도 없는 새끼가 지랄한다',
+    '버티기 힘들어': '니가 버티긴 개뿔이 버텨',
+    '쉬고 싶어': '또 쉬어? 또 쉬어?',
+    '누가 나 좀 챙겨 줘': '지 똥도 못 닦는 븅신',
+    '안아 줘': '토 나온다 씨발아',
+    '옆에 있어 줘': '어우 징그럽게 미친새끼',
+    '나 혼자 두지 마': '제발 혼자 있어',
+    '괜찮다고 말해 줘': '징징대지 말고 좀 닥치고 있어도 괜찮아',
+    '버림받을까 봐 무서워': '주운 적도 없어 이 새끼야',
+    '다들 떠날 것 같아': '온 적도 없어 이 새끼야',
+    '내일이 무서워': '잠이나 처 자',
+    '나는 사랑 받을 자격이 없는 거 같아': '이새끼 또 지랄하네. 근데 맞아'
+  };
+
+  const SHOW_MS = 1700;  // 말풍선 최소 표시 시간(긴 말은 글자 수만큼 더 오래)
+  const GAP_MS = 900;    // 말풍선이 사라진 뒤 다음 말까지 쉬는 시간
+  const PAIR_SEC = 4;    // 독백이 뜬 뒤 이 시간 안에 때려야 받아친다
 
   const dock = document.querySelector('.dock');
   if (!dock) return;
-
-  // 기존 캐릭터 말풍선과 별개의 디자인.
-  const css = document.createElement('style');
-  css.textContent = `
-    .dock > .player-bubble {
-      position: absolute;
-      right: 18px;
-      bottom: calc(100% + 20px);
-      width: max-content;
-      max-width: min(250px, calc(100% - 36px));
-      padding: 10px 14px;
-
-      border: 2.5px solid var(--ink);
-      border-radius: 17px;
-      background: #fff2b3;
-      color: var(--ink);
-      box-shadow: 0 3px 0 var(--ink);
-
-      font: 800 19px/1.35 var(--body);
-      word-break: keep-all;
-      overflow-wrap: anywhere;
-
-      pointer-events: none;
-      z-index: 1;
-      animation: playerBubbleIn .16s ease-out;
-    }
-
-    .player-bubble small {
-      display: block;
-      margin-bottom: 3px;
-      font-size: 11px;
-      color: #a33c29;
-    }
-
-    /* 화면 아래의 플레이어 쪽을 향하는 꼬리 */
-    .player-bubble::after {
-      content: '';
-      position: absolute;
-      right: 28px;
-      bottom: -10px;
-      width: 16px;
-      height: 16px;
-      background: #fff2b3;
-      border-right: 2.5px solid var(--ink);
-      border-bottom: 2.5px solid var(--ink);
-      transform: rotate(45deg);
-    }
-
-    @keyframes playerBubbleIn {
-      from {
-        opacity: 0;
-        transform: translateY(7px) scale(.96);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      .dock > .player-bubble {
-        animation: none;
-      }
-    }
-  `;
-  document.head.append(css);
 
   const el = document.createElement('div');
   el.className = 'player-bubble';
@@ -8494,13 +8129,12 @@ if (
   el.setAttribute('role', 'status');
   el.setAttribute('aria-live', 'polite');
   el.setAttribute('aria-atomic', 'true');
-  el.innerHTML = '<small>나</small><span></span>';
-
+  el.innerHTML = '<span></span>';
   dock.append(el);
-  const text = el.querySelector('span');
 
+  const text = el.querySelector('span');
   let timer = 0;
-  let lastAt = -Infinity;
+  let nextAt = -Infinity;
   let lastLine = '';
 
   function hide() {
@@ -8511,12 +8145,18 @@ if (
 
   function reset() {
     hide();
-    lastAt = -Infinity;
+    nextAt = -Infinity;
     lastLine = '';
   }
 
+  const pickFrom = list => {
+    const pool = list.filter(s => s && s !== lastLine);
+    const from = pool.length ? pool : list;
+    return from[Math.floor(Math.random() * from.length)];
+  };
+
   function say() {
-    // 달래기·외모 편집·설정창에서는 말하지 않는다.
+    // 달래기·외모 편집·설정창에서는 욕하지 않는다.
     if (
       G.mode !== 'hit' ||
       G.editing ||
@@ -8526,24 +8166,26 @@ if (
     ) return;
 
     const now = performance.now();
-    if (now - lastAt < GAP_MS) return;
+    if (now < nextAt) return;
 
-    // 직전과 같은 대사는 피한다.
-    const pool = LINES.filter(s => s && s !== lastLine);
-    const line = pool[Math.floor(Math.random() * pool.length)]
-      || LINES[0] || '야.';
+    const whine = G.lastWhine;
+    let line = '';
+    if (whine && !whine.used && G.time - whine.t < PAIR_SEC && RETORTS[whine.text]) {
+      line = RETORTS[whine.text];
+      whine.used = true;
+    }
+    if (!line) line = pickFrom(LINES) || '야.';
 
+    // 긴 말은 읽을 시간을 더 주고, 글자를 조금 줄여 두 줄 안에 넣는다.
+    const ms = Math.min(4200, Math.max(SHOW_MS, 900 + line.length * 85));
     clearTimeout(timer);
-    lastAt = now;
+    nextAt = now + ms + GAP_MS;
     lastLine = line;
-
-    const name = String(G.v?.look?.name || '').trim() || '나 자신';
-
-text.textContent = Math.random() < 0.5
-  ? `${name} ${line}`
-  : line;
+    text.textContent = line;
+    el.classList.toggle('long', line.length > 16);
     el.hidden = false;
-    timer = setTimeout(hide, SHOW_MS);
+    window.__SC_ROOM_UI_V1?.hideHelp();  // 같은 띠를 쓰는 안내문은 내 말이 뜨면 비킨다.
+    timer = setTimeout(hide, ms);
   }
 
   // 실제 타격이 기록된 경우만 연결. 허공 스윙에는 말하지 않는다.
@@ -8578,18 +8220,11 @@ text.textContent = Math.random() < 0.5
     return result;
   };
 
-  // 다음 캐릭터에게 이전 말풍선이 남지 않도록 초기화.
-  const oldNew = newVillain;
-  newVillain = function() {
-    reset();
-    return oldNew.apply(this, arguments);
-  };
-
   // 모드 변경·설정·외모 편집 등을 누르면 바로 숨긴다.
   document.addEventListener('click', e => {
     if (
       e.target instanceof Element &&
-      e.target.closest('[data-mode], .top button, #letterNext')
+      e.target.closest('[data-mode], .top button')
     ) reset();
   }, true);
 
@@ -8598,13 +8233,12 @@ text.textContent = Math.random() < 0.5
     if (document.hidden) reset();
   });
 
-  window.__SC_PLAYER_BUBBLE_V1 = { say, hide };
+  window.__SC_PLAYER_BUBBLE_V1 = { say, hide, reset };
 
   if (window.__api) {
     Object.assign(window.__api, {
       applyHit,
-      startToolHold,
-      newVillain
+      startToolHold
     });
   }
 })();
@@ -8628,7 +8262,7 @@ text.textContent = Math.random() < 0.5
     shrug: [
       '네가 뭘 알아',
       '어쩌라고', 
-      '너한테 위로 받으니까 기분 좆같음'
+      '너한테 들으니까 기분 좆같음'
     ],
 
     // 손으로 옆을 쓸어 치우고 고개를 돌린다.
@@ -8642,7 +8276,7 @@ text.textContent = Math.random() < 0.5
       '나대지 마',
       '개깝치네',
 
-      '아 칭찬하지 마 기분 좆같게.',
+      '하지 마 기분 좆같게.',
 
       '븅~신ㅋ'
     ],
@@ -8653,6 +8287,35 @@ text.textContent = Math.random() < 0.5
      '어쩌라고'
 
     ]
+  };
+  // 이어치기: 내가 건넨 위로의 말 → 그 말에 맞춘 대꾸 [몸짓, 대사] (말마다 하나).
+  // 네 번에 한 번쯤은 위의 기존 대꾸에서 고른다. 꾹 안기 중처럼 그 몸짓을 못 쓰는 때는 가능한 몸짓으로 바꾼다.
+  const retorts = {
+    '힘들었지? 오늘도 정말 수고했어.': ['shrug', '지랄~'],
+    '넌 잘하고 있어. 내가 알아.': ['shrug', '어쩌라고 그래서'],
+    '오늘도 버티느라 애썼어.': ['inspect', '깝치지 마라'],
+    '잠깐 쉬어도 괜찮아.': ['inspect', '나대지 마 븅신아'],
+    '괜찮아. 지금은 아무 말 안 해도 돼.': ['stop', '너나 닥쳐'],
+    '너무 애쓰지 않아도 괜찮아.': ['shrug', '너나 많이 해'],
+    '여기서는 괜찮은 척 안 해도 돼.': ['brush', '토 나와'],
+    '오늘 하루도 네 편이 되어줄게.': ['inspect', '자위하고 있네'],
+    '오늘도 정말 고생 많았어.': ['stop', '닥쳐 좀'],
+    '잘 버텼어. 정말로.': ['inspect', '맞어 니가 잘하는 건 기대도 안 함 ㅋㅋ'],
+    '잠깐, 이렇게 쉬고 있자.': ['stop', '넌 이제 그만 좀 쉬어야 돼 진짜로'],
+    '사랑해. 그냥, 말해주고 싶었어.': ['inspect', '이 새끼 자위해요!'],
+    '네가 여기 있어서 좋아.': ['brush', '우웩'],
+    '아무것도 안 해도 돼.': ['shrug', '넌 좀 해'],
+    '잘했어. 정말 잘했어.': ['inspect', '아 기분 좆같네'],
+    '지금도 충분히 잘하고 있어.': ['inspect', '니 수준엔 잘하는 거겠지'],
+    '오늘도 정말 수고했어.': ['inspect', '븅신~ㅋ'],
+    '너한테 박수 쳐주고 싶었어.': ['shrug', '그래 많~이 쳐라'],
+    '여기까지 온 것만으로도 잘했어.': ['inspect', '나이를 똥구멍으로 처먹어도 여기까진 온다'],
+    '손 줘. 하이파이브.': ['brush', '혼자 많이 해'],
+    '천천히 해도 돼.': ['stop', '그럴수록 니 인생은 더 빨리 망함'],
+    '힘들었지?': ['brush', '이새끼 또 자위한다'],
+    '말 안 해도 돼. 그냥 이러고 있자.': ['stop', '뭐 하냐?'],
+    '괜찮아. 잠깐 기대고 있어.': ['brush', '니 앞가림이나 잘해'],
+    '지금은 조금 쉬어도 괜찮아.': ['stop', '그래 그렇게 평생 쉬어라']
   };
 
 
@@ -8680,13 +8343,20 @@ text.textContent = Math.random() < 0.5
     if (group === 'fiveHit') group = 'fiveMiss';
 
     const pool = choices[G.hug ? 'hug' : group] || choices.comfort;
-    const different = pool.filter(k => k !== v._snubLast);
-    const gesture = pick(different.length ? different : pool);
-
-    const lines = replies[gesture];
-
-    const otherLines = lines.filter(s => s !== v._snubLine);
-    const line = pick(otherLines.length ? otherLines : lines);
+    // 방금 내가 건넨 말에 짝지은 대꾸가 있으면 그걸 먼저 쓴다.
+    const said = G.lastCareLine && G.time - G.lastCareLine.t < 8 ? G.lastCareLine.text : '';
+    const paired = retorts[said];
+    let gesture, line;
+    if (paired && Math.random() < .75) {
+      gesture = pool.includes(paired[0]) ? paired[0] : pick(pool);
+      line = paired[1];
+    } else {
+      const different = pool.filter(k => k !== v._snubLast);
+      gesture = pick(different.length ? different : pool);
+      const lines = replies[gesture];
+      const otherLines = lines.filter(s => s !== v._snubLine);
+      line = pick(otherLines.length ? otherLines : lines);
+    }
 
     v._snubLast = gesture;
     v._snubLine = line;
@@ -8885,7 +8555,7 @@ text.textContent = Math.random() < 0.5
       a.phase = 'snub';
       a.requested = false;
       queueCareReply('fiveMiss');
-      $('#fiveTarget').hidden = true;
+      
     }
 
     return result;
@@ -8903,7 +8573,7 @@ text.textContent = Math.random() < 0.5
     const a = G.social;
 
     if (a?.kind === 'five' && a.phase === 'snub') {
-      $('#fiveTarget').hidden = true;
+      
 
       if (a.t > 2.6) {
         G.social = null;
@@ -8943,11 +8613,11 @@ text.textContent = Math.random() < 0.5
     hand.position.copy(camRest(-1, -.85)).lerp(target, w);
     orient(hand, V3(0, 0, -1), V3(0, 1, 0));
 
-    $('#fiveTarget').hidden = true;
+    
     return true;
   };
 
-  HINTS.five = '손을 내밀어 하이파이브 청하기 · 상대는 거절합니다';
+  HINTS.five = '손을 내밀어 하이파이브 청하기';
 
   window.__SC_CARE_SNUB_V1 = { version: 1 };
 
@@ -8983,23 +8653,6 @@ text.textContent = Math.random() < 0.5
       pointer-events:none!important
     }
 
-    /* 기존 카메라 코드가 참조하는 여백만 남기고, 내용은 숨긴다. */
-    .top .title-block {
-      position:absolute!important;
-      top:0;
-      left:0;
-      width:0!important;
-      height:calc(56px + var(--safe-t));
-      visibility:hidden!important;
-      overflow:hidden;
-      pointer-events:none!important
-    }
-
-    .top .logo,
-    .top .crime-tag,
-    #statsBtn {
-      display:none!important
-    }
 
     .top-buttons {
       position:fixed!important;
@@ -9011,7 +8664,7 @@ text.textContent = Math.random() < 0.5
       pointer-events:none!important
     }
 
-    #settingsBtn,#nextBtn {
+    #settingsBtn {
       height:44px!important;
       pointer-events:auto
     }
@@ -9022,15 +8675,6 @@ text.textContent = Math.random() < 0.5
       padding:0!important
     }
 
-    #nextBtn {
-      width:auto!important;
-      min-width:96px;
-      padding:0 12px!important
-    }
-
-    #nextBtn .label {
-      display:inline!important
-    }
 
     #settingsModal #appearanceBtn {
       display:flex!important;
@@ -9063,8 +8707,7 @@ text.textContent = Math.random() < 0.5
       height:44px
     }
 
-    /* 상시 노출되던 상품 설명·작은 조작 설명을 제거한다. */
-    #toolLabel,#hitTools .impact-skill {
+    #hitTools .impact-skill {
       display:none!important
     }
 
@@ -9117,46 +8760,7 @@ text.textContent = Math.random() < 0.5
       transform:translate(-50%,0)
     }
 
-    /* 설명과 플레이어 대사가 서로 겹치지 않게 한다. */
-    #hint.help-shown ~ #careCaption,
-    #hint.help-shown ~ .player-bubble {
-      bottom:calc(100% + var(--help-h,70px) + 18px)!important
-    }
 
-    @media(max-width:600px) {
-      #hitTools {
-        display:flex!important;
-        gap:4px!important;
-        overflow-x:auto;
-        scrollbar-width:thin;
-        touch-action:pan-x;
-        overscroll-behavior-x:contain;
-        padding-bottom:3px
-      }
-
-      #hitTools .tool {
-        flex:0 0 64px;
-        touch-action:pan-x;
-        font-size:11px!important
-      }
-
-      #hitTools .tool .tight {
-        font-size:10px
-      }
-
-      .care-strip {
-        padding-bottom:3px
-      }
-
-      .care-strip .tool {
-        min-height:60px
-      }
-
-      .care-strip .tool svg {
-        width:34px;
-        height:34px
-      }
-    }
 
     @media(prefers-reduced-motion:reduce) {
       #hint {transition:none}
@@ -9166,8 +8770,6 @@ text.textContent = Math.random() < 0.5
   document.head.append(css);
   hint.after($('#careCaption'));
 
-  // 설정은 왼쪽, 다음 놈은 오른쪽.
-  $('.top-buttons').append($('#settingsBtn'), $('#nextBtn'));
 
   // 기존 외모 버튼을 옮겨서 클릭 연결과 저장 기능을 보존한다.
   const sheet = settings.querySelector('.sheet');
@@ -9192,25 +8794,21 @@ text.textContent = Math.random() < 0.5
     attributeFilter:['hidden']
   });
 
-  // 배경 포스터만 제거. 시계·바닥·방 소품은 남긴다.
-  const texture = room.userData.signTex?.t;
 
-  if (texture) {
-    for (const obj of [...room.children]) {
-      if (obj.isMesh && obj.material?.map === texture) {
-        room.remove(obj);
-      }
-    }
-  }
-
-  redrawSign = () => {};
-
-  // 설명 표시 시간 관리.
+  // 안내문: 이번 접속에서 그 도구를 처음 골랐을 때 4초만 띄운다.
+  // 이미 고른 도구를 한 번 더 누르면 다시 보여 준다. 내 말풍선이 떠 있으면 같은 띠를 쓰므로 띄우지 않는다.
   let timer = 0;
+  let retry = 0;
   let selected = '';
+  let keyBefore = '';
+  const seen = new Set();
 
   const key = () =>
     G.mode + ':' + (G.mode === 'hit' ? G.tool : G.care);
+
+  const myWordsShown = () => !!document.querySelector(
+    '.dock > .player-bubble:not([hidden]), .dock > #careCaption:not([hidden])'
+  );
 
   function hideHelp() {
     clearTimeout(timer);
@@ -9222,26 +8820,15 @@ text.textContent = Math.random() < 0.5
 
     if (
       G.editing ||
+      myWordsShown() ||
       document.querySelector('.modal:not([hidden])')
-    ) return;
+    ) return false;
 
-    const text = hint.textContent.trim();
-    if (!text) return;
+    if (!hint.textContent.trim()) return false;
 
     hint.classList.add('help-shown');
-
-    $('.dock').style.setProperty(
-      '--help-h',
-      hint.offsetHeight + 'px'
-    );
-
-    // 짧은 설명 4.5초, 긴 설명 최대 9.5초.
-    const duration = Math.min(
-      9500,
-      Math.max(4500, 2000 + text.length * 80)
-    );
-
-    timer = setTimeout(hideHelp, duration);
+    timer = setTimeout(hideHelp, 4000);
+    return true;
   }
 
   const oldHint = setHint;
@@ -9249,14 +8836,26 @@ text.textContent = Math.random() < 0.5
   setHint = function() {
     const result = oldHint.apply(this, arguments);
 
-    // 같은 도구를 사용하는 중에는 설명 시간을 계속 연장하지 않는다.
     if (key() !== selected) {
-      selected = key();
-      showHelp();
+      if (seen.has(key())) { selected = key(); hideHelp(); }
+      // 편집기·설정창에 가려 못 띄운 경우에는 '봤음'으로 치지 않고 다음 기회에 다시 띄운다.
+      else if (showHelp()) { selected = key(); seen.add(selected); }
+      // 내 말풍선이 떠 있어 못 띄웠으면, 말풍선이 사라질 즈음 한 번 더 시도한다.
+      else if (myWordsShown()) {
+        const want = key();
+        clearTimeout(retry);
+        retry = setTimeout(() => {
+          if (key() === want && !seen.has(want) && showHelp()) { selected = want; seen.add(want); }
+        }, 1900);
+      }
     }
 
     return result;
   };
+
+  document.addEventListener('click', e => {
+    if (e.target.closest?.('[data-tool],[data-care],.mode')) keyBefore = key();
+  }, true);
 
   document.addEventListener('click', e => {
     const b = e.target.closest?.(
@@ -9265,8 +8864,7 @@ text.textContent = Math.random() < 0.5
 
     if (!b || b.disabled) return;
 
-    // 같은 도구를 다시 누르면 설명도 다시 보여 준다.
-    showHelp();
+    if (keyBefore === key()) showHelp();
 
     if (
       b.parentElement.scrollWidth >
@@ -9293,12 +8891,6 @@ text.textContent = Math.random() < 0.5
     });
   });
 
-  addEventListener('resize', () => {
-    $('.dock').style.setProperty(
-      '--help-h',
-      hint.offsetHeight + 'px'
-    );
-  });
 
   // 실제로 손을 문지른 거리만 새 효과음에 전달한다.
   const oldRub = careRub;
@@ -9340,61 +8932,7 @@ text.textContent = Math.random() < 0.5
     }
   });
 
-  // 새 상·하단 여백 기준으로 전신을 맞춘다.
-  // 설명의 표시/숨김은 카메라 크기에 영향을 주지 않는다.
-  fit = function() {
-    if (G.editing) {
-      AppearanceEditor.resize();
-      return;
-    }
-
-    const W = innerWidth;
-    const H = innerHeight;
-
-    renderer.setSize(W, H, false);
-    camera.aspect = W / H;
-
-    const topH = Math.max(
-      $('#settingsBtn').getBoundingClientRect().bottom,
-      $('#nextBtn').getBoundingClientRect().bottom
-    ) + 10;
-
-    const botH = H - $('.dock').getBoundingClientRect().top + 10;
-    const avail = Math.max(100, H - topH - botH);
-    const L = G.v?.look;
-
-    const y0 = -.06;
-
-    const y1 = L
-      ? Math.max(
-          1.93,
-          1.06 * L.bodyH + .31 +
-          L.headH * (
-            HEAD_R +
-            (['spiky','mohawk'].includes(L.style) ? .17 : .07)
-          )
-        )
-      : 1.93;
-
-    const h = Math.max(
-      (y1 - y0) * H / avail,
-      1.5 / camera.aspect
-    );
-
-    G.viewH = h;
-    G.camDist = h / (
-      2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))
-    );
-
-    const aim =
-      (y0 + y1) / 2 +
-      (topH - botH) * h / (2 * H);
-
-    camBase.set(0, aim, G.camDist);
-    G.camTarget = V3(0, aim, 0);
-
-    camera.updateProjectionMatrix();
-  };
+    const topH = $('#settingsBtn').getBoundingClientRect().bottom + 10;
 
   window.__SC_ROOM_UI_V1 = {showHelp, hideHelp};
 
@@ -9404,509 +8942,6 @@ text.textContent = Math.random() < 0.5
 })();
 
 
-/* CARE_GRID_HEAL_V1
- * 기존 패치들 뒤, '시작' 주석 바로 위에 한 번만 추가.
- * 반창고의 내부 선택 키(bandage)는 입력 연결을 위해 유지한다.
- */
-(() => {
-  if (window.__SC_CARE_GRID_HEAL_V1) return;
-
-  const USES = 15;       // 약 바르기 동작을 15번 완료하면 완전히 회복
-  const DURATION = .85;  // 한 번 약을 바르는 동작 길이
-
-  const strip = $('#careTools .care-strip');
-  const medicine = $('[data-care="bandage"]');
-  const talk = $('#careTalk');
-
-  if (!strip || !medicine || !talk) return;
-
-  // 기존 버튼을 이동해서 이벤트와 포옹의 길게 누르기를 보존한다.
-  medicine.innerHTML = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="m16 6 22 7-8 25-21-7z" fill="#e8fff3" stroke="#1f2a5c" stroke-width="2.5"/><path d="m10 30 20 7-2 6-20-7z" fill="#5db999" stroke="#1f2a5c" stroke-width="2.5"/><path d="m23 17-3 10m-3-7 10 3" fill="none" stroke="#329f7b" stroke-width="4" stroke-linecap="round"/></svg>약 바르기';
-
-  medicine.setAttribute('aria-label', '약 바르기');
-  medicine.title = `캐릭터를 눌러 약 바르기 · ${USES}회면 완전히 회복`;
-  medicine.disabled = false;
-
-  talk.className = 'tool';
-  talk.innerHTML = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M6 7h36v26H21L9 42v-9H6z" fill="#e8f8ef" stroke="#1f2a5c" stroke-width="2.5"/><path d="M14 17h20M14 24h14" stroke="#1f2a5c" stroke-width="2.5" stroke-linecap="round"/></svg>위로 한마디';
-  talk.setAttribute('aria-label', '위로 한마디');
-
-  strip.append(medicine, talk);
-
-  // 기존 코드가 조회하는 요소는 지우지 않고 화면에서만 제외한다.
-  for (const id of [
-    'careRepairs', 'careRepair', 'careVoiceToggle', 'nextBtn'
-  ]) {
-    const el = document.getElementById(id);
-
-    if (el) {
-      el.hidden = true;
-      el.tabIndex = -1;
-    }
-  }
-
-  const actions = $('#careTools .care-actions');
-  if (actions) actions.hidden = true;
-
-  const css = document.createElement('style');
-
-  css.textContent = `
-    #nextBtn,
-    #careRepairs,
-    #careRepair,
-    #careVoiceToggle,
-    #careTools .care-actions {
-      display:none!important
-    }
-
-    #careTools:not([hidden]) {
-      display:block!important
-    }
-
-    #careTools .care-strip {
-      display:grid!important;
-      grid-template-columns:repeat(8,minmax(0,1fr))!important;
-      gap:4px!important;
-      overflow:visible!important;
-      padding:0!important;
-      scroll-snap-type:none!important
-    }
-
-    #careTools .care-strip>.tool {
-      width:auto!important;
-      min-width:0!important;
-      min-height:64px!important;
-      margin:0;
-      padding:4px 1px!important;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      gap:2px;
-      font-size:11px!important;
-      line-height:1.3;
-      letter-spacing:-.6px;
-      white-space:nowrap;
-      touch-action:manipulation
-    }
-
-    #careTools .care-strip>.tool svg {
-      width:34px!important;
-      height:34px!important
-    }
-
-    #careTools .care-strip>.hold {
-      touch-action:none
-    }
-
-    #hitTools[hidden],
-    #careTools[hidden] {
-      display:none!important
-    }
-
-    @media(max-width:600px) {
-      #hitTools:not([hidden]),
-      #careTools .care-strip {
-        display:grid!important;
-        grid-template-columns:repeat(4,minmax(0,1fr))!important;
-        overflow:visible!important;
-        gap:4px!important
-      }
-
-      #hitTools .tool {
-        min-width:0!important;
-        width:auto!important
-      }
-
-      #careTools .care-strip>.tool {
-        font-size:12px!important
-      }
-    }
-  `;
-
-  document.head.append(css);
-
-  HINTS.bandage =
-    `캐릭터를 톡: 약 바르기 · ${USES}회면 상처·이빨·안경까지 회복`;
-
-  // 반성문에서도 다음 캐릭터로 교체하지 않는다.
-  const letterNext = $('#letterNext');
-
-  if (letterNext) {
-    letterNext.textContent = '계속하기';
-
-    letterNext.addEventListener('click', e => {
-      e.preventDefault();
-      e.stopImmediatePropagation();
-
-      document.getElementById('letterModal')?.setAttribute('hidden', '');
-      G.lastAct = G.time;
-    }, true);
-  }
-
-  // 작은 크림 자국. 매번 만들지 않고 한 메시를 재사용한다.
-  const cream = new THREE.Mesh(
-    new THREE.SphereGeometry(1, 16, 10),
-    new THREE.MeshStandardMaterial({
-      color: '#fff8df',
-      roughness: .9,
-      transparent: true,
-      opacity: 0,
-      depthWrite: false
-    })
-  );
-
-  cream.name = 'care-ointment';
-  cream.visible = false;
-  scene.add(cream);
-
-  let action = null;
-
-  function cancelMedicine() {
-    if (action) RIG.open[1].visible = false;
-
-    action = null;
-    cream.visible = false;
-  }
-
-  talk.addEventListener('click', cancelMedicine, true);
-
-  function reduceWounds(v, factor) {
-    for (const key of [
-      'damage', 'fear', 'noseBlood', 'lipBlood', 'tear', 'wet',
-      'noseRed', 'noseStretch', 'noseTwist', 'dizzy',
-      'eyeShut', 'squint', '_crownV2'
-    ]) {
-      if (Number.isFinite(v[key])) v[key] *= factor;
-    }
-
-    for (const b of v.bruises) b.heal *= factor;
-    for (const b of v.bumps) b.amp *= factor;
-    for (const m of v.marks) m.a *= factor;
-    for (const e of v.eyes) e.swell *= factor;
-
-    for (const l of v.lumps) {
-      l.userData.target *= factor;
-      l.userData.cur *= factor;
-    }
-
-    for (const d of v._slapDents || []) {
-      d.depth *= factor;
-    }
-
-    if (v._bodyCloth) {
-      for (const d of v._bodyCloth.dents) {
-        d.depth *= factor;
-        d.kick *= factor;
-      }
-
-      v._bodyCloth.dirty = true;
-    }
-
-    v.impacts.length = 0;
-    v.bodyImpulse.length = 0;
-    v.headDirty = v.faceDirty = true;
-
-    v.applyDeform();
-    v.paintFace();
-  }
-
-  function fullyRestore(v) {
-    // nextCrime()/newVillain()을 호출하지 않는다.
-    // 같은 외모의 깨끗한 모델로 복원해 기존 패치의 오염까지 없앤다.
-    const fresh = new Villain(
-      v.crime,
-      {...v.look},
-      v.hostScene
-    );
-
-    fresh.st = {...v.st};
-
-    // 기록과 성격·반응은 유지한다.
-    for (const key of [
-      'confessed', 'comfort', 'lettered', 'hardHits', 'crossArms',
-      'careReplies', 'lastFlip', 'flipped', '_snubLast', '_snubLine'
-    ]) {
-      if (v[key] !== undefined) fresh[key] = v[key];
-    }
-
-    fresh.state = 'stand';
-    fresh.stateT = 0;
-    fresh.animTime = v.animTime;
-
-    fresh.root.position.copy(v.root.position);
-    fresh.root.quaternion.copy(v.root.quaternion);
-
-    fresh._ointmentRestored = true;
-    fresh._ointmentHits = fresh.st.hits;
-    fresh._ointmentUses = 0;
-
-    Object.assign(fresh.mouth, {
-      open: .018,
-      smile: 0,
-      smirk: 0,
-      wide: .72,
-      shape: 'flat'
-    });
-
-    Object.assign(fresh.mouth.target, {
-      open: .018,
-      smile: 0,
-      smirk: 0,
-      wide: .72
-    });
-
-    fresh.paintMouth();
-    fresh.root.updateMatrixWorld(true);
-
-    G.v = fresh;
-    v.dispose();
-
-    // 떨어진 안경·이빨·머리카락과 이전 분출을 정리한다.
-    clearJunk();
-    HEAVY_WET.clear(fresh);
-
-    G.combo = [];
-    G.hitstop = 0;
-    G.letterTimer = 0;
-    G.lastAct = G.time;
-
-    refreshAppearanceButton();
-    updateCareButtons(true);
-
-    return fresh;
-  }
-
-  function completeMedicine(a) {
-    const v = a.v;
-    if (G.v !== v) return;
-
-    // 치료 도중 다시 맞았다면 새 치료 과정으로 시작한다.
-    if (v._ointmentHits !== v.st.hits) {
-      v._ointmentHits = v.st.hits;
-      v._ointmentUses = 0;
-    }
-
-    const before = v._ointmentUses || 0;
-    const count = Math.min(USES, before + 1);
-
-    v._ointmentUses = count;
-    v.st.medicines = (v.st.medicines || 0) + 1;
-    DAY.medicines = (DAY.medicines || 0) + 1;
-
-    if (count >= USES) {
-      fullyRestore(v);
-      popText('회복 완료', a.point, 'pat', 32);
-
-    } else {
-      reduceWounds(
-        v,
-        (USES - count) / (USES - before)
-      );
-
-      popText(`회복 ${count}/${USES}`, a.point, 'pat', 30);
-    }
-
-    G.lastAct = G.time;
-    saveDay();
-  }
-
-  // 반창고 입력 연결만 재사용하고, 붙이는 동작은 호출하지 않는다.
-  const oldCareAct = careAct;
-
-  careAct = function(kind, info, e) {
-    if (kind !== 'bandage') {
-      return oldCareAct.apply(this, arguments);
-    }
-
-    const v = G.v;
-
-    if (
-      action || !v || v.state !== 'stand' ||
-      G.mode !== 'care' || G.editing ||
-      !info || !isAttached(info.obj, v.root)
-    ) return;
-
-    if (
-      document.hidden ||
-      document.querySelector('.modal:not([hidden])')
-    ) return;
-
-    stopSocial();
-    SFX.rubStop();
-
-    v.root.updateMatrixWorld(true);
-
-    action = {
-      v,
-      info,
-      hits: v.st.hits,
-      age: 0,
-      sounded: false,
-      point: hitWorld(info).clone()
-    };
-
-    G.lastAct = G.time;
-  };
-
-  const oldCareHands = updateCareHands;
-
-  updateCareHands = function(dt) {
-    const result = oldCareHands.apply(this, arguments);
-    const a = action;
-
-    if (!a) return result;
-
-    if (
-      G.v !== a.v ||
-      G.mode !== 'care' ||
-      G.care !== 'bandage' ||
-      G.editing || G.hug || G.social ||
-      a.v.state !== 'stand' ||
-      a.v.st.hits !== a.hits ||
-      document.hidden ||
-      document.querySelector('.modal:not([hidden])') ||
-      !isAttached(a.info.obj, a.v.root)
-    ) {
-      cancelMedicine();
-      return result;
-    }
-
-    a.age += Math.max(0, Number(dt) || 0);
-
-    if (a.age >= DURATION) {
-      cancelMedicine();
-      completeMedicine(a);
-      return result;
-    }
-
-    const t = a.age;
-    const v = a.v;
-
-    v.root.updateMatrixWorld(true);
-
-    const p = hitWorld(a.info);
-    const n = hitNormal(a.info).normalize();
-
-    a.point.copy(p);
-
-    const tangent = V3(0, 1, 0).cross(n);
-
-    if (tangent.lengthSq() < .01) {
-      tangent.set(1, 0, 0);
-    }
-
-    tangent.normalize();
-
-    const blend = careWindow(
-      t, 0, .16, .62, DURATION
-    );
-
-    const stroke = Math.sin(
-      clamp((t - .16) / .46, 0, 1) * Math.PI * 2
-    ) * .045;
-
-    const hand = RIG.open[1];
-    hand.visible = true;
-
-    const target = p.clone()
-      .addScaledVector(n, .055)
-      .addScaledVector(tangent, stroke);
-
-    hand.position.copy(camRest(1, -.9))
-      .lerp(target, blend);
-
-    orient(
-      hand,
-      n.clone().negate(),
-      Math.abs(n.y) > .85 ? V3(0, 0, -1) : V3(0, 1, 0)
-    );
-
-    cream.visible = t > .16;
-    cream.position.copy(p).addScaledVector(n, .022);
-
-    orient(
-      cream,
-      n,
-      Math.abs(n.y) > .85 ? V3(0, 0, -1) : V3(0, 1, 0)
-    );
-
-    cream.scale.set(
-      .035 + Math.abs(stroke) * .4,
-      .028,
-      .006
-    );
-
-    cream.material.opacity =
-      .82 * careWindow(t, .14, .24, .50, .73);
-
-    if (!a.sounded && t > .22) {
-      a.sounded = true;
-      SFX.pat(clamp(p.x, -1, 1));
-    }
-
-    return result;
-  };
-
-  // 동작 도중 모드·도구를 바꾸면 미완료 치유는 취소한다.
-  const oldCancel = cancelPointer;
-  const oldStop = stopSocial;
-
-  cancelPointer = function() {
-    cancelMedicine();
-    return oldCancel.apply(this, arguments);
-  };
-
-  stopSocial = function() {
-    cancelMedicine();
-    return oldStop.apply(this, arguments);
-  };
-
-  // 누적 이빨 기록은 보존한다.
-  // 발음만 현재 실제로 빠진 이빨 수에 맞춘다.
-  const oldSpeak = speak;
-
-  speak = function() {
-    const v = G.v;
-
-    if (!v?._ointmentRestored) {
-      return oldSpeak.apply(this, arguments);
-    }
-
-    const total = v.st.teeth;
-
-    v.st.teeth = [
-      ...v.upper,
-      ...v.lower
-    ].filter(x => !x).length;
-
-    try {
-      return oldSpeak.apply(this, arguments);
-    } finally {
-      v.st.teeth = total;
-    }
-  };
-
-  window.__SC_CARE_GRID_HEAL_V1 = {
-    version: 1,
-    uses: USES,
-    cancelMedicine
-  };
-
-  if (window.__api) {
-    Object.assign(window.__api, {
-      careAct,
-      updateCareHands,
-      cancelPointer,
-      stopSocial,
-      speak
-    });
-  }
-
-  setTimeout(() => {
-    if (G.v && !G.editing) fit();
-  }, 0);
-})();
 
 /* CARE8_MEDICINE_V1
  * 기존 ROOM_UI_V1 뒤, '시작' 주석 바로 위에 한 번만 추가.
@@ -9927,114 +8962,7 @@ text.textContent = Math.random() < 0.5
     return;
   }
 
-  const style = document.createElement('style');
 
-  style.textContent = `
-    /* 가로 배치보다 숨김 규칙을 우선한다. */
-    #hitTools[hidden],
-    #careTools[hidden] {
-      display:none!important;
-    }
-
-    #nextBtn,
-    #careTools .care-actions,
-    #careRepairs {
-      display:none!important;
-    }
-
-    #careTools:not([hidden]) {
-      display:block!important;
-    }
-
-    #careTools .care-strip {
-      display:flex;
-      flex-wrap:nowrap;
-      gap:4px;
-      margin:0;
-      padding:1px 0 3px;
-      overflow-x:auto;
-      overflow-y:hidden;
-      touch-action:pan-x;
-      overscroll-behavior-x:contain;
-      scrollbar-width:thin;
-    }
-
-    #careTools .care-strip > .tool {
-      flex:1 0 68px;
-      min-width:68px;
-      min-height:60px;
-      padding:3px 2px;
-      white-space:nowrap;
-      font-size:11px;
-      scroll-snap-align:start;
-    }
-
-    #careTools .care-strip > .tool svg {
-      width:34px;
-      height:34px;
-    }
-
-    #careTools .care-strip > .tool:not(.hold) {
-      touch-action:pan-x;
-    }
-
-    #careTools .care-strip > .tool.hold {
-      touch-action:none;
-    }
-
-    #medicineProgress {
-      right:0;
-      top:0;
-      min-width:27px;
-      font-size:10px;
-    }
-  `;
-
-  document.head.append(style);
-
-  // 기존 카메라 코드가 참조하므로 DOM은 남기고 화면에서 제거.
-  $('#nextBtn').hidden = true;
-
-  medicine.innerHTML = `
-    <svg viewBox="0 0 48 48" aria-hidden="true">
-      <path d="m12 11 11-7 17 25-11 7z"
-        fill="#fffdf4" stroke="#1f2a5c" stroke-width="2.5"/>
-      <path d="m29 36 4 6 6-4-4-6M12 11l-3-4 11-7 3 4"
-        fill="#8fdcc9" stroke="#1f2a5c" stroke-width="2.5"/>
-      <path d="m21 15 7 10m-9-2 11-7"
-        stroke="#2f9b79" stroke-width="4"/>
-      <path d="M7 34q-8 10 0 10t0-10"
-        fill="#c8f0dc" stroke="#1f2a5c" stroke-width="2"/>
-    </svg>
-    <span>약 바르기</span>
-    <span id="medicineProgress" class="badge" hidden></span>
-  `;
-
-  medicine.setAttribute('aria-label', '약 바르기');
-  medicine.title = '선택한 뒤 캐릭터를 눌러 약 바르기';
-  medicine.disabled = false;
-
-  talk.className = 'tool';
-  talk.dataset.care = 'comfort';
-  talk.setAttribute('aria-label', '위로 한마디');
-
-  talk.innerHTML = `
-    <svg viewBox="0 0 48 48" aria-hidden="true">
-      <path d="M5 7h38v26H20L8 43V33H5z"
-        fill="#fffdf4" stroke="#1f2a5c" stroke-width="3"/>
-      <path d="M13 16h22M13 24h15"
-        stroke="#2f9b79" stroke-width="3" stroke-linecap="round"/>
-    </svg>
-    <span>위로한마디</span>
-  `;
-
-  // 기존 버튼 자체를 옮겨 클릭·꾹 안기 연결을 보존한다.
-  for (const id of ['hand', 'love', 'thumb', 'clap', 'five', 'hug']) {
-    strip.append(document.querySelector(`[data-care="${id}"]`));
-  }
-
-  strip.append(medicine, talk);
-  $('#careRepairs').hidden = true;
 
   HINTS.bandage =
     `선택 후 캐릭터를 톡 · 한 번씩 약을 문질러 바릅니다<br>` +
@@ -10136,7 +9064,6 @@ text.textContent = Math.random() < 0.5
     // newVillain()을 호출하지 않으므로 입장 연출·인원 집계는 발생하지 않는다.
     // 다른 패치 내부에 남아 있는 변색·옷 얼룩도 함께 초기화한다.
     const fresh = new Villain(
-      v.crime,
       { ...v.look },
       v.hostScene || scene
     );
@@ -10150,7 +9077,7 @@ text.textContent = Math.random() < 0.5
     fresh.st = { ...v.st, teeth: 0 };
 
     for (const k of [
-      'confessed', 'lettered', 'comfort',
+      'comfort',
       'crossArms', '_snubLast', '_snubLine'
     ]) {
       if (v[k] !== undefined) fresh[k] = v[k];
@@ -10213,7 +9140,6 @@ text.textContent = Math.random() < 0.5
   };
 
   // 이전 코드가 직접 호출해도 반창고 대신 약 바르기로 연결.
-  placeBandage = beginMedicine;
 
   const oldHands = updateCareHands;
 
@@ -10370,7 +9296,6 @@ text.textContent = Math.random() < 0.5
   if (window.__api) {
     Object.assign(window.__api, {
       careAct,
-      placeBandage,
       updateCareHands,
       stopSocial,
       applyHit,
@@ -10380,119 +9305,6 @@ text.textContent = Math.random() < 0.5
 })();
 
 
-/* CARE_SCROLL_FIX_V2
- * CARE_GRID_HEAL_V1을 포함한 기존 패치들 뒤,
- * '시작' 주석 바로 위에 한 번만 추가.
- */
-(() => {
-  if (window.__SC_CARE_SCROLL_FIX_V2) return;
-
-  const hit = $('#hitTools');
-  const care = $('#careTools');
-  const talk = $('#careTalk');
-  if (!hit || !care || !talk) return;
-
-  const css = document.createElement('style');
-  css.textContent = `
-    /* 두 모드 모두 한 줄. 좁으면 가로로 스크롤한다. */
-    body #hitTools:not([hidden]),
-    body #careTools .care-strip {
-      display:flex!important;
-      flex-direction:row!important;
-      flex-wrap:nowrap!important;
-      gap:4px!important;
-      overflow-x:auto!important;
-      overflow-y:hidden!important;
-      padding:2px 0 4px!important;
-      scrollbar-width:thin;
-      scroll-snap-type:x proximity!important;
-      touch-action:pan-x;
-      overscroll-behavior-x:contain;
-      min-width:0;
-    }
-
-    body #hitTools .tool,
-    body #careTools .care-strip>.tool {
-      flex:1 0 64px!important;
-      width:64px!important;
-      min-width:64px!important;
-      min-height:60px!important;
-      margin:0!important;
-      padding:3px 2px!important;
-      font-size:11px!important;
-      white-space:nowrap;
-      scroll-snap-align:start;
-      touch-action:pan-x!important;
-    }
-
-    body #hitTools .tool svg,
-    body #careTools .care-strip>.tool svg {
-      width:34px!important;
-      height:34px!important;
-    }
-
-    /* 꾹 안기는 기존 길게 누르기 입력을 유지한다. */
-    body #careTools .care-strip>.hold {
-      touch-action:none!important;
-    }
-
-    /* 중요: display:flex/grid가 숨김을 덮어쓰지 못하게 한다. */
-    body #hitTools[hidden],
-    body #careTools[hidden] {
-      display:none!important;
-    }
-
-    body #nextBtn,
-    body #careRepairs,
-    body #careRepair,
-    body #careVoiceToggle,
-    body #careTools .care-actions {
-      display:none!important;
-    }
-
-    body #careTools {
-      gap:0!important;
-    }
-  `;
-  document.head.append(css);
-
-  hit.hidden = G.mode !== 'hit';
-  care.hidden = G.mode !== 'care';
-
-  const next = $('#nextBtn');
-  if (next) {
-    next.hidden = true;
-    next.disabled = true;
-  }
-
-  // 위로 한마디도 8개 중 하나로 선택 표시와 설명을 연결한다.
-  // 기존 버튼에 연결된 위로 대사·음성은 그대로 사용한다.
-  talk.dataset.care = 'comfort';
-  talk.setAttribute('aria-pressed', 'false');
-
-  HINTS.comfort = '누르면 위로 한마디를 건넵니다';
-
-  talk.addEventListener('click', () => {
-    if (G.mode !== 'care' || G.editing) return;
-
-    cancelPointer();
-    endHug();
-    stopSocial();
-    clearAttacks();
-
-    G.care = 'comfort';
-    syncCareSelection();
-    setHint();
-  }, true);
-
-  syncCareSelection();
-
-  setTimeout(() => {
-    if (G.v && !G.editing) fit();
-  }, 0);
-
-  window.__SC_CARE_SCROLL_FIX_V2 = { version:2 };
-})();
 
 
 /* SC_FATIGUE_V1_BEGIN
@@ -10511,6 +9323,7 @@ text.textContent = Math.random() < 0.5
     shakeAt: 55,          // 누적 데미지: 떨림 시작
     fullShakeAt: 110,     // 여기서 떨림이 최대 세기
     collapseAt: 180,     // 이 이상 누적된 뒤 다시 맞으면 쓰러짐
+    graceHits: 10,       // 쓰러졌다 일어난 뒤에는 이만큼 더 맞아야 다시 쓰러진다
     shakeScale: 0.5,      // 체어샷 팔 파닥임 진폭의 절반
     restSeconds: 5,       // 마지막 실제 타격 뒤 기다리는 시간
     riseSeconds: 3.2,     // 천천히 일어나는 시간
@@ -10518,6 +9331,8 @@ text.textContent = Math.random() < 0.5
     floor: 0.012
   });
   const data = new WeakMap();
+  const RISE_UNCURL = 0.16;   // 일어나는 시간 중 다리를 펴는 데 쓰는 비율
+  const CURL_ROLL = 0.75;     // 웅크릴 때 몸을 위쪽으로 돌려 눕히는 각도(rad)
   const clamp01 = x => Math.max(0, Math.min(1, x));
   const smooth = x => { x = clamp01(x); return x*x*(3-2*x); };
   const mix = (a,b,t) => a+(b-a)*t;
@@ -10530,7 +9345,7 @@ text.textContent = Math.random() < 0.5
     if (!f) {
       f = {phase:'stand', age:0, quiet:0, cover:0, coverTo:0,
         shake:0, pending:false, form:[0,0], from:[0,0],
-        x:0, z:0, side:1, recoil:0, legs:null, support:[]};
+        x:0, z:0, side:1, recoil:0, legs:null, support:[], grace:0, squat:0, standFloor:0};
       data.set(v,f);
     }
     return f;
@@ -10545,6 +9360,45 @@ text.textContent = Math.random() < 0.5
 
   // Keep the existing meshes and collision targets. Bend their lower vertices
   // about an actual knee, rather than shrinking the entire leg into the floor.
+  // 다리 기둥은 세로 마디가 몇 개 없어서, 그대로 접으면 무릎 없이 엉덩이에서 발목까지 곧은 통이 되어
+  // 다리가 몸통 속으로 빨려 들어간 것처럼 보인다. 접기 전에 세로 마디를 촘촘히 나눈 복사본으로 바꾼다.
+  // 겉모양과 무늬 좌표는 그대로다.
+  function denseLegGeometry(src) {
+    const P=src.parameters,pos=src.attributes.position,uv=src.attributes.uv;
+    const nP=P?.points?.length,seg=P?.segments;
+    if(src.type!=='LatheGeometry'||!nP||!seg||pos.count!==(seg+1)*nP)return src.clone();
+    const cuts=[];let total=1;
+    for(let j=0;j<nP-1;j++) {
+      const n=Math.max(1,Math.ceil(Math.abs(pos.getY(j+1)-pos.getY(j))/0.025));
+      cuts.push(n);total+=n;
+    }
+    const p2=new Float32Array((seg+1)*total*3),u2=new Float32Array((seg+1)*total*2);
+    const put=(o,a,b,t)=>{
+      p2[o*3]=mix(pos.getX(a),pos.getX(b),t);
+      p2[o*3+1]=mix(pos.getY(a),pos.getY(b),t);
+      p2[o*3+2]=mix(pos.getZ(a),pos.getZ(b),t);
+      if(uv){u2[o*2]=mix(uv.getX(a),uv.getX(b),t);u2[o*2+1]=mix(uv.getY(a),uv.getY(b),t);}
+    };
+    for(let i=0;i<=seg;i++) {
+      let k=0;
+      for(let j=0;j<nP-1;j++) {
+        const a=i*nP+j;
+        for(let s=0;s<cuts[j];s++)put(i*total+k++,a,a+1,s/cuts[j]);
+      }
+      put(i*total+k,i*nP+nP-1,i*nP+nP-1,0);
+    }
+    const index=[];
+    for(let i=0;i<seg;i++)for(let j=0;j<total-1;j++) {
+      const a=j+i*total,b=a+total,c=b+1,d=a+1;
+      index.push(a,b,d,b,c,d);
+    }
+    const g=new THREE.BufferGeometry();
+    g.setAttribute('position',new THREE.BufferAttribute(p2,3));
+    if(uv)g.setAttribute('uv',new THREE.BufferAttribute(u2,2));
+    g.setIndex(index);
+    g.computeVertexNormals();
+    return g;
+  }
   function prepareLegs(v,f) {
     if (f.legs) return;
     f.legs = v.legs.map(leg => {
@@ -10553,7 +9407,7 @@ text.textContent = Math.random() < 0.5
         o.geometry?.type==='SphereGeometry');
       const rec = {leg,m,shoe,shoeP:shoe?.position.clone(),shoeQ:shoe?.quaternion.clone(),angle:0};
       if (m) {
-        m.geometry = m.geometry.clone();
+        m.geometry = denseLegGeometry(m.geometry);
         m.geometry.attributes.position.setUsage(THREE.DynamicDrawUsage);
         rec.base = Float32Array.from(m.geometry.attributes.position.array);
       }
@@ -10601,13 +9455,12 @@ text.textContent = Math.random() < 0.5
     if(rec?.fore){rec.fore.position.y=-0.085*stretch;rec.fore.scale.y=stretch;}
     if(rec?.cuff)rec.cuff.position.y=-0.17*stretch;
   }
-  // Elbows stay outside the skull. Both hands reach the back of the head,
-  // including the unusually thin-body / large-head appearance combinations.
-  function coverHead(v,a,weight) {
+  // 두 손으로 얼굴을 가린다. 몸이 가늘고 머리가 큰 외모 조합에서도 손이 얼굴 앞에 닿는다.
+  function coverFace(v,a,weight) {
     if(weight<0.001)return;
     v.root.updateMatrixWorld(true);
-    const d=new THREE.Vector3(a.s*0.48,0.51,-0.72).normalize();
-    const p=v.surfacePoint(d,0.075);
+    const d=new THREE.Vector3(a.s*0.30,0.05,0.95).normalize();
+    const p=v.surfacePoint(d,0.07);
     const world=v.headMesh.localToWorld(p.clone());
     const target=v.torso.worldToLocal(world);
     const origin=a.sh.position.clone(),delta=target.clone().sub(origin);
@@ -10615,7 +9468,8 @@ text.textContent = Math.random() < 0.5
     const axis=delta.divideScalar(distance);
     const L=Math.max(0.20,(distance+0.026)*0.5);
     armLengths(v,a,mix(0.20,L,weight));
-    const pole=new THREE.Vector3(a.s,0.04,-0.10).projectOnPlane(axis);
+    // 팔꿈치는 바깥·아래쪽으로 빠진다.
+    const pole=new THREE.Vector3(a.s*0.9,-0.45,0.20).projectOnPlane(axis);
     if(pole.lengthSq()<0.00001)pole.set(a.s,0,0).projectOnPlane(axis);
     pole.normalize();
     const elbow=origin.clone().addScaledVector(axis,distance*0.5)
@@ -10624,10 +9478,10 @@ text.textContent = Math.random() < 0.5
     const fore=target.clone().sub(elbow).normalize();
     const q2=new THREE.Quaternion().setFromUnitVectors(down,fore.clone().applyQuaternion(q1.clone().invert()));
     a.sh.quaternion.slerp(q1,weight);a.el.quaternion.slerp(q2,weight);
-    // Palm (-Z) toward the skull; fingers (-Y) follow the forearm downward.
+    // 손바닥(-Z)은 얼굴을 향하고, 손가락(-Y)은 이마 쪽을 향한다.
     const center=v.torso.worldToLocal(v.headMesh.getWorldPosition(zero()));
     const fingerPoint=v.torso.worldToLocal(v.headMesh.localToWorld(
-      p.clone().add(new THREE.Vector3(0,-0.12,-0.01))
+      p.clone().add(new THREE.Vector3(-a.s*0.03,0.12,-0.01))
     ));
     const y=fingerPoint.sub(target).normalize().negate();
     const z=target.clone().sub(center).projectOnPlane(y).normalize();
@@ -10662,7 +9516,7 @@ text.textContent = Math.random() < 0.5
 
   function startFall(v,f,again=false) {
     prepareLegs(v,f);
-    f.phase='fall';f.age=0;f.pending=false;
+    f.phase='fall';f.age=0;f.pending=false;f.coverTo=0;
     f.from=f.form.slice();
     if(!again) {
       v.root.updateMatrixWorld(true);
@@ -10692,9 +9546,9 @@ text.textContent = Math.random() < 0.5
       f.form=[1,1];
       if(f.quiet>=CFG.restSeconds){f.phase='rise';f.age=0;}
     } else if(f.phase==='rise') {
-      const t=clamp01(f.age/CFG.riseSeconds);
+      const d=RISE_UNCURL*f.cover,t=clamp01((f.age/CFG.riseSeconds-d)/(1-d));
       f.form=[1-smooth((t-0.32)/0.68),1-smooth(t/0.42)];
-      if(t>=1){f.phase='stand';f.form=[0,0];f.cover=f.coverTo=0;}
+      if(f.age>=CFG.riseSeconds){f.phase='stand';f.form=[0,0];f.cover=f.coverTo=0;f.grace=CFG.graceHits;}
     }
   }
 
@@ -10702,43 +9556,43 @@ text.textContent = Math.random() < 0.5
 
 
 function pose(v,f) {
+  if(!f.legs)prepareLegs(v,f);
   const crouch=f.form[0], roll=f.form[1];
   const r=f.phase==='rise'
     ?clamp01(f.age/CFG.riseSeconds)
     :0;
 
-  const cover=f.cover*(1-smooth(r/0.68));
+  const cover=f.cover*(1-smooth(r/0.5));
+  // 쓰러진 뒤 더 맞으면 1까지 올라간다: 두 손으로 얼굴을 가리고, 다리를 접어 몸 쪽으로 웅크린다.
+  // 일어날 때는 누운 채로 다리부터 편 다음에 몸을 세운다(접은 채로 세우면 공중에 뜬 것처럼 보인다).
+  const curl=f.cover*crouch*(1-smooth(r/RISE_UNCURL));
   const t=G.time;
   const kick=Math.sin(t*38)*f.recoil;
 
-  // 상체가 앞뒤로 숙여지거나 비틀리지 않게 고정
   v.body.position.set(0,0,0);
   v.body.rotation.set(0,0,0);
 
   v.torso.position.y=0.5;
   v.torso.scale.set(1,1,1);
-  v.torso.rotation.set(0,0,0);
+  v.torso.rotation.set(0.22*curl,0,0);   // 등을 살짝 만다
 
-  // 얼굴은 정면 유지. 작은 좌우 떨림만 남긴다.
   v.head.position.y=0.31;
   v.head.scale.set(1,1,1);
   v.headPivot.rotation.set(
-    0,
+    0.40*curl,                            // 턱을 당긴다
     0,
     Math.sin(t*19)*0.008*crouch+kick*0.015
   );
 
-  // 다리를 깊게 접지 않고 살짝 벌어진 자세만 유지
   for(const [i,leg] of f.legs.entries()) {
     leg.leg.rotation.set(
+      -(i?1.62:1.82)*curl,                // 허벅지를 몸 앞으로 끌어올린다(몸통 속으로 파묻히지 않을 만큼만)
       0,
-      0,
-      (i?1:-1)*0.05*crouch
+      (i?1:-1)*(0.05*crouch+0.10*curl)    // 두 무릎이 겹쳐 하나로 보이지 않게 살짝 벌린다
     );
-    bendLeg(leg,0);
+    bendLeg(leg,(i?2.15:2.35)*curl);      // 무릎을 접어 발을 엉덩이 쪽으로 붙인다
   }
 
-  // 기존 팔 자세와 머리 감싸기 동작은 유지
   for(const a of v.armRig) {
     armLengths(v,a,0.20);
     a.sh.rotation.set(-0.50-0.18*crouch,0,a.s*0.24);
@@ -10750,13 +9604,15 @@ function pose(v,f) {
   // 완전히 쓰러졌을 때는 정확히 옆으로 90도.
   const lean=0.045*crouch*(1-roll);
 
+  // 웅크릴 때는 몸을 위쪽으로 조금 돌려 눕힌다. 옆으로 누운 채 정면에서만 보면
+  // 접은 다리가 전부 몸통 뒤·속으로 들어가 보이기 때문에, 무릎이 몸 위로 올라와 보이게 한다.
+  v.root.rotation.order='ZYX';
   v.root.rotation.set(
     0,
-    0,
+    f.side*CURL_ROLL*curl,
     f.side*(Math.PI/2*roll+lean)
   );
 
-  // 기존 골반 기준 위치 보정
   v.root.position.set(0,0,0);
   v.root.updateMatrixWorld(true);
 
@@ -10769,10 +9625,10 @@ function pose(v,f) {
   v.root.updateMatrixWorld(true);
 
   for(const a of v.armRig) {
-    coverHead(v,a,cover*crouch);
+    coverFace(v,a,cover*crouch);
   }
 
-  // 몸이 바닥에 파묻히거나 뜨지 않도록 기존 보정 유지
+  // 몸이 바닥에 파묻히거나 뜨지 않도록 보정
   v.root.position.y+=CFG.floor-floorY(v,f);
   v.root.updateMatrixWorld(true);
 
@@ -10781,16 +9637,36 @@ function pose(v,f) {
   v.lieZ=f.side*Math.PI/2;
 }
 
+  // 선 채로 무릎을 접어 주저앉는 정도(0~1). 체어샷 내려찍기에서 쓴다.
+  function squat(v,amount) {
+    const f=ensure(v);
+    if(f.phase!=='stand')return;
+    amount=clamp01(amount);
+    if(amount<=0&&!(f.squat>0))return;
+    if(!f.legs)prepareLegs(v,f);
+    if(!(f.squat>0)) {
+      for(const r of f.legs){r.leg.rotation.x=0;bendLeg(r,0);}
+      v.root.position.y=0;
+      f.standFloor=floorY(v,f);
+    }
+    f.squat=amount;
+    for(const r of f.legs){r.leg.rotation.x=-1.2*amount;bendLeg(r,2.25*amount);}
+    // 다리가 접힌 만큼 몸을 내려 발이 바닥에 붙어 있게 한다.
+    v.root.position.y=0;
+    v.root.position.y=f.standFloor-floorY(v,f);
+    v.root.updateMatrixWorld(true);
+  }
+
 
 
 
 
 
   function finish(v,f) {
-    for(const leg of f.legs||[]) {bendLeg(leg,0);leg.leg.rotation.set(0,0,0);}
+    for(const leg of f.legs||[]) {bendLeg(leg,0);leg.leg.rotation.set(0,0,0);}f.squat=0;
     v.torso.rotation.set(0,0,0);v.torso.position.y=0.5;
     v.body.position.set(0,0,0);v.body.rotation.set(0,0,0);
-    v.root.rotation.set(0,0,0);v.root.position.y=0;
+    v.root.rotation.order='XYZ';v.root.rotation.set(0,0,0);v.root.position.y=0;
     v.state='stand';v.stateT=0;v.stagger=Math.max(v.stagger||0,0.7);
     for(const a of v.armRig)armLengths(v,a,0.20);
     v.root.updateMatrixWorld(true);
@@ -10819,24 +9695,25 @@ function pose(v,f) {
       wasActive = active(v),
       beforeHits = v.st.hits,
       beforeDamage = marshmallowFatigue(v);
-    const throwsBefore=DAY.throws||0;
     const out=oldHit.apply(this,arguments);
     if(G.v!==v||v.st.hits<=beforeHits||h?.tool==='tissue'||h?.tool==='ground')return out;
     f.quiet=0;
     if(wasActive) {
-      f.coverTo=1;f.recoil=Math.min(1,(Number(h.power)||1)*0.30);
+      if(f.phase==='rest')f.coverTo=1;f.recoil=Math.min(1,(Number(h.power)||1)*0.30);
       // Chair/full-bat effects still execute, but a grounded actor does not get
       // teleported into a competing launch/recovery animation.
       v._impactV2=null;v._slapMotion=null;v._guardV2=v._wipeV2=null;
       const walls=scene.getObjectByName?.('chair-impact-side-walls');if(walls)walls.visible=false;
-      if(DAY.throws!==throwsBefore){DAY.throws=throwsBefore;saveDay();}
       v.root.visible=true;
       if(f.phase==='rise')startFall(v,f,true);
       pose(v,f);
     } else if(G.mode==='hit'&&beforeDamage>=CFG.collapseAt) {
-      f.pending=true;
-      // Finish an already-started chair flight / offscreen return first.
-      if(!special(v))startFall(v,f);
+      if(f.grace>0) f.grace--;   // 일어난 뒤 10대까지는 버틴다
+      else {
+        f.pending=true;
+        // Finish an already-started chair flight / offscreen return first.
+        if(!special(v))startFall(v,f);
+      }
     }
     return out;
   };
@@ -10854,7 +9731,11 @@ function pose(v,f) {
       const out=oldUpdate(v,dt);
       if(G.v!==v)return out;
       if(f.pending&&!special(v)){startFall(v,f);pose(v,f);}
-      else tremble(v,f,dt);
+      else {
+        // 내려찍기 동작이 중간에 끊겼으면 접힌 무릎을 편다.
+        if(f.squat>0&&v._impactV2?.kind!=='press'){squat(v,0);f.squat=0;v.root.position.y=0;}
+        tremble(v,f,dt);
+      }
       return out;
     }
     if(['enter','exit'].includes(v.state)) {
@@ -10880,8 +9761,19 @@ function pose(v,f) {
 
   const oldDispose=Villain.prototype.dispose;
   Villain.prototype.dispose=function(...args){data.delete(this);return oldDispose.apply(this,args);};
+  // 외모를 바꿀 때: 다리가 접힌 채로 바뀌면 접힌 모양이 새 '기본 모양'으로 잡혀 영영 안 펴진다.
+  // 그래서 먼저 다리를 펴 놓고 외모를 바꾼 다음, 접힘 계산에 쓰던 기록을 새로 만든다(누워 있으면 다음 프레임에 다시 접힌다).
+  const oldLookF=Villain.prototype.applyLook;
+  Villain.prototype.applyLook=function(...args){
+    const f=data.get(this);
+    if(f?.legs)for(const r of f.legs){bendLeg(r,0);r.leg.rotation.set(0,0,0);}
+    const out=oldLookF.apply(this,args);
+    if(f){f.legs=null;f.support=[];f.squat=0;}
+    return out;
+  };
   if(window.__api)Object.assign(window.__api,{applyHit,updateVillain,startGrab});
-  window.__SC_FATIGUE_V1={config:CFG,
+  window.__SC_LEGS={squat};
+  window.__SC_FATIGUE_V1={config:CFG,active,
     inspect:()=>{const f=G.v&&data.get(G.v);return f?{phase:f.phase,quiet:f.quiet,cover:f.cover,pending:f.pending}:null;}
   };
 })();
@@ -10892,41 +9784,13 @@ function pose(v,f) {
   'use strict';
   if(window.__SC_DIALOGUE_NAME_V2)return;
 
-  // Deliberately bypass the old universal remapping / tooth-count wrapper.
-  speak=function(line,kind='',dur,force=false) {
-    const v=G.v;
-    if(!v||G.editing)return;
-    if(!force&&G.mode==='care'&&['stand','hug'].includes(v.state))return;
-    const ouch=LINES.ouch.includes(line);
-    const chosen=(ouch||G.mode==='care')?line:
-      (typeof pickCharacterLine==='function'?pickCharacterLine():pick(CHARACTER_LINES));
-    const text=String(chosen??'');
-    if(!text.trim())return;
-    const seconds=dur||clamp(0.9+text.length*0.08,1.3,3.2);
-    say(text,seconds,kind); // No lisp(): missing teeth never rewrite the words.
-    v.mouth.talk=clamp(text.length*0.07,0.3,2.2);
-    const n=clamp(Math.round(text.replace(/[^가-힣a-z]/gi,'').length*0.8),1,14);
-    if(kind==='cry')SFX.sob({pitch:v.look.pitch});
-    else SFX.babble(n,{pitch:v.look.pitch,mood:v.fear});
-    G.lastSay=G.time;
-    if(!ouch) {
-      v._mutterLeft=rnd(3,5);
-      v._characterLineUntil=G.time+Math.min(seconds,2.2);
-    }
-  };
-  // The vulnerable monologue belongs to hit mode. Care replies keep their
-  // existing insult/gesture pairing instead of being replaced by monologues.
-  if(typeof updateCharacterMutter==='function') {
-    const oldMutter=updateCharacterMutter;
-    updateCharacterMutter=function(dt){if(G.mode==='hit')return oldMutter(dt);};
-  }
 
   const labels=new WeakMap();
   Villain.prototype.drawName=function() {
     const {g,t}=this.nameTex;
     if(g.canvas.width!==640)g.canvas.width=640;
     const W=g.canvas.width,H=g.canvas.height;
-    const chars=Array.from(String(this.look.name||'나쁜 놈').replace(/\s+/g,''));
+    const chars=Array.from(String(this.look.name||'나 자신').replace(/\s+/g,''));
     if(!chars.length)chars.push('나','쁜','놈');
     g.clearRect(0,0,W,H);
     const size=Math.min(W*0.84,H*0.94/(chars.length*1.04));
@@ -10998,13 +9862,13 @@ function pose(v,f) {
   Villain.prototype.applyLook=function(...args){const r=oldLook.apply(this,args);centerLabel(this);return r;};
   const oldUpdate=updateVillain;
   updateVillain=function(v,dt){const r=oldUpdate(v,dt);centerLabel(v);return r;};
-  if(window.__api)Object.assign(window.__api,{speak,updateVillain});
+  if(window.__api)Object.assign(window.__api,{updateVillain});
   window.__SC_DIALOGUE_NAME_V2={version:2};
 })();
 /* SC_DIALOGUE_NAME_V2_END */
 
 HINTS.tissue =
-  '얼굴에 톡톡 · 먹으면 체력만 회복 · 상처와 팔 떨림은 유지';
+  '얼굴에 톡톡 · 먹으면 체력 회복';
 
 const marshmallowButton = $('[data-tool="tissue"]');
 
@@ -11039,27 +9903,107 @@ if (marshmallowButton) {
   `;
 }
 
+/* FINAL_UI — 도구 배치·내 말풍선 띠의 최종 스타일. 예전 패치 세 개(격자/스크롤/스크롤 고정)가 서로 덮어쓰던 것을 이 한곳으로 모았다. */
+(() => {
+  const css = document.createElement('style');
+  css.textContent = `
+    body #hitTools[hidden], body #careTools[hidden] { display:none!important }
+    body #careTools:not([hidden]) { display:block!important }
+    body #careTools { gap:0!important }
+
+    /* 기본: 한 줄. 넘치면 가로로 민다. */
+    body #hitTools:not([hidden]), body #careTools .care-strip {
+      display:flex!important; flex-direction:row!important; flex-wrap:nowrap!important;
+      gap:4px!important; margin:0; padding:2px 0 4px!important; min-width:0;
+      overflow-x:auto!important; overflow-y:hidden!important;
+      scrollbar-width:none; touch-action:pan-x; overscroll-behavior-x:contain;
+      scroll-snap-type:x proximity!important;
+    }
+    body #hitTools::-webkit-scrollbar, body #careTools .care-strip::-webkit-scrollbar { display:none }
+    body #hitTools .tool, body #careTools .care-strip > .tool {
+      flex:1 0 64px!important; width:64px!important; min-width:64px!important; min-height:60px!important;
+      margin:0!important; padding:3px 2px!important; font-size:11px!important; white-space:nowrap;
+      scroll-snap-align:start; touch-action:pan-x!important;
+    }
+    body #hitTools .tool svg, body #careTools .care-strip > .tool svg { width:34px!important; height:34px!important }
+    body #hitTools .tool .tight { font-size:10px }
+    body #careTools .care-strip > .hold { touch-action:none!important }
+    #medicineProgress { right:0; top:0; min-width:27px; font-size:10px }
+
+    /* 오른쪽에 도구가 더 있으면 끝을 흐리게 해서 알린다. */
+    body .tool-scroll.more-right {
+      -webkit-mask-image:linear-gradient(to right,#000 calc(100% - 34px),transparent);
+      mask-image:linear-gradient(to right,#000 calc(100% - 34px),transparent);
+    }
+
+    /* 화면이 길어 캐릭터가 작아지지 않을 때: 4칸×2줄로 전부 보인다. */
+    body.tools-grid #hitTools:not([hidden]), body.tools-grid #careTools .care-strip {
+      display:grid!important; grid-template-columns:repeat(4,minmax(0,1fr))!important;
+      overflow:visible!important; padding:2px 0!important;
+      -webkit-mask-image:none!important; mask-image:none!important;
+    }
+    body.tools-grid #hitTools .tool, body.tools-grid #careTools .care-strip > .tool {
+      width:auto!important; min-width:0!important; min-height:56px!important; touch-action:manipulation!important;
+    }
+    body.tools-grid #careTools .care-strip > .hold { touch-action:none!important }
+
+    /* 내 말풍선(때리기의 욕 · 달래기의 위로 말). 도구칸 바로 위 띠 안, 오른쪽. */
+    .dock > .player-bubble, .dock > #careCaption {
+      position:absolute; left:auto; right:16px; top:auto; bottom:calc(100% + 16px); transform:none;
+      width:max-content; max-width:min(300px, calc(100% - 32px)); box-sizing:border-box;
+      padding:8px 13px; border:2.5px solid var(--ink); border-radius:17px;
+      background:#fff2b3; color:var(--ink); box-shadow:0 3px 0 var(--ink);
+      font:800 17px/1.3 var(--body); text-align:left; word-break:keep-all; overflow-wrap:anywhere;
+      pointer-events:none; z-index:1; animation:playerBubbleIn .16s ease-out;
+    }
+    .dock > #careCaption p { margin:0; font:inherit }
+    .dock > .player-bubble.long { font-size:15px; max-width:min(330px, calc(100% - 32px)) }
+    .dock > .player-bubble::after, .dock > #careCaption::after {
+      content:''; position:absolute; right:28px; bottom:-10px; width:16px; height:16px;
+      background:#fff2b3; border-right:2.5px solid var(--ink); border-bottom:2.5px solid var(--ink);
+      transform:rotate(45deg);
+    }
+    .dock > .player-bubble[hidden], .dock > #careCaption[hidden] { display:none }
+    body.look-editing .dock > #careCaption, body.look-editing .dock > .player-bubble { visibility:hidden }
+    @keyframes playerBubbleIn { from { opacity:0; transform:translateY(7px) scale(.96) } to { opacity:1; transform:translateY(0) scale(1) } }
+    @media (prefers-reduced-motion:reduce) { .dock > .player-bubble, .dock > #careCaption { animation:none } }
+    @media (max-height:650px) { .dock > .player-bubble, .dock > #careCaption { font-size:15px; padding:6px 11px } }
+
+    /* 머리 위에 자리가 없어 얼굴 옆으로 간 말풍선은 꼬리를 뺀다. */
+    .bubble.side::after { display:none }
+  `;
+  document.head.append(css);
+
+  // 가로 스크롤일 때만: 오른쪽에 남은 도구가 있으면 끝을 흐리게.
+  const strips = [$('#hitTools'), $('#careTools .care-strip')].filter(Boolean);
+  const sync = () => {
+    for (const s of strips) {
+      s.classList.add('tool-scroll');
+      s.classList.toggle('more-right', s.scrollWidth - s.clientWidth - s.scrollLeft > 6);
+    }
+  };
+  for (const s of strips) s.addEventListener('scroll', sync, { passive: true });
+  window.__syncToolScroll = () => requestAnimationFrame(sync);
+  document.addEventListener('click', e => { if (e.target.closest?.('.mode')) window.__syncToolScroll(); });
+})();
+
 /* ================= 시작 ================= */
 function boot() {
-  setHint();
   fit();
   newVillain();
+  // 처음 온 기기: 입장 연출 대신 기본 외모로 세워 두고 외모 만들기부터 띄운다. 한 번 열어 본 기기는 건너뛴다.
+  const firstVisit = !APPEAR.seen;
+  if (firstVisit) { const v = G.v; v.state = 'stand'; v.stateT = 0; v.root.position.set(0, 0, 0); v.root.rotation.set(0, 0, 0); }
   requestAnimationFrame(t => { lastT = t; frame(t); });
-  window.__game=G;window.__refreshGameFonts=()=>{redrawSign();document.fonts.ready.then(()=>{if(G.v)G.v.drawName();});};window.__bootGuard.ready=true;$('#fallback').style.display='none';
+  window.__game=G;window.__refreshGameFonts=()=>{document.fonts.ready.then(()=>{if(G.v)G.v.drawName();});};window.__bootGuard.ready=true;$('#fallback').style.display='none';
+  if (firstVisit) AppearanceEditor.open();
+  setHint();   // 편집기가 떠 있으면 안내문은 닫은 뒤에 뜬다
 }
 if (document.fonts && document.fonts.ready) {
   let done = false;
-  const go = () => { if (done) return; done = true; boot(); if (room.userData.signTex) redrawSign(); };
+  const go = () => { if (done) return; done = true; boot(); };
   document.fonts.ready.then(go); setTimeout(go, 1500);
 } else boot();
-function redrawSign() {
-  document.fonts.load('110px "Black Han Sans"').then(() => {
-    const st = room.userData.signTex, g = st.g;
-    g.fillStyle = '#ff3b3b'; g.fillRect(40, 40, 944, 150);
-    g.fillStyle = '#fff'; g.font = '110px "Black Han Sans","Noto Sans CJK KR",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('반 성 실', 512, 118);
-    st.t.needsUpdate = true;
-  }).catch(() => { });
-}
 
 </script>
 <script>
