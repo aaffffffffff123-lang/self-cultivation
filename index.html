@@ -6,9 +6,10 @@
 <meta name="theme-color" content="#8fdcc9">
 <title>나 기르기</title>
 <meta name="game-build" content="nagireugi-1-20260918">
-<meta name="game-fix" content="NG1_20260919D">
+<meta name="game-fix" content="NG3_20260919">
+<meta name="referrer" content="no-referrer">
 <!-- Based on eed8691 / blob 2a5cfb8; existing gameplay patches retained. -->
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' fill='%23ffd23f' stroke='%231f2a5c' stroke-width='5'/%3E%3Cpath d='M20 26l8 4M44 26l-8 4M22 44q10-8 20 0' stroke='%231f2a5c' stroke-width='5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 17V8' stroke='%231f2a5c' stroke-width='4.5' stroke-linecap='round'/%3E%3Cpath d='M32 10C29 1 19 0 13 4c4 8 13 10 19 6Z' fill='%2344c46a' stroke='%231f2a5c' stroke-width='3.2' stroke-linejoin='round'/%3E%3Cpath d='M32 10C35 1 45 0 51 4c-4 8-13 10-19 6Z' fill='%2379e08c' stroke='%231f2a5c' stroke-width='3.2' stroke-linejoin='round'/%3E%3Ccircle cx='32' cy='39' r='22' fill='%23ffd23f' stroke='%231f2a5c' stroke-width='4.5'/%3E%3Ccircle cx='19' cy='44' r='4.2' fill='%23ff8fb1'/%3E%3Ccircle cx='45' cy='44' r='4.2' fill='%23ff8fb1'/%3E%3Cpath d='M20.5 36q3.7-6 7.4 0M36.1 36q3.7-6 7.4 0' stroke='%231f2a5c' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3Cpath d='M22.5 45q9.5 11 19 0' stroke='%231f2a5c' stroke-width='4.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gothic+A1:wght@500;700;800&display=swap" rel="stylesheet" media="print" onload="this.media=&quot;all&quot;;if(window.__refreshGameFonts)window.__refreshGameFonts()">
@@ -105,7 +106,7 @@ textarea{width:100%;min-height:120px;margin-top:8px;border:2.5px solid var(--ink
   .tool svg{width:36px;height:36px}
 }
 @media (prefers-reduced-motion:reduce){.pop{animation-duration:.01s}}
-/* ===== 외모 만들기: 독립 초안 / 실시간 3D ===== */
+/* ===== 나를 떠올리기: 독립 초안 / 실시간 3D ===== */
 .pill.appearance{background:#b9efdf;position:relative}
 .pill.appearance.locked::after{content:'';position:absolute;right:3px;top:3px;width:7px;height:7px;border:1.5px solid var(--ink);border-radius:50%;background:var(--hit)}
 #lookModal{z-index:25;padding:18px;background:#172342b8;touch-action:none}
@@ -380,7 +381,7 @@ body.look-editing .care-caption{visibility:hidden}
 
 <header class="top">
   <div class="top-buttons">
-    <button class="pill appearance" id="appearanceBtn" aria-label="외모 만들기" title="외모 만들기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10C3 21 9 23 12 23s9-2 8-13Q11 12 8 6Z"/><path d="M5 9C4 2 18 0 19 8M8 14h1m6 0h1m-7 4q3 2 6-1M21 1v4m-2-2h4"/></svg><span class="label">외모</span></button>
+    <button class="pill appearance" id="appearanceBtn" aria-label="나를 떠올리기" title="나를 떠올리기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10C3 21 9 23 12 23s9-2 8-13Q11 12 8 6Z"/><path d="M5 9C4 2 18 0 19 8M8 14h1m6 0h1m-7 4q3 2 6-1M21 1v4m-2-2h4"/></svg><span class="label">외모</span></button>
     <button class="pill" id="settingsBtn" aria-label="설정"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2.6" fill="#fffdf4"/><circle cx="15" cy="17" r="2.6" fill="#fffdf4"/></svg></button>
   </div>
 </header>
@@ -390,10 +391,10 @@ body.look-editing .care-caption{visibility:hidden}
   <div class="hint" id="hint"></div>
   <div class="panel">
     <div class="modes" role="group" aria-label="모드">
-      <button class="mode on" data-mode="hit" aria-pressed="true">때리기</button>
-      <button class="mode" data-mode="care" aria-pressed="false">달래기</button>
+      <button class="mode on" data-mode="hit" aria-pressed="true">나 손보기</button>
+      <button class="mode" data-mode="care" aria-pressed="false">나 돌보기</button>
     </div>
-    <div class="tools" id="hitTools" data-set="hit" role="group" aria-label="때릴 도구">
+    <div class="tools" id="hitTools" data-set="hit" role="group" aria-label="나 손보기 도구">
       <button class="tool on" data-tool="hand"><svg viewBox="0 0 48 48"><use href="#i-fist"/></svg>맨손</button>
       <button class="tool" data-tool="hammer"><svg viewBox="0 0 48 48"><use href="#i-hammer"/></svg><span class="tight">돈까스망치</span></button>
       <button class="tool" data-tool="pan" aria-label="스테인팬"><svg viewBox="0 0 48 48"><use href="#i-pan"/></svg>스테인팬</button>
@@ -401,7 +402,7 @@ body.look-editing .care-caption{visibility:hidden}
       <button class="tool" data-tool="rope" aria-label="줄넘기"><svg viewBox="0 0 48 48"><use href="#i-rope"/></svg>줄넘기</button>
       <button class="tool" data-tool="tissue"><svg viewBox="0 0 48 48"><use href="#i-tissue"/></svg>휴지</button>
     </div>
-<div id="careTools" role="group" aria-label="달래는 방법" hidden>
+<div id="careTools" role="group" aria-label="나 돌보기 방법" hidden>
 <div class="care-strip">
 <button class="tool on" data-care="hand" aria-pressed="true"><svg viewBox="0 0 48 48"><use href="#i-palm"/></svg>쓰다듬기</button>
 <button class="tool hold" data-care="hug"><svg viewBox="0 0 48 48"><use href="#i-hug"/></svg>꾹 안기</button>
@@ -425,14 +426,14 @@ body.look-editing .care-caption{visibility:hidden}
     <div class="row">진동<button class="switch" id="swVibe" role="switch" aria-checked="true" aria-label="진동"></button></div>
     <div class="row">화면 흔들림<button class="switch" id="swShake" role="switch" aria-checked="true" aria-label="화면 흔들림"></button></div>
  
-  <div style="padding-top:12px;font-weight:800">캐릭터 대사 추가</div>
+  <div style="padding-top:12px;font-weight:800">내 대사 추가</div>
 <p class="small" style="margin-top:2px">
   한 줄에 하나씩 적으면 기본 대사와 섞여서 나옵니다.
   추가 개수 제한은 없습니다.
 </p>
 <textarea
   id="customCrimes"
-  aria-label="캐릭터가 말할 추가 대사"
+  aria-label="내가 말할 추가 대사"
   placeholder="나 좀 알아봐 줘&#10;잘했다고 한 번만 말해 줘&#10;옆에 있어 줘"
 ></textarea>
 <button class="btn wide" id="saveCrimes">대사 저장</button>
@@ -447,7 +448,7 @@ body.look-editing .care-caption{visibility:hidden}
 <div class="modal" id="lookModal" hidden>
   <section class="look-sheet" role="dialog" aria-modal="true" aria-labelledby="lookTitle">
     <header class="look-header">
-      <div class="look-title"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M10 12Q9 3 20 3T30 12" fill="#1f2a5c"/><path d="M8 15C6 33 15 37 20 37s14-4 12-22Q19 18 13 10Z" fill="#ffcfaa"/><path d="M14 21h2m8 0h2m-10 8q4 3 8-1"/><path d="m31 4 1 4 4 1-4 1-1 4-1-4-4-1 4-1Z" fill="#fffdf4" stroke-width="1.5"/></svg><div><h2 id="lookTitle">외모 만들기</h2><p>인상은 달라도, 같은 나.</p></div></div>
+      <div class="look-title"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M10 12Q9 3 20 3T30 12" fill="#1f2a5c"/><path d="M8 15C6 33 15 37 20 37s14-4 12-22Q19 18 13 10Z" fill="#ffcfaa"/><path d="M14 21h2m8 0h2m-10 8q4 3 8-1"/><path d="m31 4 1 4 4 1-4 1-1 4-1-4-4-1 4-1Z" fill="#fffdf4" stroke-width="1.5"/></svg><div><h2 id="lookTitle">나를 떠올리기</h2><p>인상은 달라도, 같은 나.</p></div></div>
       <div class="look-header-actions">
 
 
@@ -471,10 +472,121 @@ body.look-editing .care-caption{visibility:hidden}
         <div class="look-controls" id="lookControls" role="tabpanel" tabindex="0"></div>
       </div>
     </div>
-    <footer class="look-footer"><div class="look-history" role="group" aria-label="편집 되돌리기"><button class="look-mini" id="lookUndo" aria-label="실행 취소" title="실행 취소"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5 3 10l5 5M4 10h10a6 6 0 0 1 0 12" transform="translate(0 -2)"/></svg></button><button class="look-mini" id="lookRedo" aria-label="다시 실행" title="다시 실행"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m16 5 5 5-5 5m4-5H10a6 6 0 0 0 0 12" transform="translate(0 -2)"/></svg></button></div><span class="look-status" id="lookStatus" role="status" aria-live="polite"></span><div class="look-footer-actions"><button class="btn secondary" id="lookCancel">취소</button><button class="btn apply" id="lookApply">이 외모로 적용</button></div></footer>
+    <footer class="look-footer"><div class="look-history" role="group" aria-label="편집 되돌리기"><button class="look-mini" id="lookUndo" aria-label="실행 취소" title="실행 취소"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5 3 10l5 5M4 10h10a6 6 0 0 1 0 12" transform="translate(0 -2)"/></svg></button><button class="look-mini" id="lookRedo" aria-label="다시 실행" title="다시 실행"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m16 5 5 5-5 5m4-5H10a6 6 0 0 0 0 12" transform="translate(0 -2)"/></svg></button></div><span class="look-status" id="lookStatus" role="status" aria-live="polite"></span><div class="look-footer-actions"><button class="btn secondary" id="lookCancel" title="기본형으로 바꾸기">기본형으로 하기</button><button class="btn apply" id="lookApply">이게 바로 나야!</button></div></footer>
     <div id="lookSaveParking" hidden><section class="look-save-settings" id="lookSaveSettings"><h3>지금 외모 보관하기</h3><div class="look-name-row"><input id="lookName" type="text" maxlength="12" placeholder="별명 (선택)" aria-label="캐릭터 별명" autocomplete="off"><button class="look-mini" id="lookSavePreset">보관하기</button></div><p class="look-save-help">보관한 외모는 이 브라우저에 남습니다.</p></section></div>
   </section>
 </div>
+
+<style id="ng2-style">
+#ngIntro{position:fixed;inset:0;z-index:60;background:var(--mint);display:grid;place-items:center;padding:24px 20px calc(24px + env(safe-area-inset-bottom));overflow:auto;touch-action:pan-y}
+#ngIntro[hidden]{display:none}
+#ngNameHeading:focus{outline:none}
+body #lookCancel{display:inline-flex!important;align-items:center;justify-content:center;flex:0 0 auto;width:auto!important}
+body .look-footer-actions #lookApply{min-width:0!important;width:auto!important;flex:1}
+body .look-footer .look-history button{width:29px;min-width:29px;padding:0 4px}
+.ng-intro-card{width:min(100%,410px);padding:30px 24px 26px;background:var(--paper);border:3px solid var(--ink);border-radius:25px;box-shadow:7px 8px 0 var(--ink)}
+.ng-intro-card h1{font:400 clamp(34px,9vw,46px)/1.15 var(--display);margin:0 0 26px;letter-spacing:-1px}
+.ng-intro-card label{display:block;font:800 12px var(--body);color:var(--muted);margin-bottom:9px}
+.ng-intro-card input{width:100%;height:57px;background:#fff;border:2.5px solid var(--ink);border-radius:12px;color:var(--ink);padding:0 14px;font:800 20px var(--body);user-select:text;-webkit-user-select:text;touch-action:manipulation}
+.ng-intro-card input:focus-visible{outline:3px solid var(--care);outline-offset:3px}
+.ng-intro-card .ng-privacy{font:700 11px/1.85 var(--body);color:var(--muted);margin:18px 0 22px;word-break:keep-all}
+.ng-intro-card .btn{width:100%;min-height:49px;height:auto;padding:12px 8px}
+.ng-intro-card .btn:disabled{opacity:.5;cursor:default}
+.ng-intro-card .ng-kicker{font:800 15px var(--body);margin:0 0 12px;word-break:break-all}
+.ng-intro-card #ngGameTitle{font-size:clamp(46px,13vw,64px);margin:12px 0 10px}
+.ng-intro-card .ng-sub{font:800 18px var(--body);margin:0 0 32px}
+body.ng-intro .dock,body.ng-intro .top-buttons,body.ng-intro #bubble{visibility:hidden}
+body.ng-intro.look-editing #lookModal{visibility:visible}
+body .modes{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+body .dock .mode{font-size:clamp(13px,3.7vw,18px);height:41px;letter-spacing:0;padding:0 2px}
+.mode.on[data-mode=feed]{background:#ffd23f;color:var(--ink);box-shadow:inset 0 -4px 0 #dab12b}
+.mode.on[data-mode=wash]{background:#8fdcc9;color:var(--ink);box-shadow:inset 0 -4px 0 #62b9a6}
+#ngItemHelp{height:33px;display:flex;align-items:center;justify-content:center;gap:5px;padding:2px 8px;border-radius:9px;background:#eef3ed;font:700 10.5px/1.4 var(--body);color:#4b587d;text-align:center;word-break:keep-all;overflow:hidden}
+#ngItemHelp.changed{animation:ngHelpIn .18s ease-out}
+body #hint{display:none!important}
+#ngAuxPanel{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:9px;min-height:80px;padding:12px;background:#fff7dd;border-radius:12px}
+#ngAuxPanel[hidden]{display:none}
+#ngAuxPanel .ng-action-icon{font-size:27px;line-height:1}
+#ngAuxPanel p{margin:0;font:800 12px/1.5 var(--body)}
+#ngCleanProgress{height:7px;width:min(230px,80%);appearance:none;border:0;border-radius:9px;overflow:hidden;background:#dbe7e3}
+#ngCleanProgress::-webkit-progress-bar{background:#dbe7e3}#ngCleanProgress::-webkit-progress-value{background:#3aa589;border-radius:9px}
+.ng-scroll-frame{position:relative;min-width:0}
+body .ng-scroll-frame[hidden]{display:none!important}
+.ng-scroll-arrow{position:absolute;z-index:3;top:50%;transform:translateY(-50%);width:25px;height:35px;padding:0;border:2px solid var(--ink);border-radius:9px;background:#fff8c3ef;font:800 25px/1 var(--body);box-shadow:0 2px 0 #1f2a5c55}
+.ng-scroll-arrow[data-dir="-1"]{left:-4px}.ng-scroll-arrow[data-dir="1"]{right:-4px}
+.ng-scroll-arrow[hidden],body.tools-grid .ng-scroll-arrow{display:none!important}
+body .tool-scroll.more-right{mask-image:none!important;-webkit-mask-image:none!important}
+#ngAvoidHelp{margin:6px 0 10px;font-size:11px;line-height:1.55;color:var(--muted)}
+#ngSoundGuide{padding:12px 0;font-size:12px;line-height:1.65}
+#ngSoundGuide summary{cursor:pointer;font-weight:800}
+#ngSoundGuide p{margin:6px 0}
+#ngStorageInfo{font-size:11px;color:var(--muted);line-height:1.65;margin:8px 0}
+@keyframes ngHelpIn{from{opacity:.5;transform:translateY(2px)}to{opacity:1;transform:none}}
+@media(max-width:430px){.look-title h2{font-size:22px}.look-footer-actions{gap:5px}.look-footer-actions #lookCancel{font-size:11px;padding:0 8px}.look-footer-actions #lookApply{font-size:16px;padding:0 11px}.look-history{gap:3px}.look-history button{width:29px;min-width:29px;padding:0 4px}}
+@media(max-height:560px){#ngIntro{padding:12px}.ng-intro-card{padding:18px 22px}.ng-intro-card h1{font-size:31px;margin-bottom:16px}.ng-intro-card .ng-privacy{margin:12px 0}.ng-intro-card .ng-sub{margin-bottom:18px}#ngItemHelp{height:28px;font-size:10px}#ngAuxPanel{min-height:64px;padding:6px}}
+@media(prefers-reduced-motion:reduce){#ngItemHelp.changed{animation:none}}
+
+/* NG3: selectable food uses the same eight slots as the other tools. */
+body #ngFeedTools[hidden]{display:none!important}
+body #ngFeedTools:not([hidden]){display:flex!important;flex-wrap:nowrap!important;gap:4px!important;margin:0;padding:2px 0 4px!important;min-width:0;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:none;touch-action:pan-x;overscroll-behavior-x:contain;scroll-snap-type:x proximity}
+body #ngFeedTools::-webkit-scrollbar{display:none}
+body #ngFeedTools .tool{flex:1 0 64px!important;width:64px!important;min-width:64px!important;min-height:60px!important;margin:0!important;padding:3px 2px!important;font-size:11px!important;white-space:nowrap;scroll-snap-align:start;touch-action:pan-x!important}
+body #ngFeedTools .ng-food-icon{display:flex;align-items:center;justify-content:center;width:34px;height:34px;font-size:29px;line-height:1}
+body #ngFeedTools .tool.on{background:#fff0ab;box-shadow:inset 0 -3px 0 #d3b746}
+body.tools-grid #ngFeedTools:not([hidden]){display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;overflow:visible!important;padding:2px 0!important}
+body.tools-grid #ngFeedTools .tool{width:auto!important;min-width:0!important;min-height:56px!important;touch-action:manipulation!important}
+body .dock .mode{white-space:nowrap;font-size:clamp(12px,3.35vw,17px)!important}
+</style>
+<style id="ng4-style">
+/* NG4: small playback checkbox, full-text ticker, unchanged 4x2 tool grid. */
+#ngAvoidLabel{position:absolute;left:53px;top:3px;display:flex;align-items:center;gap:6px;height:36px;margin:0;padding:0 9px 0 7px;pointer-events:auto;white-space:nowrap;font:800 11.5px/1.2 var(--body);letter-spacing:-.25px;color:var(--ink);border:2.5px solid #ff2e97;border-radius:11px;background:#fffdf4;box-shadow:0 3px 0 #c4156e;cursor:pointer}
+#ngAvoidLabel:active{transform:translateY(2px);box-shadow:0 1px 0 #c4156e}
+#ngAvoidLabel:has(input:checked){background:#ffe0ef}
+#ngAvoidLabel input{width:15px;height:15px;min-width:15px;margin:0;accent-color:#ff2e97;cursor:pointer}
+#ngAvoidLabel:focus-within{outline:2px solid var(--ink);outline-offset:2px}
+/* 혐규오락실 얼굴 버튼: 바퀴벌레 게임과 같은 그림, 오른쪽 위 빈 귀퉁이 */
+#arcadeFace{position:fixed;z-index:61;right:calc(6px + env(safe-area-inset-right,0px));top:calc(11px + env(safe-area-inset-top,0px));display:block;width:38px;height:38px;padding:6px;line-height:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+#arcadeFace svg{display:block;width:100%;height:100%;filter:drop-shadow(0 0 1.5px #fff) drop-shadow(1px 2px 1.5px rgba(0,0,0,.35))}
+#arcadeFace:active svg{transform:scale(.88)}
+#arcadeFace[hidden],body.look-editing #arcadeFace{display:none}
+body.look-editing #ngAvoidLabel,body.ng-intro #ngAvoidLabel{visibility:hidden}
+#ngItemHelp{justify-content:flex-start;gap:5px;text-align:left;min-width:0;flex-shrink:0}
+#ngItemHelp .ng-help-icon{flex:none;align-self:center}
+#ngItemHelp .ng-help-viewport{display:block;flex:1;min-width:0;overflow:hidden;white-space:nowrap;cursor:default;outline-offset:-1px}
+#ngItemHelp .ng-help-text{display:inline-block;white-space:nowrap;max-width:none;padding:0;vertical-align:middle;will-change:transform}
+#ngItemHelp.scrolling .ng-help-viewport{cursor:pointer}
+@media(prefers-reduced-motion:reduce){#ngItemHelp .ng-help-viewport{overflow-x:auto;scrollbar-width:none;touch-action:pan-x}#ngItemHelp .ng-help-text{will-change:auto}}
+@media(max-width:345px){#ngAvoidLabel{left:50px;font-size:10px;gap:4px;padding:0 6px 0 5px}#ngAvoidLabel input{width:13px;height:13px;min-width:13px}}
+
+</style>
+<section id="ngIntro" role="dialog" aria-modal="true" aria-labelledby="ngNameHeading">
+  <div class="ng-intro-card">
+    <form id="ngNameForm" autocomplete="off">
+      <h1 id="ngNameHeading">내 이름은?</h1>
+      <label for="ngNameInput">이름</label>
+      <input id="ngNameInput" type="text" maxlength="12" placeholder="누구신데요" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" aria-describedby="ngNamePrivacy">
+      <p id="ngNamePrivacy" class="ng-privacy">이름은 이 기기의 브라우저에만 저장됩니다.<br>게임 서버에는 절.대.로. 전송·저장하지 않습니다.</p>
+      <button id="ngNameNext" class="btn" type="submit" disabled>준비 중…</button>
+    </form>
+    <div id="ngReveal" hidden>
+      <p class="ng-kicker" id="ngIdentity"></p>
+      <h1 id="ngGameTitle">나 기르기</h1>
+      <p class="ng-sub">나를.</p>
+      <button id="ngPlay" class="btn" type="button">기르기</button>
+    </div>
+  </div>
+</section>
+
+<a id="arcadeFace" href="https://aaffffffffff123-lang.github.io/arcade/" target="_top" aria-label="혐규오락실 — 다른 게임 하러 가기" title="혐규오락실">
+  <svg viewBox="0 0 48 48" aria-hidden="true">
+    <path d="M24.00 2.84 C27.19 2.93 30.48 3.49 33.44 4.70 C36.39 5.91 39.79 7.65 41.72 10.08 C43.64 12.51 44.41 16.18 44.97 19.28 C45.53 22.39 45.73 25.72 45.08 28.74 C44.42 31.76 43.07 35.11 41.06 37.40 C39.05 39.69 35.87 41.15 33.03 42.47 C30.19 43.79 27.09 45.14 24.00 45.31 C20.91 45.47 17.40 44.72 14.49 43.46 C11.58 42.19 8.30 40.21 6.54 37.72 C4.78 35.22 4.45 31.57 3.93 28.51 C3.41 25.45 2.76 22.23 3.42 19.37 C4.08 16.52 6.10 13.90 7.91 11.36 C9.72 8.82 11.61 5.56 14.29 4.14 C16.97 2.72 20.81 2.75 24.00 2.84 Z" fill="#221D1F"/>
+    <g stroke="#EFF1EC" stroke-width="2.2" stroke-linecap="round" fill="none">
+      <path d="M13.2 8.4V17.9"/><path d="M20.4 6.2V16.6"/><path d="M27.6 6.2V16.6"/><path d="M34.6 8.8V18.3"/>
+    </g>
+    <g fill="#EFF1EC"><ellipse cx="18.1" cy="25.2" rx="2" ry="2.3"/><ellipse cx="29.9" cy="25.2" rx="2" ry="2.3"/></g>
+    <path d="M19.9 32.3a4.6 4.6 0 0 0 8.2 0" fill="none" stroke="#EFF1EC" stroke-width="2.3" stroke-linecap="round"/>
+  </svg>
+</a>
 
 <div id="fallback" role="status" style="display:flex"><div id="fallbackTitle">문 여는 중…</div><small id="fallbackDetail">3D 화면을 준비하고 있어요.</small><button id="retryGame" type="button" hidden>화면 다시 열기</button></div>
 
@@ -503,6 +615,19 @@ body.look-editing .care-caption{visibility:hidden}
 window.__bootGuard={lost:false,ready:false,failed:false};
 window.showGameError=function(title,detail){const box=document.getElementById('fallback');box.style.display='flex';document.getElementById('fallbackTitle').textContent=title;document.getElementById('fallbackDetail').textContent=detail||'';document.getElementById('retryGame').hidden=false;};
 document.getElementById('retryGame').onclick=()=>location.reload();
+// 오락실 얼굴 버튼: 편집기·설정창이 떠 있으면 닫기 버튼과 겹치므로 숨긴다.
+// 게임 중에 누르면 새 탭으로 열어서 하던 판이 날아가지 않게 한다. (바퀴벌레 게임과 같은 방식)
+(function(){
+  const face=document.getElementById('arcadeFace');if(!face)return;
+  const sync=()=>{
+    const intro=document.body.classList.contains('ng-intro')||!window.__bootGuard.ready;
+    const covered=document.body.classList.contains('look-editing')||!!document.querySelector('.modal:not([hidden])');
+    if(face.hidden!==covered)face.hidden=covered;
+    const target=intro?'_top':'_blank';
+    if(face.target!==target){face.target=target;if(intro)face.removeAttribute('rel');else face.rel='noopener';}
+  };
+  setInterval(sync,200);sync();
+})();
 addEventListener('unhandledrejection', e => {
   const guard = window.__bootGuard;
   if (!guard || guard.ready) return;
@@ -525,6 +650,7 @@ addEventListener('unhandledrejection', e => {
 /* ================= 효과음: 전부 WebAudio로 합성 ================= */
 const SFX = (() => {
   let ctx = null, master, bus, voiceBus, verb, verbSend, noise, on = true;
+  let effectTrim=1;
   const loops = {};
   const R = (a, b) => a + Math.random() * (b - a);
 
@@ -546,7 +672,10 @@ const SFX = (() => {
     master = ctx.createGain(); master.gain.value = on ? 0.9 : 0;
     bus = ctx.createGain(); bus.gain.value = 1;
     voiceBus = ctx.createGain(); voiceBus.gain.value = 1; voiceBus.connect(bus);
-    bus.connect(comp); comp.connect(master); master.connect(ctx.destination);
+    const limiter=ctx.createDynamicsCompressor();
+    limiter.threshold.value=-5;limiter.knee.value=0;limiter.ratio.value=20;
+    limiter.attack.value=.001;limiter.release.value=.10;
+    bus.connect(comp);comp.connect(limiter);limiter.connect(master);master.connect(ctx.destination);
     verb = ctx.createConvolver(); verb.buffer = makeIR(1.1, 3.4);
     verbSend = ctx.createGain(); verbSend.gain.value = 0.22;
     verb.connect(verbSend); verbSend.connect(comp);
@@ -560,9 +689,10 @@ const SFX = (() => {
 
   // 출력: 패닝 + 리버브 센드
   function out(pan = 0, wet = 0.25, isVoice = false) {
-    const g = ctx.createGain();
-    let node = g;
-    if (ctx.createStereoPanner) { const p = ctx.createStereoPanner(); p.pan.value = Math.max(-1, Math.min(1, pan)); g.connect(p); node = p; }
+    const g = ctx.createGain(),trim=ctx.createGain();
+    trim.gain.value=effectTrim;g.connect(trim);
+    let node = trim;
+    if (ctx.createStereoPanner) { const p = ctx.createStereoPanner(); p.pan.value = Math.max(-1, Math.min(1, pan)); node.connect(p); node = p; }
     node.connect(isVoice ? voiceBus : bus);
     if (wet > 0) { const s = ctx.createGain(); s.gain.value = wet; node.connect(s); s.connect(verb); }
     return g;
@@ -786,14 +916,14 @@ const SFX = (() => {
     tone(o, t, { f0: 1100, f1: 260, dur: 0.06, peak: 0.45 });
     burst(o, t, { dur: 0.015, peak: 0.5, type: 'highpass', f: 3000 });
   };
-  S.rip = (pan = 0, dur = 0.25) => {
+  S.rip = (pan = 0, dur = 0.25, level = 1, crackle = 1) => {
     if (!ctx) return;
     const t = ctx.currentTime, o = out(pan, 0.1);
     const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain(), am = ctx.createOscillator(), ag = ctx.createGain();
     s.buffer = noise; f.type = 'highpass'; f.frequency.value = 1400;
     am.type = 'square'; am.frequency.setValueAtTime(90, t); am.frequency.linearRampToValueAtTime(40, t + dur);
-    ag.gain.value = 0.25; am.connect(ag); ag.connect(g.gain);
-    g.gain.setValueAtTime(0.3, t); g.gain.linearRampToValueAtTime(0.0001, t + dur);
+    ag.gain.value = 0.25 * level * crackle; am.connect(ag); ag.connect(g.gain);
+    g.gain.setValueAtTime(0.3 * level, t); g.gain.linearRampToValueAtTime(0.0001, t + dur);
     s.connect(f); f.connect(g); g.connect(o);
     s.start(t, Math.random()); s.stop(t + dur + 0.05); am.start(t); am.stop(t + dur + 0.05);
   };
@@ -836,6 +966,11 @@ const SFX = (() => {
     const t = ctx.currentTime, o = out(pan, 0.2);
     tone(o, t, { f0: R(900, 1400), f1: 500, dur: 0.04, peak: 0.12 });
   };
+  S.foodImpact=(pan=0)=>{
+    if(!ctx)return;const t=ctx.currentTime,o=out(pan,.27);
+    tone(o,t,{f0:145,f1:62,dur:.10,peak:.45});
+    burst(o,t,{dur:.10,peak:.32,type:'lowpass',f:1800,f1:420,q:.55});
+  };
   S.pat = (pan = 0) => {
     if (!ctx) return;
     const t = ctx.currentTime, o = out(pan, 0.15);
@@ -866,7 +1001,7 @@ const SFX = (() => {
   S.rubStart = () => {
     S.rubStop();
     rubOn = true;
-    rubLast = -10;
+    // Keep the previous start time across very short re-touches.
   };
 
   // 누적된 G.rub 값으로 지속 잡음을 만들지 않는다.
@@ -877,15 +1012,15 @@ const SFX = (() => {
     if (!Number.isFinite(distance) || distance <= 0) return;
 
     const t = ctx.currentTime;
-    rubTravel = Math.min(35, rubTravel + distance);
+    rubTravel = Math.min(70, rubTravel + distance);
 
     if (
-      rubTravel < 10 ||
-      t - rubLast < .16 ||
-      rubVoices.size >= 2
+      rubTravel < 24 ||
+      t - rubLast < .60 ||
+      rubVoices.size >= 1
     ) return;
 
-    const strength = Math.min(1, rubTravel / 30);
+    const strength = Math.min(1, rubTravel / 55);
     rubTravel = 0;
     rubLast = t;
 
@@ -901,8 +1036,8 @@ const SFX = (() => {
       let smooth = 0;
 
       for (let i = 0; i < data.length; i++) {
-        smooth = smooth * .94 + (Math.random() * 2 - 1) * .06;
-        data[i] = smooth * 2.2;
+        smooth = smooth * .55 + (Math.random() * 2 - 1) * .45;
+        data[i] = smooth * 1.35;
       }
     }
 
@@ -911,7 +1046,7 @@ const SFX = (() => {
 
     const hp = ctx.createBiquadFilter();
     hp.type = 'highpass';
-    hp.frequency.value = 95;
+    hp.frequency.value = 420;
 
     const lp = ctx.createBiquadFilter();
     lp.type = 'lowpass';
@@ -920,16 +1055,16 @@ const SFX = (() => {
     const gain = ctx.createGain();
     const nodes = [src, hp, lp, gain];
 
-    const dur = .17;
-    const peak = .075 + strength * .035;
-
-    lp.frequency.setValueAtTime(650, t);
-    lp.frequency.linearRampToValueAtTime(300, t + dur);
+    const dur = .32;
+    const peak = .042 + strength * .020;
+    S._rubCount=(S._rubCount||0)+1;S._rubLastAt=t;
+    lp.frequency.setValueAtTime(1900, t);
+    lp.frequency.linearRampToValueAtTime(1100, t + dur);
 
     // 갑자기 켜지고 끊기는 대신 부드럽게 시작하고 끝낸다.
     gain.gain.setValueAtTime(0, t);
-    gain.gain.linearRampToValueAtTime(peak, t + .045);
-    gain.gain.linearRampToValueAtTime(peak * .45, t + .095);
+    gain.gain.linearRampToValueAtTime(peak, t + .065);
+    gain.gain.linearRampToValueAtTime(peak * .72, t + .18);
     gain.gain.linearRampToValueAtTime(0, t + dur);
 
     src.connect(hp);
@@ -957,12 +1092,12 @@ const SFX = (() => {
         const now = ctx.currentTime;
         const elapsed = Math.max(0, now - t);
 
-        const level = elapsed < .045
-          ? peak * elapsed / .045
-          : elapsed < .095
-            ? peak * (1 - .55 * (elapsed - .045) / .05)
+        const level = elapsed < .065
+          ? peak * elapsed / .065
+          : elapsed < .18
+            ? peak * (1 - .28 * (elapsed - .065) / .115)
             : elapsed < dur
-              ? peak * .45 * (dur - elapsed) / (dur - .095)
+              ? peak * .72 * (dur - elapsed) / (dur - .18)
               : 0;
 
         if (gain.gain.cancelAndHoldAtTime) {
@@ -1336,7 +1471,26 @@ S.batOffscreenCrash = (pan = 0) => {
   S.ropeAudioConfig=ropeAudioConfig;
   /* SC_ROPE_AUDIO_V1_END */
 
-  S.unlock = unlock; S.setOn = setOn;
+  const trims={slam:.36,glass:.46,tooth:.66,chairCrash:.46,wallCrash:.46,
+    floorCrash:.42,batOffscreenCrash:.42,batFull:.58,brickImpact:.68};
+  for(const [key,level] of Object.entries(trims))if(typeof S[key]==='function'){
+    const original=S[key];S[key]=function(...args){const before=effectTrim;effectTrim*=level;
+      try{return original.apply(this,args);}finally{effectTrim=before;}};
+  }
+  let water=null;
+  S.waterStart=()=>{
+    if(water||!on)return;unlock();if(!ctx||!noise)return;
+    const src=ctx.createBufferSource(),filter=ctx.createBiquadFilter(),gate=out(0,.04);
+    src.buffer=noise;src.loop=true;filter.type='bandpass';filter.frequency.value=1600;filter.Q.value=.6;
+    gate.gain.setValueAtTime(0,ctx.currentTime);gate.gain.linearRampToValueAtTime(.055,ctx.currentTime+.08);
+    src.connect(filter);filter.connect(gate);src.start();water={src,filter,gate};
+  };
+  S.waterStop=()=>{if(!water||!ctx)return;const w=water;water=null;
+    const t=ctx.currentTime;w.gate.gain.cancelScheduledValues(t);w.gate.gain.setTargetAtTime(0,t,.025);
+    try{w.src.stop(t+.13);}catch(_){}w.src.onended=()=>{w.src.disconnect();w.filter.disconnect();w.gate.disconnect();};
+  };
+  S.audioTrims=Object.freeze(trims);
+  S.unlock = unlock; S.setOn = function(v){if(!v)S.waterStop();setOn(v);};
   return S;
 })();
 
@@ -1570,12 +1724,14 @@ const LOOK_PALETTES = {
   lipColor:['#8b3b3b','#ac5658','#be6966','#d47780','#633738','#35262a'],
   shirt:['#ffffff','#fff1a8','#cfe6ff','#ffd3de','#dcffd0','#f1dcff','#8fdcc9','#ff6767','#4c7ee6','#4b566f','#6f478b','#323344'],
   tie:['#ff3b3b','#2f6bff','#8a3cff','#12a150','#ff8a00','#ff5fa2','#ffd23f','#212d51','#fffdf4','#4c8888'],
-  pants:['#3b4a7a','#4a4a56','#6b563f','#2c3a5e','#5a3f6e','#254940','#a39179','#20222c'],
+  pants:['#f1e8d6','#fffdf5','#3b4a7a','#4a4a56','#6b563f','#2c3a5e','#5a3f6e','#254940','#a39179','#20222c'],
   frame:['#1f2a5c','#1d1d24','#c71f2a','#7a4a22','#caa232','#aa719a','#429b8b','#e2e3e6']
 };
 const LOOK_DEFAULT = {
-  name:'',skin:'#f3c6a2',hair:'#2a2130',shirt:'#cfe6ff',tie:'#ff3b3b',pants:'#3b4a7a',frame:'#1f2a5c',
-  style:'part',faceShape:'oval',headW:1,headH:1.05,eyeStyle:'round',eyeGap:.37,eyeY:.1,eyeSize:1,eyeTilt:0,eyeColor:'#1b1b25',
+  name:'',skin:'#f3c6a2',hair:'#2a2130',shirt:'#cfe6ff',tie:'#ff3b3b',pants:'#f1e8d6',frame:'#1f2a5c',
+  style:'part',faceShape:'oval',headW:1,headH:1.05,
+  jawWidth:1,jawLength:1,cheekFat:.15,cheekBone:.25,templeHollow:.12,mouthForward:0,
+  earY:.02,earSize:1,earPoint:0,earLobe:.25,nostrilWidth:1,bridgeHeight:.25,eyeStyle:'round',eyeGap:.37,eyeY:.1,eyeSize:1,eyeTilt:0,eyeColor:'#1b1b25',
   browStyle:'straight',brow:1.1,browWidth:1,browGap:.33,browY:.35,browTilt:0,browColor:'#2a2130',
   noseStyle:'button',nose:1,noseY:-.1,mouthStyle:'classic',mouthWidth:1,mouthHeight:1,mouthY:-.43,lipColor:'#8b3b3b',
   glassesStyle:'round',glassSize:1,glassY:0,stacheStyle:'none',stache:false,stubble:false,mole:false,moleX:.3,moleY:-.35,moleSize:1,freckles:false,
@@ -1583,7 +1739,9 @@ const LOOK_DEFAULT = {
 };
 function basicLook(){return normaliseLook(Object.assign({},LOOK_DEFAULT,{glassesStyle:'none',topStyle:'tee',hasTie:false,shirt:'#ffffff'}));}
 const LOOK_RANGES = {
-  headW:[.78,1.24,.01],headH:[.82,1.26,.01],eyeGap:[.22,.53,.01],eyeY:[-.02,.24,.01],eyeSize:[.65,1.32,.01],eyeTilt:[-.45,.45,.01],
+  jawWidth:[.55,1.55,.01],jawLength:[.75,1.40,.01],cheekFat:[0,1,.01],cheekBone:[0,1,.01],templeHollow:[0,1,.01],mouthForward:[0,1,.01],
+  earY:[-.18,.34,.01],earSize:[.65,1.45,.01],earPoint:[0,1,.01],earLobe:[0,1.6,.01],nostrilWidth:[.55,1.7,.01],bridgeHeight:[0,1,.01],
+  headW:[.55,1.24,.01],headH:[.82,1.45,.01],eyeGap:[.22,.53,.01],eyeY:[-.02,.24,.01],eyeSize:[.65,1.32,.01],eyeTilt:[-.45,.45,.01],
   brow:[.55,2.1,.05],browWidth:[.65,1.5,.01],browGap:[.22,.55,.01],browY:[.20,.59,.01],browTilt:[-.5,.5,.01],
   nose:[.65,1.5,.01],noseY:[-.24,.04,.01],mouthWidth:[.6,1.5,.01],mouthHeight:[.6,1.5,.01],mouthY:[-.62,-.27,.01],
   glassSize:[.75,1.3,.01],glassY:[-.065,.065,.005],moleX:[-.68,.68,.01],moleY:[-.7,.25,.01],moleSize:[.5,2.3,.1],
@@ -1609,7 +1767,9 @@ function normaliseLook(raw) {
 function randomLook(){
   return normaliseLook({
     skin:pick(LOOKS.skin),hair:pick(LOOK_PALETTES.hair.slice(0,8)),shirt:pick(LOOKS.shirt),tie:pick(LOOKS.tie),pants:pick(LOOKS.pants),frame:pick(LOOKS.frame),
-    style:pick(LOOK_OPTIONS.style)[0],faceShape:pick(LOOK_OPTIONS.faceShape)[0],headW:rnd(.94,1.08),headH:rnd(.98,1.13),
+    style:pick(LOOK_OPTIONS.style)[0],faceShape:pick(LOOK_OPTIONS.faceShape)[0],headW:rnd(.82,1.08),headH:rnd(.98,1.16),
+    jawWidth:rnd(.72,1.26),jawLength:rnd(.86,1.2),cheekFat:rnd(0,.6),cheekBone:rnd(.05,.7),templeHollow:rnd(.05,.45),mouthForward:rnd(0,.5),
+    earY:rnd(-.09,.18),earSize:rnd(.8,1.15),earPoint:Math.random()<.08?rnd(.6,1):rnd(0,.12),earLobe:rnd(0,1.2),nostrilWidth:rnd(.7,1.35),bridgeHeight:rnd(.1,.8),
     eyeStyle:pick(LOOK_OPTIONS.eyeStyle)[0],eyeGap:rnd(.32,.43),eyeY:rnd(.07,.14),eyeSize:rnd(.88,1.08),eyeTilt:rnd(-.08,.08),
     browStyle:pick(LOOK_OPTIONS.browStyle.slice(0,5))[0],brow:rnd(.85,1.5),browTilt:rnd(-.12,.12),
     noseStyle:pick(LOOK_OPTIONS.noseStyle)[0],nose:rnd(.85,1.2),mouthStyle:pick(['classic','classic','smile','frown','full']),
@@ -1622,12 +1782,29 @@ function seededLookRandom(seed){return()=>((seed=(Math.imul(seed,1664525)+101390
 const EYE_FORMS={round:[1,1,0],oval:[.83,1.22,0],narrow:[1.16,.63,0],sleepy:[1.12,.73,-.2],sharp:[1.1,.77,.25],dot:[.67,.73,0]};
 const NOSE_FORMS={button:[.95,.9,1],small:[.78,.75,.85],wide:[1.38,.78,.85],long:[.78,1.35,1.35],point:[.75,.98,1.45],flat:[1.12,.78,.55]};
 function faceWidthAt(shape,y){
-  if(shape==='square')return 1+.26*Math.pow(Math.abs(y),.6);
-  if(shape==='heart')return 1+.26*y;
-  if(shape==='pear')return 1.02-.25*y;
-  if(shape==='round')return 1.1;
-  if(shape==='long')return .91;
-  return 1;
+  const lower=Math.exp(-Math.pow((y+.60)/.30,2));
+  if(shape==='square')return .94+.07*Math.pow(Math.abs(y),.7);
+  if(shape==='heart')return .86+.18*y;
+  if(shape==='pear')return .86-.17*y;
+  if(shape==='round')return 1.04;
+  if(shape==='long')return .745-.035*lower;
+  return .88-.065*lower;
+}
+// NG4: every head/skin/mouth/scalp/anchor uses one shape function.
+function ngFaceSurface(L,d,out=0){
+  const r=HEAD_R+out,y=d.y,front=clamp((d.z+.25)/.8,0,1);
+  const bell=(center,width)=>Math.exp(-Math.pow((y-center)/width,2));
+  const jaw=bell(-.57,.27),cheek=bell(-.24,.25),zyg=bell(.025,.16),temple=bell(.43,.22);
+  const width=Math.max(.43,faceWidthAt(L.faceShape,y)+front*(
+    .22*(L.jawWidth-1)*jaw+.19*(L.cheekFat-.15)*cheek+
+    .12*(L.cheekBone-.25)*zyg-.11*L.templeHollow*temple));
+  const p=V3(d.x*r*width,d.y*r,d.z*r);
+  const low=clamp((-y-.24)/.76,0,1);
+  p.y-=HEAD_R*.43*(L.jawLength-1)*low*low*(3-2*low);
+  const lip=Math.exp(-Math.pow(d.x/.34,2)-Math.pow((y+.42)/.23,2))*Math.pow(Math.max(0,d.z),3);
+  p.z+=.078*L.mouthForward*lip;
+  p.z+=.018*(L.cheekFat-.15)*cheek*Math.exp(-Math.pow((Math.abs(d.x)-.5)/.32,2))*Math.max(0,d.z);
+  return p;
 }
 function mouthRest(L,smug=false){
   const m={open:0,smile:smug?.4:0,smirk:smug?.8:0,wide:.9};
@@ -1777,7 +1954,7 @@ ntag.renderOrder = 2;
       this.armRig.push({ sh, el, hand, s, cur: { sx: 0, sz: 0, ex: 0, ez: 0 } });
     }
     // 목·머리
-    const neck = mesh(new THREE.CylinderGeometry(0.075, 0.08, 0.1, 16), skin, this.torso); neck.position.y = 0.55;
+    const neck = this.neck = mesh(new THREE.CylinderGeometry(0.075, 0.08, 0.1, 16), skin, this.torso); neck.position.y = 0.55;
     this.headPivot = new THREE.Group(); this.headPivot.position.y = 0.56; this.torso.add(this.headPivot);
     this.head = new THREE.Group(); this.head.position.y = 0.31; this.headPivot.add(this.head);
 
@@ -1800,12 +1977,13 @@ ntag.renderOrder = 2;
     const anchorAt = (obj, d, out = 0) => { this.anchor.push({ obj, d: d.clone().normalize(), out }); return obj; };
 
     // 귀
-    this.earMats=[];
+    this.earMats=[];this.ears=[];
     for (const s of [-1, 1]) {
       const ear = tag(mesh(new THREE.SphereGeometry(0.075, 14, 10), skin, H), 'head');
       ear.scale.set(0.75, 1, 0.45); anchorAt(ear, V3(s, 0.02, -0.05), -0.01);
       const inner = mesh(new THREE.SphereGeometry(0.045, 10, 8), mat(L.skin, { color: col(L.skin).multiplyScalar(0.72) }), ear, false);
       this.earMats.push(inner.material); inner.position.set(0, 0, 0.04); inner.scale.set(0.7, 0.9, 0.5);
+      this.ears.push({mesh:ear,inner,s});
     }
     // 눈
     this.eyes = [];
@@ -1980,7 +2158,24 @@ ntag.renderOrder = 2;
     this.crackTex=(()=>{const t=canvasTex(128,128),g=t.g,rr=seededLookRandom(L.hairSeed+72);g.strokeStyle='#fff';g.lineWidth=3;g.lineCap='round';for(let i=0;i<9;i++){let x=64,y=64;g.beginPath();g.moveTo(x,y);const a=i/9*Math.PI*2;for(let k=0;k<4;k++){x+=Math.cos(a+(rr()-.5))*18;y+=Math.sin(a+(rr()-.5))*18;g.lineTo(x,y);}g.stroke();}g.beginPath();g.arc(64,64,20,0,7);g.stroke();return t;})();
     this.lenses=[];this.rims=[];
     const sc=L.glassSize,rx=(L.glassesStyle==='oval'?.081:square?.072:.07)*sc,ry=(L.glassesStyle==='oval'?.054:square?.056:.068)*sc;
-    const cen=this.surfacePoint(dirN(L.eyeGap,L.eyeY,.92),-.018);const eyeZ=cen.z+.055,cy=cen.y+L.glassY;
+    const cen=this.surfacePoint(dirN(L.eyeGap,L.eyeY,.92),-.018);const cy=cen.y+L.glassY;
+    // 코(콧대·코끝)가 머리 좌표에서 어디까지 앞으로 나와 있는지. 코 그룹은 코 방향(nd)을 앞, 그에 수직인 쪽을 위로 둔다.
+    const nd=dirN(0,L.noseY,1),no=this.surfacePoint(nd,-.03),nform=NOSE_FORMS[L.noseStyle]||NOSE_FORMS.button,ridge=.008+.032*L.bridgeHeight;
+    const noseParts=[
+      {y:no.y+.047*nd.z+ridge*nd.y,z:no.z-.047*nd.y+ridge*nd.z,ax:.023*L.nose,ay:.057*L.nose,az:.012+.033*L.bridgeHeight},   // 콧대
+      {y:no.y+.045*nd.y,z:no.z+.045*nd.z,ax:.06*nform[0]*L.nose*Math.max(1,L.nostrilWidth*.9),ay:.06*nform[1]*L.nose,az:.06*nform[2]*L.nose}   // 코끝
+    ];
+    const noseFront=(x,y)=>{let z=-1;for(const p of noseParts){const k=(x/p.ax)**2+((y-p.y)/p.ay)**2;if(k<1)z=Math.max(z,p.z+p.az*Math.sqrt(1-k));}return z;};
+    // 코걸이가 지나가는 자리와 렌즈 테의 코 쪽 아래 가장자리가 코보다 앞에 오도록 안경 전체를 앞으로 낸다.
+    // 콧대가 아주 높으면 안경을 다 내지 않고(최대 .022) 나머지는 코걸이를 콧대 위로 굽혀서 넘긴다.
+    const eyeZ0=cen.z+.055,bridgeMid=.004;
+    let needBridge=-1,needRim=-1;
+    for(const y of [cy+.008,cy+.0215,cy+.031])needBridge=Math.max(needBridge,noseFront(0,y)+.012);
+    for(let i=0;i<=8;i++){const a=Math.PI*(1+i/16);needRim=Math.max(needRim,noseFront(cen.x+Math.cos(a)*rx,cy+Math.sin(a)*ry)+.0078*sc+.004);}
+    const eyeZ=eyeZ0+clamp(Math.max(needRim-eyeZ0,Math.min(needBridge-(eyeZ0+bridgeMid),.022)),0,.05);
+    const arch=Math.max(0,needBridge-(eyeZ+bridgeMid));
+    // 머리 옆면이 (높이 y, 깊이 z)에서 얼마나 넓은지. 얼굴형·얼굴 너비·턱·광대 값이 모두 반영된 실제 표면이다.
+    const sideX=(y,z)=>{const dy=clamp(y/HEAD_R,-.95,.95),dz=clamp(z/HEAD_R,-.95,.95);return this.surfacePoint(V3(Math.sqrt(Math.max(.02,1-dy*dy-dz*dz)),dy,dz).normalize()).x;};
     for(const s of [-1,1]){
       const rg=new THREE.Group();rg.position.set(s*cen.x,cy,eyeZ);gl.add(rg);
       const shape=new THREE.Shape();
@@ -1991,13 +2186,21 @@ ntag.renderOrder = 2;
       const lens=mesh(new THREE.ShapeGeometry(shape,28),this.lensMat[s<0?0:1],rg,false);lens.scale.set(.95,.95,1);
       const crack=mesh(new THREE.PlaneGeometry(rx*1.6,ry*1.6),new THREE.MeshBasicMaterial({map:this.crackTex.t,transparent:true,opacity:.9,depthWrite:false}),rg,false);crack.position.z=.002;crack.visible=false;
       this.rims.push(rg);this.lenses.push({lens,crack});
-      const templeCurve=new THREE.CatmullRomCurve3([V3(s*(cen.x+rx),cy,eyeZ),V3(s*(HEAD_R*.98),cy+.008,eyeZ-.08),V3(s*(HEAD_R*1.01),cy,-.015),V3(s*(HEAD_R*.96),cy-.03,-.08)]);
-      const arm=mesh(new THREE.TubeGeometry(templeCurve,14,.006,6,false),fm,gl);if(s>0)this.rightArm=arm;
+      // 안경다리: 테 바깥 끝(경첩)에서 귀 위까지. 경첩~귀를 잇는 직선을 기본으로 하되, 머리 옆면이 그보다
+      // 튀어나온 곳에서는 옆면을 따라 바깥으로 비킨다. 얼굴이 좁으면 다리도 좁아지고, 넓으면 같이 벌어진다.
+      const gap=.011,earZ=-.02,hingeX=cen.x+rx,earX=sideX(cy,earZ)+gap,temple=[V3(s*hingeX,cy,eyeZ)];
+      for(let i=1;i<=6;i++){
+        const t=i/6,z=lerp(eyeZ-.03,earZ,t),y=cy+.006*Math.sin(t*Math.PI);
+        temple.push(V3(s*Math.max(sideX(y,z)+gap,lerp(hingeX,earX,t)),y,z));
+      }
+      temple.push(V3(s*(sideX(cy-.018,earZ-.045)+gap*.8),cy-.018,earZ-.045),V3(s*(sideX(cy-.05,earZ-.075)+gap*.5),cy-.05,earZ-.075));   // 귀 뒤로 넘어가는 고리
+      const templeCurve=new THREE.CatmullRomCurve3(temple,false,'centripetal');
+      const arm=mesh(new THREE.TubeGeometry(templeCurve,28,.006,6,false),fm,gl);if(s>0)this.rightArm=arm;
     }
     const bx=Math.max(.009,cen.x-rx+.003);
-    const bridgeCurve=new THREE.QuadraticBezierCurve3(V3(-bx,cy+.01,eyeZ),V3(0,cy+.033,eyeZ+.008),V3(bx,cy+.01,eyeZ));
+    const bridgeCurve=new THREE.QuadraticBezierCurve3(V3(-bx,cy+.01,eyeZ),V3(0,cy+.033,eyeZ+.008+2*arch),V3(bx,cy+.01,eyeZ));   // arch: 높은 콧대 위로 넘어가는 만큼
     mesh(new THREE.TubeGeometry(bridgeCurve,14,.007,6,false),fm,gl);
-    const tape=this.tapeM=mesh(new THREE.CylinderGeometry(.017,.017,Math.max(.028,bx),12),mat('#ffffff',{roughness:.9}),gl,false);tape.rotation.z=Math.PI/2;tape.position.set(0,cy+.025,eyeZ+.007);tape.visible=false;
+    const tape=this.tapeM=mesh(new THREE.CylinderGeometry(.017,.017,Math.max(.028,bx),12),mat('#ffffff',{roughness:.9}),gl,false);tape.rotation.z=Math.PI/2;tape.position.set(0,cy+.025,eyeZ+.007+arch);tape.visible=false;
     this.glassBase={y:0};gl.visible=L.glassesStyle!=='none';
   }
 
@@ -2039,7 +2242,7 @@ ntag.renderOrder = 2;
     for (const a of this.anchor) {
       this.offsetAt(a.d, o);
       a.obj.position.copy(this.surfacePoint(a.d,a.out)).add(o);
-      if (!a.obj.userData.oriented) { orient(a.obj, a.d, V3(0, 1, 0));if(a.obj.userData.lookTilt)a.obj.rotateZ(a.obj.userData.lookTilt); a.obj.userData.oriented = true; }
+      if (!a.obj.userData.oriented) { orient(a.obj, a.d, V3(0, 1, 0));if(a.obj.userData.lookTilt)a.obj.rotateZ(a.obj.userData.lookTilt);if(a.obj.userData.splay)a.obj.rotateY(a.obj.userData.splay); a.obj.userData.oriented = true; }
     }
     for (const h of this.hair) { if (h.parent !== this.headMesh) continue; this.offsetAt(h.userData.d, o); h.position.copy(this.surfacePoint(h.userData.d,-HEAD_R*.04)).add(o); }
     for (const l of this.lumps) { this.offsetAt(l.userData.d, o); l.position.copy(this.surfacePoint(l.userData.d,-HEAD_R*.03)).add(o); }
@@ -2265,8 +2468,10 @@ ntag.renderOrder = 2;
 
   // 치명 부위 판정용 로컬 방향
   localDir(worldPoint) {
-    const p = this.headMesh.worldToLocal(worldPoint.clone());
-    p.x/=faceWidthAt(this.look.faceShape,clamp(p.y/HEAD_R,-1,1));return p.normalize();
+    const wanted=this.headMesh.worldToLocal(worldPoint.clone()).normalize(),d=wanted.clone();
+    // Invert the base shape so hit/drag coordinates still follow narrow jaws.
+    for(let i=0;i<6;i++)d.add(wanted.clone().sub(this.surfacePoint(d).normalize())).normalize();
+    return d;
   }
   headWorld(d, out = 0) {
     return this.headMesh.localToWorld(this.surfacePoint(d,out));
@@ -2275,11 +2480,7 @@ ntag.renderOrder = 2;
   eyeWorld(i) { return this.eyes[i].g.getWorldPosition(V3()); }
 
   /* 기본 외모만 변경한다. 타격·빠진 이빨·변형·표정 등의 진행 상태는 유지한다. */
-  surfacePoint(d, out=0) {
-    const p=d.clone().multiplyScalar(HEAD_R+out);
-    p.x*=faceWidthAt(this.look.faceShape,d.y);
-    return p;
-  }
+  surfacePoint(d,out=0) { return ngFaceSurface(this.look,d,out); }
   captureResources(){
     if(!this.owned)this.owned={g:new Set(),m:new Set(),t:new Set()};
     this.root.traverse(o=>{
@@ -2360,6 +2561,19 @@ ntag.renderOrder = 2;
     this.rightArm.visible=lv<4;
     this.tapeM.visible=this.taped;
   }
+  // 목을 지금 체형·얼굴에 맞춘다.
+  // · 윗끝은 항상 머리 속(머리 중심에서 반 높이의 45% 아래)까지 올라간다 → 얼굴이 짧아도 목 윗면이 드러나지 않는다.
+  // · 몸통 너비가 1을 넘으면 목은 그 25%만 따라 굵어진다 → 넓은 몸통에서 목이 받침대처럼 되지 않는다.
+  fitNeck(){
+    const L=this.look,neck=this.neck;if(!neck)return;
+    const w=Math.max(.16,L.bodyW),h=Math.max(.1,L.bodyH);
+    // 머리 중심은 목 관절(몸통 좌표 .56)에서 실제 길이로 .31 위에 있다. 몸통 좌표로는 키 배율만큼 나눈 값이다.
+    const bottom=.50,top=.56+(.31-HEAD_R*L.headH*.45)/h;
+    neck.position.y=(top+bottom)/2;neck.scale.y=Math.max(.5,(top-bottom)/.1);
+    const thick=w<=1?1:(1+(w-1)*.25)/w;
+    neck.scale.x=neck.scale.z=thick;
+    this.neckLocalRadius=.078*thick;   // 줄넘기가 감기는 반지름(몸통 좌표)
+  }
   applyLook(raw,initial=false){
     const L=normaliseLook(raw),prev=this._appliedLook;
     this.look=L;
@@ -2368,6 +2582,7 @@ ntag.renderOrder = 2;
     this.body.scale.set(L.bodyW,L.bodyH,L.bodyW);
     this.headPivot.scale.set(1/L.bodyW,1/L.bodyH,1/L.bodyW);
     this.headMesh.scale.set(L.headW,L.headH,.97);
+    this.fitNeck();
     this.headMat.roughness=['bald','shaved'].includes(L.style)?.33:.5;
     this.earMats.forEach(m=>m.color.copy(col(L.skin)).multiplyScalar(.72));
     const form=EYE_FORMS[L.eyeStyle];
@@ -2411,10 +2626,10 @@ ntag.renderOrder = 2;
     // 모양 변경 시 두피도 같은 윤곽을 사용한다. 얼굴 변형은 머리카락 좌표에도 적용된다.
     if(this.cap){
       const p=this.cap.geometry.attributes.position,b=this.cap.userData.sphereBase;
-      if(b)for(let i=0;i<p.count;i++){const x=b[i*3],y=b[i*3+1],z=b[i*3+2],r=Math.hypot(x,y,z);p.setXYZ(i,x*faceWidthAt(L.faceShape,y/r),y,z);}
+      if(b)for(let i=0;i<p.count;i++){const d=V3(b[i*3],b[i*3+1],b[i*3+2]),r=d.length(),q=this.surfacePoint(d.normalize(),r-HEAD_R);p.setXYZ(i,q.x,q.y,q.z);}
       p.needsUpdate=true;this.cap.geometry.computeVertexNormals();this.cap.geometry.computeBoundingSphere();
     }
-    const glassKeys=['glassesStyle','frame','glassSize','glassY','eyeGap','eyeY','faceShape'];
+    const glassKeys=['glassesStyle','frame','glassSize','glassY','eyeGap','eyeY','faceShape','jawWidth','jawLength','cheekFat','cheekBone','templeHollow','bridgeHeight','nose','noseY','noseStyle','nostrilWidth'];
     if(prev&&glassKeys.some(k=>prev[k]!==L[k])){this.releaseVisual([this.glasses]);this.buildGlasses();}
     this.syncGlassesDamage();
     this.drawName();this.headDirty=true;this.faceDirty=true;this.teethKey='';
@@ -2437,7 +2652,7 @@ const cuffMat = mat('#fffdf4', { roughness: 0.8 });
 
 function buildSleeve(parent, dir, len = 2.6) {
   // dir: 손목에서 팔 쪽으로 뻗는 로컬 방향
-  const g = new THREE.Group(); parent.add(g);
+  const g = new THREE.Group(); parent.add(g);g.userData.ngSleeve=true;
   g.quaternion.setFromUnitVectors(V3(0, 1, 0), dir.clone().normalize());
   const wrist = mesh(new THREE.CylinderGeometry(0.048, 0.052, 0.12, 14), mySkin, g); wrist.position.y = 0.06;
   const cuff = mesh(new THREE.CylinderGeometry(0.078, 0.078, 0.05, 18), cuffMat, g); cuff.position.y = 0.13;
@@ -2678,7 +2893,14 @@ function spawnDrop(pos, vel, kind = 'blood', size = 0.012) {
   m.scale.setScalar(size); if (kind !== 'blood') m.scale.y *= 1.3;
   return spawn(m, pos, vel, { kind, r: size, life: 3, spin: V3() });
 }
-function removeParticle(i) { const p = particles[i]; scene.remove(p.obj); particles.splice(i, 1); }
+function removeParticle(i) {
+  const p = particles[i]; if(!p)return;
+  scene.remove(p.obj); particles.splice(i, 1);
+  // Only standalone lens/temple fragments own their materials. A whole frame is a
+  // clone sharing the avatar's resources; disposing it would break the worn pair.
+  if(p.ownedFragment){p.obj.traverse(o=>{o.geometry?.dispose();if(o.material)for(const m of(Array.isArray(o.material)?o.material:[o.material]))m.dispose();});}
+  const j=G.junk.indexOf(p.obj);if(j>=0)G.junk.splice(j,1);
+}
 
 function updateParticles(dt, game) {
 
@@ -2703,6 +2925,7 @@ function updateParticles(dt, game) {
       p.obj.rotation.x += p.spin.x * dt; p.obj.rotation.y += p.spin.y * dt; p.obj.rotation.z += p.spin.z * dt;
       if (p.obj.position.z < -1.62 && p.vel.z < 0) { p.vel.z *= -0.4; p.obj.position.z = -1.62; if (p.kind === 'blood') { removeParticle(i); continue; } }
       if (p.obj.position.y < p.r) {
+        if(p.groundVanish){if(p.sound)p.sound(Math.abs(p.vel.y));removeParticle(i);continue;}
         if (p.kind === 'blood' || p.kind === 'tear' || p.kind === 'sweat') {
           const x = p.obj.position.x, z = p.obj.position.z;
           if (p.kind === 'blood') { paintSplat(x, z, p.r * rnd(1.4, 2.6)); if (Math.random() < 0.25) SFX.drip(clamp(x, -1, 1)); }
@@ -2856,7 +3079,7 @@ function fit() {
     document.body.classList.add('tools-grid');
     const spare = dock.getBoundingClientRect().top - TALK_BAND - 10 - topH;
     // 그리드로 해도 캐릭터가 8% 넘게 작아지지 않을 때만 그리드.
-    grid = spare >= 0.92 * 1.99 * W / 1.5;
+    grid = spare >= 0.87 * 1.99 * W / 1.5;
   }
   document.body.classList.toggle('tools-grid', grid);
 
@@ -2963,24 +3186,24 @@ function rebuildCharacterPool() {
 
 rebuildCharacterPool();
 
-// 바로 직전과 같은 문장은 연속해서 고르지 않는다.
-function pickCharacterLine() {
-  const n = characterPool.length;
-
-  if (!n) return '너무 힘들어';
-  if (n === 1) return characterPool[0];
-
-  const hasLast = lastCharacterIndex >= 0;
-
-  let i = Math.floor(
-    Math.random() * (n - (hasLast ? 1 : 0))
-  );
-
-  if (hasLast && i >= lastCharacterIndex) i++;
-
-  lastCharacterIndex = i;
-  return characterPool[i];
+// NG4: one recent-five history per speaker, shared across mode changes.
+const RECENT_DIALOGUE={player:[],character:[]};
+function dialogueCandidates(list,who){
+  const pool=[...new Set(list.filter(s=>typeof s==='string'&&s.trim()))],history=RECENT_DIALOGUE[who]||[];
+  const fresh=pool.filter(s=>!history.includes(s));if(fresh.length)return fresh;
+  // A tiny action-specific pool is cycled least-recent-first, not refilled at random.
+  let oldest=Infinity;
+  for(const s of pool)oldest=Math.min(oldest,history.lastIndexOf(s));
+  return pool.filter(s=>history.lastIndexOf(s)===oldest);
 }
+function chooseDialogue(list,who,preferred=''){
+  const pool=dialogueCandidates(list,who);if(!pool.length)return '';
+  return preferred&&pool.includes(preferred)?preferred:pick(pool);
+}
+function rememberDialogue(who,text){
+  if(!text)return;const h=RECENT_DIALOGUE[who];h.push(text);if(h.length>5)h.splice(0,h.length-5);
+}
+function pickCharacterLine(){return chooseDialogue(characterPool,'character')||'너무 힘들어';}
 
 function speak(line, kind = '', dur, force = false) {
   const v = G.v;
@@ -2998,6 +3221,7 @@ function speak(line, kind = '', dur, force = false) {
   // 맞는 중에도 읽을 수 있게 넉넉히 띄운다.
   const seconds = dur || clamp(1.1 + text.length * 0.1, 1.8, 3.6);
   say(text, seconds, kind);
+  if(!ouch)rememberDialogue('character',text);
   v.mouth.talk = clamp(text.length * 0.07, 0.3, 2.2);
 
   const n = clamp(Math.round(text.replace(/[^가-힣a-z]/gi, '').length * 0.8), 1, 14);
@@ -3917,14 +4141,14 @@ function breakGlasses() {
     if (!v.lensGone[1]) {
       v.lensGone[1] = 1; v.lenses[1].lens.visible = false; v.lenses[1].crack.visible = false;
       const lens = new THREE.Mesh(new THREE.CircleGeometry(0.06, 20), new THREE.MeshStandardMaterial({ color: col('#dff3ff'), transparent: true, opacity: 0.5, roughness: 0.05, side: THREE.DoubleSide }));
-      spawn(lens, v.rims[1].getWorldPosition(V3()), V3(rnd(0.5, 1.4), rnd(1, 2), rnd(0.5, 1.2)), { kind: 'lens', r: 0.005, persist: true, life: 1e9, sound: () => SFX.tink(0.4, 0.6), flat: { x: -Math.PI / 2, z: 0 } });
+      spawn(lens, v.rims[1].getWorldPosition(V3()), V3(rnd(0.5, 1.4), rnd(1, 2), rnd(0.5, 1.2)), { kind: 'lens', r: 0.005, groundVanish: true, ownedFragment: true, life: 5, sound: () => SFX.tink(0.4, 0.6), flat: { x: -Math.PI / 2, z: 0 } });
       G.junk.push(lens);
     }
     SFX.glass(0.3); popText('쨍그랑!', gw(), 'glass', 40);
   } else if (lv === 4) {
     v.rightArm.visible = false;
     const arm = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.012, 0.3), mat(v.look.frame));
-    spawn(arm, v.rightArm.getWorldPosition(V3()), V3(rnd(0.8, 1.6), rnd(1, 2), rnd(0, 1)), { kind: 'junk', r: 0.006, persist: true, life: 1e9, sound: () => SFX.tink(0.5, 0.4), flat: { x: 0, z: 0 } });
+    spawn(arm, v.rightArm.getWorldPosition(V3()), V3(rnd(0.8, 1.6), rnd(1, 2), rnd(0, 1)), { kind: 'glasses-arm', r: 0.006, groundVanish: true, ownedFragment: true, life: 5, sound: () => SFX.tink(0.5, 0.4), flat: { x: 0, z: 0 } });
     SFX.glass(0.4); popText('뚝!', gw(), 'glass', 38);
   } else {
     // 날아감
@@ -3933,7 +4157,7 @@ function breakGlasses() {
     const wp = v.glasses.getWorldPosition(V3()), wq = v.glasses.getWorldQuaternion(new THREE.Quaternion());
     clone.quaternion.copy(wq);
     clone.scale.copy(v.headMesh.scale);
-    spawn(clone, wp, V3(rnd(-1.5, 1.5), rnd(1.5, 2.5), rnd(0.8, 1.5)), { kind: 'glasses', r: 0.02, persist: true, life: 1e9, sound: () => SFX.tink(0, 0.8), flat: { x: -Math.PI / 2 + 0.2, z: rnd(-1, 1) } });
+    spawn(clone, wp, V3(rnd(-1.5, 1.5), rnd(1.5, 2.5), rnd(0.8, 1.5)), { kind: 'glasses', r: 0.02, groundVanish: true, life: 5, sound: () => SFX.tink(0, 0.8), flat: { x: -Math.PI / 2 + 0.2, z: rnd(-1, 1) } });
     SFX.glass(0); popText('휘익!', wp, 'glass', 40);
   }
 }
@@ -3956,7 +4180,7 @@ function loseHair(d, n, force) {
     g.fillStyle = '#000';
     for (let i = 0; i < n + 1; i++) { g.beginPath(); g.ellipse(x + rnd(-10, 10), y + rnd(-6, 6), rnd(7, 13), rnd(5, 9), rnd(0, 3), 0, 7); g.fill(); }
     v.capAlpha.t.needsUpdate = true; }
-  SFX.rip(0, 0.2);
+  SFX.rip(0, 0.2, 0.6, 0.55);   // 뭉텅: 파열음·지지직을 조금 낮춘다
   popText('뭉텅!', v.headWorld(d, 0.05), 'hair', 32);
 }
 
@@ -4251,16 +4475,11 @@ const CARE_LINES={
   hug:['힘들었지?','말 안 해도 돼. 그냥 이러고 있자.','괜찮아. 잠깐 기대고 있어.','오늘도 버티느라 애썼어.','지금은 조금 쉬어도 괜찮아.']
 };
 const careBags={},careSeen=new Set();let lastCareLine='';
-function nextCareLine(group){
-  const list=CARE_LINES[group]||CARE_LINES.comfort;
-  if(!careSeen.has(group)){careSeen.add(group);careBags[group]=list.slice(1).sort(()=>Math.random()-.5);return lastCareLine=list[0];}
-  if(!careBags[group]?.length){careBags[group]=list.slice();for(let i=list.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[careBags[group][i],careBags[group][j]]=[careBags[group][j],careBags[group][i]];}if(careBags[group].at(-1)===lastCareLine&&list.length>1)careBags[group].unshift(careBags[group].pop());}
-  return lastCareLine=careBags[group].pop();
-}
+function nextCareLine(group){return lastCareLine=chooseDialogue(CARE_LINES[group]||CARE_LINES.comfort,'player');}
 const CareVoice=(()=>{
   let speech=null,utterance=null,voices=[],serial=0,watch=0;
   try{speech=window.speechSynthesis||null;}catch(e){}
-  function refresh(){try{voices=speech?speech.getVoices().filter(v=>/^ko(?:[-_]|$)/i.test(v.lang)):[];}catch(e){voices=[];}}
+  function refresh(){try{voices=speech?speech.getVoices().filter(v=>v.localService && /^ko(?:[-_]|$)/i.test(v.lang)):[];}catch(e){voices=[];}}
   if(speech){refresh();speech.addEventListener?.('voiceschanged',()=>{refresh();});}
   function stop(){serial++;clearTimeout(watch);if(utterance&&speech)try{speech.cancel();}catch(e){}utterance=null;}
   function say(text){
@@ -4272,12 +4491,12 @@ const CareVoice=(()=>{
       speech.speak(u);watch=setTimeout(()=>{if(id===serial)stop();},18000);return true;
     }catch(e){utterance=null;return false;}
   }
-  return {say,stop,available:()=>{refresh();return voices.length>0;}};
+  return {say,stop,isSpeaking:()=>!!utterance,available:()=>{refresh();return voices.length>0;}};
 })();
 function careSay(group='comfort',force=false){
   if(G.mode!=='care'||G.editing||!G.v||!['stand','hug'].includes(G.v.state))return;
-  if(!force && G.time-(G.careLastVoice??-100)<4.5)return;
-  const text=nextCareLine(group);G.careLastVoice=G.time;G.lastCareLine={text,t:G.time};G.careCaptionUntil=G.time+Math.max(3.8,text.length*.16+1);
+  if(!force && (G.time-(G.careLastVoice??-100)<3.4 || (G.react && (!G.react.fired || G.v.mouth.talk>0))))return;
+  const text=nextCareLine(group);if(!text)return;rememberDialogue('player',text);G.careLastVoice=G.time;G.lastCareLine={text,t:G.time};G.careCaptionUntil=G.time+Math.max(3.8,text.length*.16+1);
   const box=$('#careCaption');box.hidden=false;$('#careCaptionText').textContent=text;window.__SC_ROOM_UI_V1?.hideHelp();
   CareVoice.say(text);G.lastAct=G.time;G.lastSay=G.time;
   // The character does not lip-sync the player's words; it answers afterwards in its own bubble.
@@ -4286,7 +4505,8 @@ function careSay(group='comfort',force=false){
 }
 function careIsAwkward(v){return G.mode==='care'&&!G.editing&&['stand','hug'].includes(v.state)&&!(v.ouch>0);}
 /* 달래기 대꾸: 내 말이 끝나면 캐릭터가 말풍선으로 받아친다. 대사·몸짓 선택은 아래 CARE_SNUB 구역에 있다. */
-const CARE_REPLY_DELAY={comfort:1.4,hand:1.2,love:2.35,thumb:1.45,clap:.75,fiveHit:1.3,fiveMiss:.55,hug:1.8,release:.6};
+const CARE_REPLY_DELAY={comfort:.65,hand:.65,love:.65,thumb:.65,clap:.65,fiveHit:.65,fiveMiss:.65,hug:.65,release:.65};
+function careReplyDelay(group){return CARE_REPLY_DELAY[group]??.65;}
 function queueCareReply(group){}
 function careReplyLine(r){return r.line||'';}
 function updateCareReply(dt){}
@@ -4326,6 +4546,7 @@ function hideSocialHands(){
   for(const h of RIG.open)if(!G.hug&&!G.ptr?.rubbing&&!G.attacks.some(a=>a.rig===h))h.visible=false;
 }
 function stopSocial(){
+  clearTimeout(G.carePatTimer);G.carePatTimer=0;
   G.social=null;G.react=null;G.careAnim=null;G.careCaptionUntil=0;CareVoice.stop();$('#careCaption').hidden=true;
   hideSocialHands();if(G.v)restoreCareActorHands(G.v);
 }
@@ -4599,7 +4820,8 @@ function careAct(kind, info, e) {
     if(G.social)stopSocial();
     const p = hitWorld(info), n = hitNormal(info);
     G.careAnim = { kind: 'pat', t: 0, p, n };
-    SFX.pat(clamp(p.x, -1, 1)); setTimeout(() => SFX.pat(clamp(p.x, -1, 1)), 180);
+    SFX.pat(clamp(p.x, -1, 1));clearTimeout(G.carePatTimer);
+    G.carePatTimer=setTimeout(()=>{G.carePatTimer=0;if(G.mode==='care'&&G.v===v&&!G.ptr?.rubbing)SFX.pat(clamp(p.x,-1,1));},180);
     popText('토닥', p, 'pat', 30);
     comfort(0.05, 'soft');
   }
@@ -4664,7 +4886,7 @@ canvas.addEventListener('pointerdown', e => {
   } else {
     if (G.care === 'hand' && info && v.state === 'stand') {
       if(G.social)stopSocial();
-      P.careTarget = (info.part === 'head' && info.dir && info.dir.y > 0.3) ? 'pet' : (info.part === 'head' || info.part === 'nose') ? 'wipe' : 'pat';
+      P.careTarget = (info.part === 'head' && info.dir && info.dir.y > 0.3) ? 'pet' : (info.part === 'head' || info.part === 'nose') ? 'wipe' : 'stroke';
     }
   }
 });
@@ -4708,7 +4930,7 @@ canvas.addEventListener('pointermove', e => {
         startAttack(G.tool!=='hand'?'swing':'slap',tgt,s,gestureExtra(P));
       }
     }
-  } else if (P.careTarget === 'pet' || P.careTarget === 'wipe') {
+  } else if (['pet','wipe','stroke'].includes(P.careTarget)) {
     if (dist > 10) P.kind = P.careTarget;
     if (P.kind) careRub(P, stepX, stepY, e);
   }
@@ -4720,7 +4942,8 @@ function careRub(P, sx, sy, e) {
   h.visible = true;
   const speed = Math.hypot(sx, sy);
   G.rub = Math.min(1, (G.rub || 0) + speed * 0.02);
-  if (!P.rubbing) { P.rubbing = true; SFX.rubStart(); }
+  if (!P.rubbing) { P.rubbing = true; G.careAnim=null; clearTimeout(G.carePatTimer);G.carePatTimer=0;SFX.rubStart(); }
+  P.lastRubTime=G.time;
   G.lastAct = G.time;
   if (P.kind === 'pet') {
     const top = v.headWorld(dirN(0, 1, 0.15), 0.05);
@@ -4731,11 +4954,14 @@ function careRub(P, sx, sy, e) {
     v.petT = 0.4;
     for (const g of v.hair) if (g.parent === v.headMesh && Math.random() < 0.05) { g.userData.mess = Math.min(1, g.userData.mess + 0.3); }
     comfort(speed * 0.0003, 'pet');
+  } else if(P.kind==='stroke'){
+    if(info){const p=hitWorld(info),n=hitNormal(info);h.position.copy(p).addScaledVector(n,.065);orient(h,n.clone().negate(),V3(0,1,0));comfort(speed*.0002,'pet');}
   } else {
     if (info && (info.part === 'head' || info.part === 'nose')) {
       const p = hitWorld(info), n = hitNormal(info);
       h.position.copy(p).addScaledVector(n, 0.04);
       orient(h, n.clone().negate(), V3(0, 1, 0));
+      keepHandOffNose(h, v, n);
       const d = info.dir || v.localDir(p);
       const [fx, fy] = faceXY(d);
       v.tear = Math.max(0, v.tear - speed * 0.0015);
@@ -4748,6 +4974,7 @@ function careRub(P, sx, sy, e) {
       comfort(speed * 0.0002, 'wipe');
     }
   }
+  careSay('hand'); // Also speak during face wiping or torso strokes, not only hair petting.
   SFX.rubLevel(G.rub);
 }
 function pointerEnd(e) {
@@ -4899,6 +5126,64 @@ $('#saveCrimes').addEventListener('click', () => {
 
 
 
+// 두 선분 사이의 최단 거리
+function segmentGap(p1, q1, p2, q2) {
+  const d1 = q1.clone().sub(p1), d2 = q2.clone().sub(p2), r = p1.clone().sub(p2);
+  const a = d1.dot(d1), e = d2.dot(d2), f = d2.dot(r);
+  let s = 0, t = 0;
+  if (a > 1e-9 && e > 1e-9) {
+    const b = d1.dot(d2), c = d1.dot(r), den = a * e - b * b;
+    s = den > 1e-9 ? clamp((b * f - c * e) / den, 0, 1) : 0;
+    t = (b * s + f) / e;
+    if (t < 0) { t = 0; s = clamp(-c / a, 0, 1); }
+    else if (t > 1) { t = 1; s = clamp((b - c) / a, 0, 1); }
+  } else if (a > 1e-9) s = clamp(-d1.dot(r) / a, 0, 1);
+  else if (e > 1e-9) t = clamp(f / e, 0, 1);
+  return p1.clone().addScaledVector(d1, s).distanceTo(p2.clone().addScaledVector(d2, t));
+}
+// 줄넘기에 걸린 동안 손이 쥘 자리(몸통 기준 좌표). 목에서 조금 나온 줄 위, 손목은 줄 바로 아래.
+function ropeGripPoint(v, a) {
+  const free = v.state === 'tether' ? v._ropeFree : null;
+  if (!free) return null;
+  const [from, to] = free[a.s > 0 ? 0 : 1], length = from.distanceTo(to);
+  if (length < .05) return null;
+  const w = Math.max(.3, v.look.bodyW);
+  const grip = from.clone().lerp(to, clamp((.045 + .055 * w) / length, .08, .45));
+  grip.y -= .04 * Math.max(.6, v.look.bodyH);   // 손가락이 줄 위로 걸리게 손목은 줄 아래
+  return v.torso.worldToLocal(grip);
+}
+// 줄넘기에 걸린 동안의 팔꿈치 방향. 몸통이 넓어 어깨·팔꿈치가 바깥으로 나가도 줄이 팔을 뚫지 않게 한다.
+// 자연스러운 방향(아래·바깥)에서 가까운 각도부터 훑어, 줄의 직선 구간과 팔 굵기만큼 떨어지는 첫 각도를 쓴다.
+function ropeSafePole(v, a, origin, axis, distance, L, target) {
+  const free = v.state === 'tether' ? v._ropeFree : null;
+  if (!free) { a._ropeAngle = undefined; return null; }
+  const bend = Math.sqrt(Math.max(0, L * L - distance * distance / 4));
+  const prefer = V3(a.s * .75, -.65, -.10).projectOnPlane(axis);
+  if (bend < .004 || prefer.lengthSq() < 1e-8) return null;
+  prefer.normalize();
+  const side = V3().crossVectors(axis, prefer).normalize();
+  const T = v.torso, need = .066 * Math.max(.3, v.look.bodyW) + .026;
+  const shoulder = T.localToWorld(origin.clone()), hand = T.localToWorld(target.clone());
+  const mid = origin.clone().addScaledVector(axis, distance / 2);
+  const gapAt = angle => {
+    const elbow = T.localToWorld(mid.clone().addScaledVector(prefer, Math.cos(angle) * bend).addScaledVector(side, Math.sin(angle) * bend));
+    // 손은 줄을 쥐는 자리라 제외하고, 팔꿈치 쪽 70%만 본다.
+    const wrist = elbow.clone().lerp(hand, .7);
+    let gap = 1e9;
+    for (const [p, q] of free) gap = Math.min(gap, segmentGap(shoulder, elbow, p, q), segmentGap(elbow, wrist, p, q));
+    return gap;
+  };
+  let chosen = 0, bestGap = -1;
+  for (let i = 0; i < 17; i++) {
+    const angle = (i % 2 ? 1 : -1) * Math.ceil(i / 2) * Math.PI / 12, gap = gapAt(angle);   // 0, ±15°, ±30° … ±120°
+    if (gap >= need) { chosen = angle; bestGap = gap; break; }
+    if (gap > bestGap) { bestGap = gap; chosen = angle; }
+  }
+  // 당기는 세기가 바뀔 때 팔꿈치가 튀지 않게 천천히 따라간다.
+  a._ropeAngle = a._ropeAngle === undefined ? chosen : a._ropeAngle + (chosen - a._ropeAngle) * .3;
+  return prefer.multiplyScalar(Math.cos(a._ropeAngle)).addScaledVector(side, Math.sin(a._ropeAngle));
+}
+
 function fixActorHandPose(v) {
   // 달래기 동작·이빨을 들고 있는 손은 건드리지 않는다.
   if (
@@ -4943,7 +5228,8 @@ function fixActorHandPose(v) {
       )) + .006;
     }
 
-    const target = v.torso.worldToLocal(
+    // 줄넘기에 걸려 있으면 목 옆의 줄을 쥔다.
+    const target = ropeGripPoint(v, a) || v.torso.worldToLocal(
       v.headMesh.localToWorld(p)
     );
 
@@ -4970,8 +5256,9 @@ function fixActorHandPose(v) {
     if (rec?.cuff) rec.cuff.position.y = -.17 * stretch;
 
     // 팔꿈치는 얼굴 앞으로 튀어나오지 않고 바깥쪽·아래쪽으로.
-    const pole = V3(a.s * .75, -.65, -.10)
-      .projectOnPlane(axis);
+    // 줄넘기에 걸려 있는 동안에는 줄의 직선 구간과 겹치지 않는 각도를 고른다.
+    const pole = ropeSafePole(v, a, origin, axis, distance, L, target) ||
+      V3(a.s * .75, -.65, -.10).projectOnPlane(axis);
 
     if (pole.lengthSq() < 1e-8) {
       pole.copy(V3(0, 0, 1).projectOnPlane(axis));
@@ -5439,19 +5726,35 @@ if (v._marshmallowChew > 0 && v.ouch <= 0) {
   if (v.faceDirty && v.faceT <= 0) { v.paintFace(); v.faceT = 0.07; }
 }
 
+/* 얼굴에 닿는 내 손(약 바르기·닦기·토닥)이 코에 뚫리지 않게 한다.
+   h: 이미 자리·방향을 잡은 편 손, n: 닿는 면의 바깥 방향. 손 기준 좌표에서 +z 가 얼굴 쪽이고 손바닥 안쪽 면은 z=.034 이다. */
+const _noseHandInv = new THREE.Matrix4(), _noseHandM = new THREE.Matrix4(), _noseHandP = new THREE.Vector3();
+function keepHandOffNose(h, v, n) {
+  if (!v || !v.noseM || !n) return;
+  h.updateMatrixWorld(true);
+  _noseHandInv.copy(h.matrixWorld).invert();
+  let lift = 0;
+  for (const m of [v.noseM, v._ngNoseBridge]) {
+    if (!m || !m.geometry) continue;
+    m.updateMatrixWorld(true);
+    _noseHandM.multiplyMatrices(_noseHandInv, m.matrixWorld);
+    const pos = m.geometry.attributes.position;
+    for (let i = 0; i < pos.count; i += 2) {
+      _noseHandP.fromBufferAttribute(pos, i).applyMatrix4(_noseHandM);
+      // 손바닥·손가락이 덮는 범위(가장자리 .03은 서서히) 안에 있는 코만 본다.
+      const edge = Math.min(_noseHandP.x + .135, .155 - _noseHandP.x, _noseHandP.y + .14, .235 - _noseHandP.y);
+      if (edge <= 0) continue;
+      lift = Math.max(lift, (.046 - _noseHandP.z) * Math.min(1, edge / .03));
+    }
+  }
+  if (lift > 0) h.position.addScaledVector(n, lift * (h.getWorldScale(_noseHandP).z || 1));
+}
+
 /* ================= 달래기 손 애니메이션 ================= */
 function updateCareHands(dt) {
   const v = G.v;
-  if (G.hug && v) {
-    RIG.open.forEach((h, i) => {
-      const s = i ? 1 : -1;
-      const pat = Math.max(0, Math.sin(G.time * 7.4 + i * 1.2)) * 0.035;
-      const sh = v.torso.localToWorld(V3(s * 0.25, 0.3 + pat, -0.16));
-      h.position.copy(sh);
-      orient(h, V3(-s * 0.35, 0.1, -1), V3(-s * 0.37, 0.5, -0.55));
-    });
-    return;
-  }
+  if(G.hug&&v){ngPoseHug(v,dt);return;}
+  ngEndHugPose();
   if(renderSocialHands(dt))return;
   const c = G.careAnim;
   if (!c) return;
@@ -5466,6 +5769,7 @@ function updateCareHands(dt) {
   const into = Math.min(1, u * 5), out = Math.max(0, (u - 0.8) * 5);
   h.position.copy(rest).lerp(at, easeOut(into)).lerp(rest, easeIn(out));
   orient(h, c.n.clone().negate(), c.n.y > 0.5 ? V3(0, 0, -1) : V3(0, 1, 0));
+  keepHandOffNose(h, v, c.n);
   if (u >= 1) { G.careAnim = null; if (!(G.ptr && G.ptr.rubbing)) h.visible = false; }
 }
 
@@ -6063,13 +6367,38 @@ const Slapstick = (() => {
   const oldRandom=randomLook;
   randomLook=function(){const L=oldRandom();L.bodyW=rnd(.48,.88);return normaliseLook(L);};
 
+  // 머리 받침의 월드 행렬을 직접 짠다: 목 관절의 실제 위치 + 부모들의 「회전만」 곱한 방향 + 몸통 찌그러짐(torso.scale).
+  // 몸(body)은 (너비,키,너비)로 늘려 놓은 그룹이라, 그 안에서 몸통이 기울면 머리가 비스듬히 늘어났다(체형 너비≠1일 때).
+  // 고정 역배율(scale=1/너비…)만으로는 기울어진 몸통 위의 머리까지는 못 편다.
+  function rigidMount(g,v){
+    const p=new THREE.Vector3(),q=new THREE.Quaternion(),k=new THREE.Vector3();
+    const compose=()=>{
+      const parent=g.parent;if(!parent)return false;
+      p.copy(g.position).applyMatrix4(parent.matrixWorld);
+      q.identity();k.copy(parent.scale);
+      for(let o=parent;o;o=o.parent){q.premultiply(o.quaternion);if(o!==parent&&o!==v.body)k.multiplyScalar(o.scale.x);}
+      g.matrixWorld.compose(p,q,k);return true;
+    };
+    g.updateMatrixWorld=function(){
+      if(this.matrixAutoUpdate)this.updateMatrix();
+      if(!compose())this.matrixWorld.copy(this.matrix);
+      this.matrixWorldNeedsUpdate=false;
+      for(const c of this.children)c.updateMatrixWorld(true);
+    };
+    g.updateWorldMatrix=function(updateParents,updateChildren){
+      if(updateParents&&this.parent)this.parent.updateWorldMatrix(true,false);
+      if(this.matrixAutoUpdate)this.updateMatrix();
+      if(!compose())this.matrixWorld.copy(this.matrix);
+      if(updateChildren)for(const c of this.children)c.updateWorldMatrix(false,true);
+    };
+  }
   function isolateHead(v){
     if(!v.headPivot||!v.body)return;
     if(!v._slapHeadParent){
       const p=v.headPivot.parent,g=new THREE.Group();
       g.name='slapstick-head-scale-isolation';
       g.position.copy(v.headPivot.position);p.add(g);g.add(v.headPivot);
-      v.headPivot.position.set(0,0,0);v._slapHeadParent=g;
+      v.headPivot.position.set(0,0,0);v._slapHeadParent=g;rigidMount(g,v);
     }
     // Cancel body scale BEFORE head rotation, not after it (avoids skinny-body shear).
     const w=Math.max(CFG.minBodyW,v.look.bodyW),h=Math.max(.1,v.look.bodyH);
@@ -6195,7 +6524,8 @@ const Slapstick = (() => {
       for(let i=0;i<p.count;i++){
         d.set(b[i*3],b[i*3+1],b[i*3+2]);d.normalize();
         this.offsetAt(d,o);
-        p.setXYZ(i,b[i*3]*faceWidthAt(this.look.faceShape,d.y)+o.x,b[i*3+1]+o.y,b[i*3+2]+o.z);
+        const r=Math.hypot(b[i*3],b[i*3+1],b[i*3+2]),q=this.surfacePoint(d,r-HEAD_R);
+        p.setXYZ(i,q.x+o.x,q.y+o.y,q.z+o.z);
       }
       p.needsUpdate=true;cap.geometry.computeVertexNormals();cap.geometry.computeBoundingSphere();
     }
@@ -6613,8 +6943,8 @@ const APPEAR=(()=>{
     }))};
 })();
 function persistAppearance(){try{localStorage.setItem(APPEAR_KEY,JSON.stringify(APPEAR));return true;}catch(e){return false;}}
-function refreshAppearanceButton(){const b=$('#appearanceBtn');b.classList.remove('locked');b.title='외모 만들기';}
-const LOOK_TABS=[['face','얼굴'],['hair','머리'],['eyes','눈'],['brows','눈썹'],['nose','코'],['mouth','입'],['glasses','안경'],['details','수염·점'],['clothes','옷·체형'],['saved','보관함']];
+function refreshAppearanceButton(){const b=$('#appearanceBtn');b.classList.remove('locked');b.title='나를 떠올리기';}
+const LOOK_TABS=[['face','얼굴'],['hair','머리'],['eyes','눈'],['brows','눈썹'],['nose','코'],['ears','귀'],['mouth','입'],['glasses','안경'],['details','수염·점'],['clothes','옷·체형'],['saved','보관함']];
 /* 직접 그린 벡터 아이콘. 외부 이미지/게임 에셋을 사용하지 않는다. */
 function lookIcon(kind,value='',L=LOOK_DEFAULT){
   const ink='#1f2a5c',skin=L.skin,hair=L.hair;let p='';
@@ -6640,6 +6970,8 @@ function lookIcon(kind,value='',L=LOOK_DEFAULT){
     const bp={straight:'M10 27L32 27M48 27L70 27',arch:'M10 28Q22 15 33 26M47 26Q58 15 70 28',angle:'M10 28L20 20L33 25M47 25L60 20L70 28',soft:'M10 29Q21 31 33 22M47 22Q59 31 70 29',short:'M17 26H28M52 26H63',none:''};
     p=line('M20 43h4M56 43h4',4)+line(bp[value||'straight'],5,hair);
     if(value==='none')p+=line('M17 23H31M49 23H63',1.5,'#bac3ce');
+  }else if(kind==='ears'){
+    p=`<path d="M48 13C24 4 14 28 24 43Q30 48 32 59C35 69 48 65 48 55L45 42Q62 20 48 13Z" fill="${skin}" stroke="${ink}" stroke-width="2.4"/>`+line('M43 24Q30 19 29 34L37 37Q43 39 37 49',2.4);
   }else if(kind==='nose'||kind==='noseStyle'){
     const np={button:'M34 26Q25 48 40 47Q55 48 46 26',small:'M38 31Q31 43 40 44Q49 43 42 31',wide:'M35 28Q30 38 23 40Q19 51 33 49L40 47L47 49Q61 51 57 40Q50 38 45 28',long:'M35 17L30 45Q40 54 50 45L45 17',point:'M38 19L32 47L50 43Z',flat:'M29 36Q24 43 30 46Q40 50 50 46Q56 43 51 36'};
     p=`<path d="${np[value||'button']}" fill="${skin}" stroke="${ink}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>`;
@@ -6696,12 +7028,13 @@ const AppearanceEditor=(()=>{
   function renderControls(){
     const el=$('#lookControls'),scroll=el.scrollTop;const L=E.draft;let s='';
     const intro=(h,n)=>`<h3 class="look-section-label">${h}</h3><p class="look-section-note">${n}</p>`;
-    if(E.tab==='face')s=intro('인상의 시작, 얼굴','모양을 고른 뒤 가로·세로 비율을 맞춰 보세요.')+choices('faceShape','얼굴형')+colours('skin','피부색')+sliders([['headW','얼굴 너비'],['headH','얼굴 길이']]);
+    if(E.tab==='face')s=intro('인상의 시작, 얼굴','모양을 고른 뒤 가로·세로 비율을 맞춰 보세요.')+choices('faceShape','얼굴형')+colours('skin','피부색')+sliders([['headW','얼굴 너비'],['headH','얼굴 길이'],['jawWidth','턱 너비'],['jawLength','턱 길이'],['cheekFat','볼살'],['cheekBone','광대 돌출'],['templeHollow','관자놀이 들어감']]);
     if(E.tab==='hair')s=intro('머리 하나로 다른 사람','앞모습과 옆모습을 번갈아 확인해 보세요.')+choices('style','머리 모양')+colours('hair','머리색')+check('hairFlip','가르마·머리 방향 뒤집기');
     if(E.tab==='eyes')s=intro('눈빛까지 취향대로','크기뿐 아니라 간격·높이·기울기도 바꿀 수 있어요.')+choices('eyeStyle','눈 모양')+colours('eyeColor','눈동자 색')+sliders([['eyeSize','눈 크기'],['eyeGap','눈 사이 간격'],['eyeY','눈 높이'],['eyeTilt','눈 기울기']]);
     if(E.tab==='brows')s=intro('인상을 결정하는 눈썹','표정이 바뀌어도 고른 눈썹 모양은 유지됩니다.')+choices('browStyle','눈썹 모양')+colours('browColor','눈썹 색','hair')+sliders([['brow','눈썹 두께'],['browWidth','눈썹 길이'],['browGap','눈썹 사이 간격'],['browY','눈썹 높이'],['browTilt','눈썹 기울기']]);
-    if(E.tab==='nose')s=intro('입체적인 코','살짝 돌려서 옆모습도 확인해 보세요.')+choices('noseStyle','코 모양')+sliders([['nose','코 크기'],['noseY','코 높이']]);
-    if(E.tab==='mouth')s=intro('말하지 않아도 보이는 성격','기본 인상은 고정하고, 말하기·울기 표정은 그대로 살아 있어요.')+choices('mouthStyle','기본 입 모양')+colours('lipColor','입술 색')+sliders([['mouthWidth','입 너비'],['mouthHeight','입 두께·높이'],['mouthY','입 위치']]);
+    if(E.tab==='nose')s=intro('입체적인 코','살짝 돌려서 옆모습도 확인해 보세요.')+choices('noseStyle','코 모양')+sliders([['nose','코 크기'],['noseY','코 위치'],['nostrilWidth','콧볼 넓이'],['bridgeHeight','콧대 높이']]);
+    if(E.tab==='ears')s=intro('귀의 모양과 위치','둥근 귀부터 뾰족한 귀까지, 귓볼도 따로 맞춰 보세요.')+sliders([['earY','귀 높이'],['earSize','귀 크기'],['earPoint','귀 끝 · 둥글게 / 뾰족하게'],['earLobe','귓볼 · 없음 / 길게']]);
+    if(E.tab==='mouth')s=intro('말하지 않아도 보이는 성격','기본 인상은 고정하고, 말하기·울기 표정은 그대로 살아 있어요.')+choices('mouthStyle','기본 입 모양')+colours('lipColor','입술 색')+sliders([['mouthWidth','입 너비'],['mouthHeight','입 두께·높이'],['mouthY','입 위치'],['mouthForward','돌출입']]);
     if(E.tab==='glasses')s=intro('안경도 벗겨 보자','고른 안경에도 기존의 파손·수리 반응이 적용됩니다.')+choices('glassesStyle','안경 모양')+(L.glassesStyle==='none'?'':colours('frame','테 색')+sliders([['glassSize','안경 크기'],['glassY','안경 높이']]));
     if(E.tab==='details')s=intro('작은 차이가 만드는 개성','수염, 점, 주근깨를 조합해 보세요.')+choices('stacheStyle','수염 모양')+`<section class="look-section">${check('stubble','까슬까슬한 수염자국')}${check('freckles','주근깨')}${check('mole','얼굴에 점 찍기')}</section>`+(L.mole?sliders([['moleX','점 좌우 위치'],['moleY','점 높이'],['moleSize','점 크기']]):'')+`<p class="look-section-note">수염 색은 머리색을 따라갑니다.</p>`;
     if(E.tab==='clothes'){
@@ -6735,28 +7068,61 @@ const AppearanceEditor=(()=>{
     const shadow=canvasTex(128,128),g=shadow.g,gr=g.createRadialGradient(64,64,8,64,64,61);gr.addColorStop(0,'#3d655260');gr.addColorStop(1,'#3d655200');g.fillStyle=gr;g.fillRect(0,0,128,128);
     const sm=mesh(new THREE.PlaneGeometry(1.3,1.3),new THREE.MeshBasicMaterial({map:shadow.t,transparent:true,depthWrite:false}),E.scene,false);sm.rotation.x=-Math.PI/2;sm.position.y=-.002;
   }
-  function cameraFit(){
+  // 미리보기 카메라.
+  // 예전에는 지금 얼굴·전신 크기에 딱 맞춰 매번 다시 잡아서, 얼굴 길이나 키를 줄이면 카메라가 다가와
+  // 좌우가 넓어지고, 늘리면 물러나 좁아지는 것처럼 보였다.
+  // 지금은 「슬라이더를 끝까지 올렸을 때의 크기」로 틀을 잡는다. 틀은 머리 모양·얼굴형처럼 골라서 바꾸는
+  // 항목과 화면 크기가 바뀔 때만 다시 계산하므로, 슬라이더를 움직이는 동안에는 카메라가 가만히 있다.
+  // tight=true 는 보관함 썸네일용: 예전처럼 지금 얼굴에 딱 맞춘다.
+  let fitFrame=null;
+  function cameraFit(tight=false){
     if(!E.model||!E.w||!E.h)return;
-    const v=E.model,oldYaw=v.root.rotation.y;
+    const v=E.model,L=v.look,R=LOOK_RANGES,oldYaw=v.root.rotation.y;
     v.root.rotation.y=0;v.root.updateMatrixWorld(true);
-    const bounds=new THREE.Box3(),partBox=new THREE.Box3();
-    const target=E.full?v.root:v.headMesh;
-    target.traverseVisible(o=>{
-      if(!o.isMesh||!o.geometry)return;
-      o.geometry.computeBoundingBox();
-      partBox.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld);bounds.union(partBox);
-    });
+    const measure=target=>{
+      const box=new THREE.Box3(),part=new THREE.Box3();
+      target.traverseVisible(o=>{
+        if(!o.isMesh||!o.geometry)return;
+        o.geometry.computeBoundingBox();
+        part.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld);box.union(part);
+      });
+      return box;
+    };
+    const headBox=measure(v.headMesh),bounds=E.full?measure(v.root):headBox;
+    const headY=v.headMesh.getWorldPosition(V3()).y,pivotY=headY-.31;   // 머리는 목 관절에서 .31 위에 있다
     v.root.rotation.y=oldYaw;v.root.updateMatrixWorld(true);
-    if(bounds.isEmpty())return;
-    const center=bounds.getCenter(V3()),size=bounds.getSize(V3());
+    if(bounds.isEmpty()||headBox.isEmpty())return;
     const aspect=E.w/E.h,tan=Math.tan(THREE.MathUtils.degToRad(E.camera.fov/2));
-    // Reserve a little air around the hair/feet; controls now sit below the canvas, not on the face.
-    const insetY=Math.min(18,E.h*.055),insetX=Math.min(18,E.w*.055);
+    const insetY=Math.min(14,E.h*.04),insetX=Math.min(18,E.w*.055);
     const usableY=Math.max(.7,1-2*insetY/E.h),usableX=Math.max(.7,1-2*insetX/E.w);
-    const halfWidth=Math.max(Math.abs(bounds.min.x),Math.abs(bounds.max.x));
-    const distance=bounds.max.z+Math.max(size.y/(2*tan*usableY),halfWidth/(tan*aspect*usableX));
-    E.camera.aspect=aspect;E.camera.position.set(0,center.y,Math.max(.8,distance));
-    E.camera.lookAt(0,center.y,0);E.camera.updateProjectionMatrix();E.camera.updateMatrixWorld();
+    let top,bottom,halfW,front;
+    if(tight){
+      top=bounds.max.y;bottom=bounds.min.y;halfW=Math.max(Math.abs(bounds.min.x),Math.abs(bounds.max.x));front=bounds.max.z;
+    }else{
+      const key=[E.full,E.w,E.h].concat(Object.keys(L).filter(k=>!R[k]&&k!=='name'&&!/^#/.test(String(L[k]))).map(k=>L[k])).join('|');
+      if(!fitFrame||fitFrame.key!==key){
+        // 머리에 붙은 것들은 얼굴 길이·너비와 같은 비율로 늘어나므로, 지금 크기를 슬라이더 최댓값으로 환산한다.
+        const upH=R.headH[1]/L.headH,upW=R.headW[1]/L.headW;
+        const headTop=(headBox.max.y-headY)*upH+.02;
+        const jawUp=(1+.43*(R.jawLength[1]-1))/(1+.43*(L.jawLength-1));   // 턱 길이를 끝까지 늘렸을 때 아래로 더 내려가는 비율
+        const headBottom=Math.max((headY-headBox.min.y)*upH*jawUp,HEAD_R*R.headH[1]*(1+.43*(R.jawLength[1]-1)))+.02;
+        const headWide=Math.max(Math.abs(headBox.min.x),Math.abs(headBox.max.x))*upW*1.07+.02;
+        fitFrame=E.full
+          ?{key,top:pivotY/L.bodyH*R.bodyH[1]+.31+headTop,bottom:-.07,pivotBased:false,
+            halfW:Math.max(headWide,Math.max(Math.abs(bounds.min.x),Math.abs(bounds.max.x))/L.bodyW*R.bodyW[1]+.02)}
+          :{key,top:headTop,bottom:-headBottom,pivotBased:true,halfW:headWide};
+      }
+      const base=fitFrame.pivotBased?headY:0;
+      // 기준 틀은 최댓값으로 잡았으니 보통은 그대로 쓰인다. 틀을 넘는 드문 조합에서만 그만큼 넓힌다.
+      top=Math.max(base+fitFrame.top,bounds.max.y);bottom=Math.min(base+fitFrame.bottom,bounds.min.y);
+      halfW=Math.max(fitFrame.halfW,Math.abs(bounds.min.x),Math.abs(bounds.max.x));
+      // 정수리·턱 끝·귀는 코끝이 아니라 머리 중심 깊이 근처에 있다. 코끝 깊이로 맞추던 여유를 돌려받아 얼굴을 더 크게 보여 준다.
+      front=.12;
+    }
+    const cy=(top+bottom)/2,halfH=(top-bottom)/2;
+    const distance=front+Math.max(halfH/(tan*usableY),halfW/(tan*aspect*usableX));
+    E.camera.aspect=aspect;E.camera.position.set(0,cy,Math.max(.8,distance));
+    E.camera.lookAt(0,cy,0);E.camera.updateProjectionMatrix();E.camera.updateMatrixWorld();
   }
   function resize(){if(!E.isOpen)return;const r=$('#lookStage').getBoundingClientRect();if(!r.width||!r.height)return;E.w=Math.round(r.width);E.h=Math.round(r.height);renderer.setSize(E.w,E.h,false);cameraFit();}
   function previewPose(dt){
@@ -6783,7 +7149,7 @@ const AppearanceEditor=(()=>{
     SFX.unlock();endHug();cancelPointer();stopSocial();clearAttacks();G.attacks=[];G.careAnim=null;handsRoot.children.forEach(o=>o.visible=false);G.hitstop=0;G.slowmo=0;G.shake=0;
     E.draft=clone(G.v.look);E.history=[clone(E.draft)];E.at=0;E.yaw=0;E.full=false;E.expression='neutral';E.time=0;E.drag=null;E.dirty=false;
     $$('.modal:not(#lookModal)').forEach(m=>{m.hidden=true;});
-    initScene();E.model=new Villain(E.draft,E.scene);E.model.state='stand';E.model.root.position.set(0,0,0);
+    initScene();fitFrame=null;E.model=new Villain(E.draft,E.scene);E.model.state='stand';E.model.root.position.set(0,0,0);
     E.isOpen=true;G.editing=true;document.body.classList.add('look-editing');$('#lookModal').hidden=false;$('#lookStage').prepend(canvas);
     $('#lookName').value=E.draft.name;syncZoom();syncHistory();renderTabs();renderControls();
     $$('[data-look-expression]').forEach(b=>{const on=b.dataset.lookExpression===E.expression;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);});
@@ -6803,6 +7169,7 @@ const AppearanceEditor=(()=>{
       if(G.v&&!lying){G.v.root.visible=true;G.v.root.position.set(0,0,0);G.v.root.rotation.set(0,0,0);G.v.state='stand';G.v.stateT=0;G.v.root.updateMatrixWorld(true);}
       setHint();fit();if(lying)updateVillain(G.v,0);updateCamera(.05);scene.updateMatrixWorld(true);renderer.render(scene,camera);updateCareButtons(true);refreshAppearanceButton();$('#appearanceBtn').focus({preventScroll:true});
     }
+    window.__NG2?.afterAppearance(!failed && apply);
     if(failed)say('외모 적용 중 문제가 생겨 게임 화면으로 돌아왔어요.',3);
     else if (apply) {
       SFX.twinkle();
@@ -6811,7 +7178,7 @@ const AppearanceEditor=(()=>{
   }
   function thumbnail(){
     const old={w:E.w,h:E.h,full:E.full,yaw:E.yaw,expression:E.expression};
-    E.full=false;E.yaw=0;E.expression='neutral';E.w=E.h=240;renderer.setSize(240,240,false);cameraFit();previewPose(0);renderer.render(E.scene,E.camera);
+    E.full=false;E.yaw=0;E.expression='neutral';E.w=E.h=240;renderer.setSize(240,240,false);cameraFit(true);previewPose(0);renderer.render(E.scene,E.camera);
     const c=document.createElement('canvas');c.width=c.height=160;c.getContext('2d').drawImage(canvas,0,0,160,160);let img='';try{img=c.toDataURL('image/png');}catch(e){}
     Object.assign(E,old);resize();frame(0);return img;
   }
@@ -6823,7 +7190,7 @@ const AppearanceEditor=(()=>{
     const ok=persistAppearance();selectTab('saved');status(ok?'보관했어요. 카드를 누르면 다시 불러옵니다.':'현재 보관함에 추가했어요. 브라우저가 영구 저장은 막고 있어요.');SFX.ding();
   }
   $('#appearanceBtn').addEventListener('click',open);
-  $('#lookClose').addEventListener('click',()=>close());$('#lookCancel').addEventListener('click',()=>close());$('#lookApply').addEventListener('click',()=>close(true));
+  $('#lookClose').addEventListener('click',()=>close());$('#lookCancel').addEventListener('click',()=>{replaceDraft({...basicLook(),name:E.draft.name});SFX.pop();});$('#lookApply').addEventListener('click',()=>close(true));
   $('#lookUndo').addEventListener('click',()=>undo(-1));$('#lookRedo').addEventListener('click',()=>undo(1));
   $('#lookRandom').addEventListener('click',()=>{const L=randomLook();L.name=E.draft.name;replaceDraft(L);SFX.pop();});
   $('#lookZoom').addEventListener('click',()=>{E.full=!E.full;syncZoom();resize();});
@@ -6838,7 +7205,7 @@ const AppearanceEditor=(()=>{
     let b=e.target.closest('[data-look-choice]');if(b){const key=b.dataset.lookChoice,value=b.dataset.value;changed(key,value);renderControls();$(`[data-look-choice="${key}"][data-value="${value}"]`)?.focus({preventScroll:true});return;}
     b=e.target.closest('[data-look-colour]');if(b){const key=b.dataset.lookColour,value=b.dataset.value;changed(key,value);renderControls();$(`[data-look-colour="${key}"][data-value="${value}"]`)?.focus({preventScroll:true});return;}
     b=e.target.closest('[data-look-step]');if(b){const k=b.dataset.lookStep,r=LOOK_RANGES[k],v=clamp(Number((E.draft[k]+Number(b.dataset.delta)*r[2]).toFixed(4)),r[0],r[1]);changed(k,v);$('#look-range-'+k).value=v;$('#look-out-'+k).textContent=valueLabel(k,v);updateRangeFill();return;}
-    b=e.target.closest('[data-look-load]');if(b){const p=APPEAR.presets.find(x=>x.id===b.dataset.lookLoad);if(p){replaceDraft(p.look);status('불러왔어요. 「이 외모로 적용」을 누르면 바뀝니다.');SFX.pop();}return;}
+    b=e.target.closest('[data-look-load]');if(b){const p=APPEAR.presets.find(x=>x.id===b.dataset.lookLoad);if(p){replaceDraft(p.look);status('불러왔어요. 「이게 바로 나야!」을 누르면 바뀝니다.');SFX.pop();}return;}
     b=e.target.closest('[data-look-delete]');if(b){const p=APPEAR.presets.find(x=>x.id===b.dataset.lookDelete);if(p&&confirm(`「${p.name}」 외모를 보관함에서 삭제할까요?`)){APPEAR.presets=APPEAR.presets.filter(x=>x!==p);const ok=persistAppearance();renderControls();status(ok?'보관함에서 삭제했어요.':'현재 보관함에서 삭제했어요. 브라우저 저장은 차단되어 있어요.');}}
   });
   $('#lookControls').addEventListener('input',e=>{const k=e.target.dataset.lookRange;if(!k)return;changed(k,Number(e.target.value),false);$('#look-out-'+k).textContent=valueLabel(k,E.draft[k]);updateRangeFill();});
@@ -7158,7 +7525,7 @@ window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,startSoci
       const target = V3(a.s * .094, .552, .108);
       const delta = target.clone().sub(start), distance = clamp(delta.length(), .02, .395);
       const axis = delta.normalize();
-      const pole = V3(a.s * .6, -.15, .8);
+      const pole = V3(a.s * .75, -.9, .45);   // 팔꿈치는 아래·바깥: 줄은 목 높이에서 앞·바깥으로 뻗는다
       pole.addScaledVector(axis, -pole.dot(axis)).normalize();
       const elbow = start.clone().addScaledVector(axis, distance / 2)
         .addScaledVector(pole, Math.sqrt(.04 - distance * distance / 4));
@@ -7181,7 +7548,7 @@ window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,startSoci
     r.visible = true; r.quaternion.setFromUnitVectors(V3(0, 1, 0), dir);
     r.position.copy(right).sub(V3(0, .17, 0).applyQuaternion(r.quaternion));
     r.updateMatrixWorld(true);
-    const radius = .087 - q * .005;
+    const radius = (v.neckLocalRadius || .078) * 1.115 - q * .005;   // 목 굵기에 맞춘 고리
     const attach = a => v.torso.localToWorld(V3(Math.sin(a) * radius, .552, Math.cos(a) * radius));
     // 정면과 양옆에 밀착한 곡선, 양손까지의 구간은 직선에 가깝게 유지.
     const begin = attach(1.85), end = attach(-1.85), pts = U.cord.points;
@@ -7193,6 +7560,7 @@ window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,startSoci
       pts[i].copy(r.worldToLocal(p));
     }
     updateRopeMesh(U.cord, pts);
+    v._ropeFree = [[begin.clone(), right.clone()], [end.clone(), left.clone()]];   // 팔이 피해야 할 줄의 직선 구간
     U.tip.position.copy(r.worldToLocal(left.clone()));
     const away = left.clone().sub(center).normalize();
     const qLeft = new THREE.Quaternion().setFromUnitVectors(V3(0, 1, 0), away);
@@ -7248,6 +7616,7 @@ window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,startSoci
     const P = G.ptr, H = P?.toolHold, v = G.v;
     if (!H || P.kind !== 'ropeHold') return oldEnd.apply(this, arguments);
     RIG.tools.rope.visible = false; RIG.tools.rope.userData.otherHand.visible = false;
+    if (v) v._ropeFree = null;
     if (v && v.state === 'tether') { v.state = 'stand'; v.stateT = 0; }
     P.toolHold = null;
   };
@@ -7319,6 +7688,17 @@ window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,startSoci
     return out;
   };
 
+  window.__SC_HYGIENE = {
+    level(v) { const s=state(v); return Math.max(s.wet,s.dirt); },
+    wash(v, amount) {
+      const s=state(v),a=Math.max(0,Number(amount)||0);
+      s.peed=s.soiled=false;s.peeT=s.soilT=s.peeAcc=s.soilAcc=0;
+      s.wet=Math.max(0,s.wet-a);s.dirt=Math.max(0,s.dirt-a);
+      if(s.wet<=.001&&s.dirt<=.001){s.hits=0;clearDrops();}
+      if(s.stains.length)paintStains(v,s);
+      return Math.max(s.wet,s.dirt);
+    }
+  };
   // 기존 pointerdown 다음에 실행: 줄넘기는 누르는 즉시 목 전용 잡기로 전환한다.
   canvas.addEventListener('pointerdown', e => {
     const P = G.ptr;
@@ -7356,7 +7736,7 @@ window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,startSoci
   const VERSION='impact-v2-20260917';
   const CFG={chairSideSpeed:16,wallRebound:.68,floorBounce:5.6,
     fullBatSpeed:27,fullBatCharge:.98,returnSpeed:1.55,
-    crownDent:.080,headDrop:.225,fluidMax:128,brickMax:5};
+    crownDent:.080,headDrop:.225,fluidMax:128,brickMax:16};
   const PI=Math.PI,TAU=PI*2;
   let held=null,action=null,activeActor=null,throwCooldown=0;
   const Q=()=>new THREE.Quaternion();
@@ -7690,8 +8070,23 @@ function updateHomerun(v, m, dt) {
     for(const x of [-.073,0,.073])mesh(holeGeo,brickEdge,g,false).position.set(x,.061,0);
     return g;
   }
-  const brickRig=new THREE.Group(),brickVisual=brickModel(),brickHand=buildFist(false);
-  brickRig.add(brickVisual,brickHand);brickHand.scale.setScalar(.75);brickHand.position.set(.04,-.075,.025);brickHand.rotation.set(.2,0,-.65);
+  const brickRig=new THREE.Group(),brickVisual=brickModel(),brickHand=new THREE.Group();
+  // Palm supports the underside; four fingers curl up the near edge, thumb opposes them.
+  const palm=mesh(new THREE.SphereGeometry(.083,16,12),mySkin,brickHand);
+  palm.scale.set(1,.38,.8);palm.position.set(0,-.086,.006);
+  for(let i=0;i<4;i++){
+    const x=-.076+i*.049;
+    const lower=mesh(capsuleGeo(.018,.057),mySkin,brickHand);
+    lower.rotation.x=PI/2;lower.position.set(x,-.086,.051);
+    const curl=mesh(capsuleGeo(.018,.040),mySkin,brickHand);
+    curl.position.set(x,-.044,.081);curl.rotation.x=-.18;
+    const tip=mesh(new THREE.SphereGeometry(.018,10,8),mySkin,brickHand);
+    tip.position.set(x,-.008,.073);
+  }
+  const thumb=mesh(capsuleGeo(.023,.066),mySkin,brickHand);
+  thumb.position.set(.135,-.037,-.015);thumb.rotation.set(.10,0,-.28);
+  buildSleeve(brickHand,V3(.13,-.35,1).normalize(),1.8);
+  brickRig.add(brickVisual,brickHand);
   brickRig.userData={kind:'brick',L:.06,c:.08,head:brickVisual};brickRig.visible=false;handsRoot.add(brickRig);RIG.tools.brick=brickRig;
   TOOL_SPEC.brick={power:1.95,contact:.16,dur:.42,dwell:.02,recovery:.16};TOOLPOW.brick=1.95;
   TOOLPOP.brick=['빠각!','퍽!'];POP_COLORS.brick='#efab75';
@@ -7699,13 +8094,17 @@ function updateHomerun(v, m, dt) {
   SFX.chair=(pan=0,p=1)=>SFX.chairCrash?.(pan,p);
   const projectiles=[];
   const projectileRay=new THREE.Raycaster();
-  function releaseBrick(h){
-    if(projectiles.length>=CFG.brickMax)return;
-    const g=brickModel();g.position.copy(brickRig.position);g.quaternion.copy(brickRig.quaternion);scene.add(g);
-    const picked=pick3D(h.x,h.y),target=picked?hitWorld(picked):planePoint(h.x,h.y,0);
-    const diff=target.clone().sub(g.position),time=clamp(diff.length()/12,.13,.38),vel=diff.divideScalar(time);vel.y+=4*time;
+  function releaseBrick(h,shot=null){
+    if(projectiles.length>=CFG.brickMax){
+      const resting=projectiles.findIndex(p=>p.rest);
+      const i=resting<0?0:resting;
+      scene.remove(projectiles[i].g);projectiles.splice(i,1);
+    }
+    const g=brickModel();g.position.copy(shot?shot.launch:brickRig.position);g.quaternion.copy(brickRig.quaternion);scene.add(g);
+    const picked=pick3D(h.x,h.y),target=shot?shot.target:(picked?hitWorld(picked):planePoint(h.x,h.y,0));
+    const diff=target.clone().sub(g.position),time=clamp(diff.length()/24,.055,.16),vel=diff.divideScalar(time);vel.y+=4*time;
     projectiles.push({g,vel,age:0,hit:false,rest:false,owner:G.v,spin:V3(8,3,-5),radius:.09});
-    throwCooldown=.32;event('brick-release');SFX.whoosh(.25,true);
+    throwCooldown=.06;event('brick-release');SFX.whoosh(.25,true);
   }
   function updateBricks(dt){
     for(let i=projectiles.length-1;i>=0;i--){
@@ -7722,7 +8121,8 @@ function updateHomerun(v, m, dt) {
           if(hit){
             p.hit=true;const v=G.v,normal=hit.face?hit.face.normal.clone().transformDirection(hit.object.matrixWorld):segment.clone().negate().normalize();
             const part=hit.object.userData.part||'body';
-            applyHit({kind:'bonk',tool:'brick',point:hit.point.clone(),normal,force:p.vel.clone().normalize(),power:1.95,side:Math.sign(p.vel.x)||1,part,dir:['head','nose'].includes(part)?v.localDir(hit.point):null});
+            const landed=applyHit({kind:'bonk',tool:'brick',point:hit.point.clone(),normal,force:p.vel.clone().normalize(),power:1.95,side:Math.sign(p.vel.x)||1,part,dir:['head','nose'].includes(part)?v.localDir(hit.point):null});
+            if(landed===false){p.g.position.copy(end);continue;}
             p.g.position.copy(hit.point).addScaledVector(normal,p.radius+.02);p.vel.reflect(normal).multiplyScalar(.25);p.vel.y=Math.max(1.2,p.vel.y);
             puff(hit.point,5,.25);event('brick-hit',{part});break;
           }
@@ -7752,7 +8152,10 @@ function updateHomerun(v, m, dt) {
     const p=planePoint(h.x,h.y,.82);p.x=clamp(p.x,-frameHalfWidth()*.8,frameHalfWidth()*.8);p.y=clamp(p.y,.52,2.35);
     if(h.tool==='chair'){
       r.position.copy(p).add(V3(0,-.25,.02));r.quaternion.setFromEuler(new THREE.Euler(-.08,-PI/2,.25*clamp((h.x-h.x0)/150,-1,1)));
-    }else{r.position.copy(p);r.rotation.set(-.25,-.25,Math.sin(G.time*2)*.015);}
+    }else{
+      const path=ngThrowPath(h.info?hitWorld(h.info):planePoint(h.x,h.y,0));
+      r.position.copy(path.from);r.rotation.set(-.30,-.30,.12);
+    }
     r.visible=true;
   }
   function chairSwing(h,dx,dy){
@@ -7775,9 +8178,10 @@ function updateHomerun(v, m, dt) {
     if(!alive(a.v)||G.mode!=='hit'||G.tool!==(a.type==='chair'?'chair':'brick')){a.r.visible=false;action=null;return;}
     a.t+=dt;
     if(a.type==='throw'){
-      const u=clamp(a.t/.30,0,1);a.r.visible=true;a.r.position.copy(a.start).lerp(a.end,Math.sin(u*PI)*.45);
-      a.r.userData.head.visible=false;
-      if(u>=1){a.r.userData.head.visible=true;a.r.visible=false;action=null;}return;
+      const pose=ngThrowPose(a.shot,a.t);a.r.visible=true;a.r.position.copy(pose.p);a.r.rotation.copy(pose.rotation);
+      if(!a.released&&a.t>=NG4_THROW_RELEASE){releaseBrick(a.h,a.shot);a.released=true;}
+      a.r.userData.head.visible=!a.released;
+      if(a.t>=.46){a.r.userData.head.visible=true;a.r.visible=false;action=null;}return;
     }
     const r=a.r,c=a.contact;let p,q;
     if(a.t<.065){const u=easeOut(a.t/.065);p=a.start.clone().lerp(a.wind,u);q=a.startQ.clone().slerp(a.windQ,u);}
@@ -7798,14 +8202,14 @@ function updateHomerun(v, m, dt) {
     if (document.querySelector('.modal:not([hidden])')) return;
     stopEvent(e);
 
-if (
-  held ||
-  action ||
-  !G.v ||
-  !['stand', 'down'].includes(G.v.state) ||
-  G.attacks.length ||
-  throwCooldown > 0
-) return;
+if (held || !G.v || !['stand','down'].includes(G.v.state) || G.attacks.length) return;
+if (action && !(G.tool==='brick' && action.type==='throw')) return;
+if (G.tool!=='brick' && throwCooldown>0) return;
+if (G.tool==='brick') {
+  // Fast re-touches never swallow the previous pending throw.
+  if(action?.type==='throw'&&!action.released)releaseBrick(action.h,action.shot);
+  action=null;throwCooldown=0;brickVisual.visible=true;
+}
     SFX.unlock();cancelPointer();stopSocial();
     const info=pick3D(e.clientX,e.clientY);
     held={id:e.pointerId,tool:G.tool,v:G.v,x0:e.clientX,y0:e.clientY,x:e.clientX,y:e.clientY,info,
@@ -7829,7 +8233,8 @@ if (
       const dx=Math.hypot(rx,ry)>30?rx:h.x-h.x0,dy=Math.hypot(rx,ry)>30?ry:h.y-h.y0;
       if(!chairSwing(h,dx,dy))RIG.tools.chair.visible=false;
     }else{
-      releaseBrick(h);action={type:'throw',v:h.v,r:brickRig,t:0,start:brickRig.position.clone(),end:planePoint(h.x,h.y,.1)};
+      const picked=pick3D(h.x,h.y),target=picked?hitWorld(picked):planePoint(h.x,h.y,0);
+      action={type:'throw',v:h.v,r:brickRig,t:0,h,shot:ngThrowPath(target),released:false};
     }
   },true);
   const cancelled=e=>{if(held&&held.id===e.pointerId){stopEvent(e);cancelHeld();}};
@@ -8117,7 +8522,7 @@ if (
   };
 
   const SHOW_MS = 1700;  // 말풍선 최소 표시 시간(긴 말은 글자 수만큼 더 오래)
-  const GAP_MS = 900;    // 말풍선이 사라진 뒤 다음 말까지 쉬는 시간
+  const GAP_MS = 250;    // 말풍선이 사라진 뒤 다음 말까지 쉬는 시간
   const PAIR_SEC = 4;    // 독백이 뜬 뒤 이 시간 안에 때려야 받아친다
 
   const dock = document.querySelector('.dock');
@@ -8149,11 +8554,7 @@ if (
     lastLine = '';
   }
 
-  const pickFrom = list => {
-    const pool = list.filter(s => s && s !== lastLine);
-    const from = pool.length ? pool : list;
-    return from[Math.floor(Math.random() * from.length)];
-  };
+  const pickFrom = list => chooseDialogue(list,'player');
 
   function say() {
     // 달래기·외모 편집·설정창에서는 욕하지 않는다.
@@ -8166,12 +8567,13 @@ if (
     ) return;
 
     const now = performance.now();
-    if (now < nextAt) return;
-
     const whine = G.lastWhine;
+    const paired = !!(whine && !whine.used && G.time - whine.t < PAIR_SEC && RETORTS[whine.text]);
+    if (now < nextAt && !paired) return;
     let line = '';
     if (whine && !whine.used && G.time - whine.t < PAIR_SEC && RETORTS[whine.text]) {
-      line = RETORTS[whine.text];
+      const candidate=RETORTS[whine.text];
+      if(!RECENT_DIALOGUE.player.includes(candidate))line=candidate;
       whine.used = true;
     }
     if (!line) line = pickFrom(LINES) || '야.';
@@ -8180,7 +8582,7 @@ if (
     const ms = Math.min(4200, Math.max(SHOW_MS, 900 + line.length * 85));
     clearTimeout(timer);
     nextAt = now + ms + GAP_MS;
-    lastLine = line;
+    lastLine = line;rememberDialogue('player',line);
     text.textContent = line;
     el.classList.toggle('long', line.length > 16);
     el.hidden = false;
@@ -8346,16 +8748,14 @@ if (
     // 방금 내가 건넨 말에 짝지은 대꾸가 있으면 그걸 먼저 쓴다.
     const said = G.lastCareLine && G.time - G.lastCareLine.t < 8 ? G.lastCareLine.text : '';
     const paired = retorts[said];
-    let gesture, line;
-    if (paired && Math.random() < .75) {
-      gesture = pool.includes(paired[0]) ? paired[0] : pick(pool);
-      line = paired[1];
-    } else {
-      const different = pool.filter(k => k !== v._snubLast);
-      gesture = pick(different.length ? different : pool);
-      const lines = replies[gesture];
-      const otherLines = lines.filter(s => s !== v._snubLine);
-      line = pick(otherLines.length ? otherLines : lines);
+    let gesture,line;
+    if(paired&&!RECENT_DIALOGUE.character.includes(paired[1])&&Math.random()<.75){
+      gesture=pool.includes(paired[0])?paired[0]:pick(pool);line=paired[1];
+    }else{
+      const options=pool.flatMap(gesture=>replies[gesture].map(line=>({gesture,line})));
+      const allowed=dialogueCandidates(options.map(x=>x.line),'character');
+      const fresh=options.filter(x=>allowed.includes(x.line)),other=fresh.filter(x=>x.gesture!==v._snubLast);
+      const choice=pick(other.length?other:fresh);gesture=choice.gesture;line=choice.line;
     }
 
     v._snubLast = gesture;
@@ -8369,7 +8769,7 @@ if (
       flip: gesture === 'flip',
       fired: false,
       t: 0,
-      delay: CARE_REPLY_DELAY[group] ?? 1.3
+      delay: careReplyDelay(group)
     };
 
     if (G.social) G.social.noEcho = true;
@@ -8391,17 +8791,11 @@ if (
 
     const a = G.social;
 
-    // 내가 박수 치는 동안에는 기다렸다가,
-    // 멈춘 뒤에 띠꺼운 반응을 한다.
-    if (
-      r.group === 'clap' && !r.fired && a?.kind === 'clap' &&
-      (a.clapT < .32 || a.queued > 0 || a.t - a.lastBeat < .6)
-    ) {
-      r.t = 0;
-      return;
-    }
+    // Continue the reply clock during clapping; repeated claps never reset it.
 
     r.t += dt;
+    // A local spoken player line finishes first; otherwise leave a short beat after the caption appears.
+    if(!r.fired&&CareVoice.isSpeaking())r.delay=Math.max(r.delay,r.t+.35);
 
     if (!r.fired && r.t >= r.delay) {
       r.fired = true;
@@ -8775,8 +9169,8 @@ if (
   const sheet = settings.querySelector('.sheet');
   sheet.insertBefore(appearance, sheet.querySelector('.row'));
 
-  appearance.querySelector('.label').textContent = '외모 다시 바꾸기';
-  appearance.setAttribute('aria-label', '외모 다시 바꾸기');
+  appearance.querySelector('.label').textContent = '나를 다시 떠올리기';
+  appearance.setAttribute('aria-label', '나를 다시 떠올리기');
 
   // 외모 편집기를 열기 전에 설정창부터 닫는다.
   appearance.addEventListener('click', () => {
@@ -8837,9 +9231,7 @@ if (
     const result = oldHint.apply(this, arguments);
 
     if (key() !== selected) {
-      if (seen.has(key())) { selected = key(); hideHelp(); }
-      // 편집기·설정창에 가려 못 띄운 경우에는 '봤음'으로 치지 않고 다음 기회에 다시 띄운다.
-      else if (showHelp()) { selected = key(); seen.add(selected); }
+      if (showHelp()) { selected = key(); seen.add(selected); }
       // 내 말풍선이 떠 있어 못 띄웠으면, 말풍선이 사라질 즈음 한 번 더 시도한다.
       else if (myWordsShown()) {
         const want = key();
@@ -8902,7 +9294,7 @@ if (
       G.mode === 'care' &&
       G.v?.state === 'stand' &&
       P.rubbing &&
-      ['pet','wipe'].includes(P.kind)
+      ['pet','wipe','stroke'].includes(P.kind)
     ) {
       SFX.rubStroke?.(
         Math.hypot(sx, sy),
@@ -9191,6 +9583,7 @@ if (
       .lerp(camRest(1, -.9), out);
 
     orient(h, n.clone().negate(), w);
+    keepHandOffNose(h, a.v, n);   // 코가 손바닥을 뚫고 나오지 않게
 
     cream.visible = a.t > .20 && a.t < .78;
     cream.position.copy(p).addScaledVector(n, .012);
@@ -9638,10 +10031,11 @@ function pose(v,f) {
 }
 
   // 선 채로 무릎을 접어 주저앉는 정도(0~1). 체어샷 내려찍기에서 쓴다.
-  function squat(v,amount) {
+  // deep(0~1): 허벅지를 수평까지 올리고 무릎을 끝까지 접어 엉덩이를 발뒤꿈치 가까이 내린다(바닥의 음식을 주울 때).
+  function squat(v,amount,deep=0) {
     const f=ensure(v);
     if(f.phase!=='stand')return;
-    amount=clamp01(amount);
+    amount=clamp01(amount);deep=clamp01(deep);
     if(amount<=0&&!(f.squat>0))return;
     if(!f.legs)prepareLegs(v,f);
     if(!(f.squat>0)) {
@@ -9650,7 +10044,7 @@ function pose(v,f) {
       f.standFloor=floorY(v,f);
     }
     f.squat=amount;
-    for(const r of f.legs){r.leg.rotation.x=-1.2*amount;bendLeg(r,2.25*amount);}
+    for(const r of f.legs){r.leg.rotation.x=-(1.2+.34*deep)*amount;bendLeg(r,(2.25+.5*deep)*amount);}
     // 다리가 접힌 만큼 몸을 내려 발이 바닥에 붙어 있게 한다.
     v.root.position.y=0;
     v.root.position.y=f.standFloor-floorY(v,f);
@@ -9674,7 +10068,7 @@ function pose(v,f) {
   function tremble(v,f,dt) {
     const eligible=G.mode==='hit' && v.state==='stand' && !special(v) &&
       !G.social && !G.hug && !G.ptr?.grab && !G.ptr?.toolHold;
-    const want=eligible?clamp01((v.damage-CFG.shakeAt)/(CFG.fullShakeAt-CFG.shakeAt)):0;
+    const want=eligible?clamp01((marshmallowFatigue(v)-CFG.shakeAt)/(CFG.fullShakeAt-CFG.shakeAt)):0;
     f.shake=mix(f.shake,want,1-Math.exp(-dt*4));
     if(!eligible||f.shake<0.001)return;
     const t=G.time,k=f.shake*CFG.shakeScale;
@@ -9987,16 +10381,985 @@ if (marshmallowButton) {
   document.addEventListener('click', e => { if (e.target.closest?.('.mode')) window.__syncToolScroll(); });
 })();
 
+/* NG4 shared helpers: no extra network, storage, dialogue text, or global damage scale. */
+const NG4_THROW_RELEASE=.18;
+function ngThrowPath(target){
+  const dock=$('.dock').getBoundingClientRect(),top=$('#settingsBtn').getBoundingClientRect().bottom;
+  const from=planePoint(innerWidth*.82,Math.max(top+95,Math.min(innerHeight*.64,dock.top-35)),1.12);
+  const launch=planePoint(innerWidth*.66,Math.max(top+105,Math.min(innerHeight*.39,dock.top-130)),.76);
+  const wind=launch.clone().add(V3(.20,.22,.40));
+  const direction=target.clone().sub(launch).normalize();
+  const follow=launch.clone().addScaledVector(direction,.48).add(V3(-.18,-.24,.015));
+  return {from,wind,launch,follow,target:target.clone()};
+}
+function ngThrowPose(a,t){
+  const p=V3(),rotation=new THREE.Euler();
+  if(t<.095){
+    const u=ease(clamp(t/.095,0,1));p.copy(a.from).lerp(a.wind,u);
+    rotation.set(lerp(-.3,-1.65,u),lerp(-.25,-.48,u),lerp(.14,.50,u));
+  }else if(t<NG4_THROW_RELEASE){
+    const u=easeIn(clamp((t-.095)/(NG4_THROW_RELEASE-.095),0,1));p.copy(a.wind).lerp(a.launch,u);
+    rotation.set(lerp(-1.65,.32,u),lerp(-.48,.16,u),lerp(.50,-.28,u));
+  }else if(t<.28){
+    const u=easeOut(clamp((t-NG4_THROW_RELEASE)/(.28-NG4_THROW_RELEASE),0,1));p.copy(a.launch).lerp(a.follow,u);
+    rotation.set(lerp(.32,1.0,u),.16,lerp(-.28,-.65,u));
+  }else{
+    const u=ease(clamp((t-.28)/.18,0,1));p.copy(a.follow).lerp(a.from,u);
+    rotation.set(lerp(1,-.3,u),lerp(.16,-.25,u),lerp(-.65,.14,u));
+  }
+  return {p,rotation};
+}
+const ngHelpState=new WeakMap();
+function ngSetItemHelp(el,text,force=false){
+  let a=ngHelpState.get(el);
+  if(!a){
+    el.innerHTML='<span class="ng-help-icon" aria-hidden="true">ⓘ</span><div class="ng-help-viewport" tabindex="0"><span class="ng-help-text"></span></div>';
+    a={view:el.querySelector('.ng-help-viewport'),span:el.querySelector('.ng-help-text'),animation:null,text:'',width:-1,raf:0};ngHelpState.set(el,a);
+    const pause=()=>{if(a.animation)a.animation.playState==='paused'?a.animation.play():a.animation.pause();};
+    a.view.addEventListener('click',pause);a.view.addEventListener('keydown',e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();pause();}});
+    if(window.ResizeObserver)new ResizeObserver(()=>{if(a.width!==a.view.clientWidth)measure();}).observe(a.view);
+    a.measure=measure;
+    function measure(){
+      cancelAnimationFrame(a.raf);a.raf=requestAnimationFrame(()=>{
+        a.animation?.cancel();a.animation=null;a.span.style.transform='';a.width=a.view.clientWidth;
+        const distance=Math.max(0,a.span.scrollWidth-a.view.clientWidth);
+        el.classList.toggle('scrolling',distance>3);
+        if(distance<=3||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+        const start=1300,end=1400,travel=distance/35*1000,total=start+travel+end;
+        a.animation=a.span.animate([
+          {transform:'translateX(0)',offset:0},
+          {transform:'translateX(0)',offset:start/total},
+          {transform:`translateX(${-distance}px)`,offset:(start+travel)/total},
+          {transform:`translateX(${-distance}px)`,offset:1}
+        ],{duration:total,iterations:Infinity,easing:'linear'});
+      });
+    }
+  }
+  if(a.text===text&&!force)return;
+  a.text=text;a.span.textContent=text;el.setAttribute('aria-label',text);a.view.setAttribute('aria-label',text);
+  el.classList.remove('changed');requestAnimationFrame(()=>el.classList.add('changed'));a.measure();
+}
+let ngHugArms=null;
+function ngEndHugPose(){
+  if(ngHugArms)ngHugArms.visible=false;
+  for(const h of RIG.open){
+    if(!h.userData.ngHugPalm)continue;
+    h.userData.ngHugPalm=false;h.traverse(o=>{if(o.userData.ngSleeve)o.visible=true;});
+  }
+}
+function ngPoseHug(v,dt){
+  const core=v._bodyCloth?.core||v.torso;
+  if(!ngHugArms){
+    ngHugArms=new THREE.Group();ngHugArms.name='ng4-wrap-around-back';ngHugArms.userData.ngHugArms=true;
+    ngHugArms.userData.arms=[];
+    const geo=new THREE.CylinderGeometry(1,1,1,12);
+    for(let i=0;i<2;i++){
+      const bones=[];
+      for(let j=0;j<3;j++){const m=mesh(geo,j===2?cuffMat:sleeveMat,ngHugArms);bones.push(m);}
+      ngHugArms.userData.arms.push(bones);
+    }
+    handsRoot.add(ngHugArms);
+  }
+  ngHugArms.visible=true;v.root.updateMatrixWorld(true);
+  core.geometry?.computeBoundingBox();const b=core.geometry?.boundingBox;
+  const rx=b?Math.max(Math.abs(b.min.x),Math.abs(b.max.x)):.24,rz=b?Math.max(Math.abs(b.min.z),Math.abs(b.max.z)):.18;
+  const y=b?lerp(b.min.y,b.max.y,.64):.32;
+  const u=ease(clamp(v.stateT/.34,0,1));
+  for(let i=0;i<2;i++){
+    const side=i?1:-1,h=RIG.open[i],pat=Math.sin(G.time*1.8+i)*.006;
+    const localPoints=[
+      V3(side*(rx+.43),y-.28,rz+.78),
+      V3(side*(rx+.19),y-.03,rz+.03),
+      V3(side*(rx+.13),y+pat,-rz-.085),
+      V3(side*(rx*.64),y+.025+pat,-rz-.085)
+    ];
+    // Reach around the outside first. The palm never crosses the chest.
+    localPoints[3].lerpVectors(V3(side*(rx+.16),y+.025,rz+.12),localPoints[3],u);
+    if(u<.6)localPoints[3].x=side*(rx+.16);
+    const points=localPoints.map(p=>core.localToWorld(p));
+    h.visible=true;h.userData.ngHugPalm=true;h.traverse(o=>{if(o.userData.ngSleeve)o.visible=false;});
+    h.position.copy(points[3]);
+    const f=V3(0,0,1).transformDirection(core.matrixWorld),up=V3(-side*.28,1,0).transformDirection(core.matrixWorld);
+    orient(h,f,up);
+    const bones=ngHugArms.userData.arms[i];
+    for(let j=0;j<3;j++){
+      const d=points[j+1].clone().sub(points[j]),m=bones[j];m.position.copy(points[j]).add(points[j+1]).multiplyScalar(.5);
+      m.quaternion.setFromUnitVectors(V3(0,1,0),d.clone().normalize());const r=j===2?.043:.056;
+      m.scale.set(r,Math.max(.001,d.length()),r);
+    }
+  }
+}
+
+/* NG3 — name-first intro, food selection/impact, bounded stains and pressure-water effects.
+   No analytics, identity requests, network save, or remote text-to-speech.
+   All additional particle/food pools are bounded and own their cleanup. */
+(() => {
+  'use strict';
+  if(window.__NG2)return;
+  const CFG=Object.freeze({dodgeHealthy:.30,foodMax:16,foodRecovery:14,careRecovery:8,
+    petPerSecond:6,hugPerSecond:9,washSeconds:3.2,waterCount:256,sparkCount:20,foodStainMax:32,foodCrumbMax:80});
+  const NAME_KEY='self-cultivation.identity.v1';
+  const intro=$('#ngIntro'),nameForm=$('#ngNameForm'),nameInput=$('#ngNameInput');
+  let introStage='name',ready=false,owner=null,auxPointer=null,eating=null,dodge=null;
+  let poseSnapshot=null,careHealAt=-100,petTalkAt=-100,clapTalkAt=-100,foodSerial=0;
+  let cleanTime=0,sparkTime=0,lastMode=G.mode,foodChoice=0,foodRecoil=null,throwMotion=null;
+  const stats={foodThrown:0,foodImpacts:0,foodLanded:0,foodEaten:0,waterEmitted:0,openingLines:0};
+  const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const auxMode=()=>G.mode==='feed'||G.mode==='wash';
+  const blocked=()=>G.editing||G.ngIntro||document.hidden||!!document.querySelector('.modal:not([hidden])');
+  const attached=o=>{for(let a=o;a;a=a.parent)if(!a.visible)return false;return true;};
+  const normName=s=>Array.from(String(s||'').replace(/[\u0000-\u001f\u007f]/g,'').trim()).slice(0,12).join('');
+  function saveName(name){
+    // Do not put identity in URL, logging, speech, fetch, cookies, or a server.
+    let ok=true;try{localStorage.setItem(NAME_KEY,JSON.stringify({name}));}catch(_){ok=false;}
+    return ok;
+  }
+  function clearDialogue(){
+    G.lastWhine=null;G.react=null;G.lastCareLine=null;G.careCaptionUntil=0;
+    window.__SC_PLAYER_BUBBLE_V1?.reset();CareVoice.stop();
+    $('#careCaption').hidden=true;BUB.text='';bubble.classList.remove('show');
+    if(G.v){G.v.mouth.talk=0;G.v._characterLineUntil=0;G.v._mutterLeft=4;}
+  }
+  function beginIntro(){
+    ready=true;G.ngIntro=true;introStage='name';
+    document.body.classList.add('ng-intro');intro.hidden=false;
+    nameForm.hidden=false;$('#ngReveal').hidden=true;
+    let saved='';try{saved=JSON.parse(localStorage.getItem(NAME_KEY)||'null')?.name||'';}catch(_){}
+    nameInput.value=normName(saved||G.v?.look.name||'');
+    $('#ngNameNext').disabled=false;$('#ngNameNext').textContent='나를 떠올리기';
+    clearDialogue();if(G.v){G.v.state='stand';G.v.stateT=0;G.v.root.position.set(0,0,0);}
+    $('#ngNameHeading').setAttribute('tabindex','-1');$('#ngNameHeading').focus({preventScroll:true});
+  }
+  nameForm.addEventListener('submit',e=>{
+    e.preventDefault();if(!ready||introStage!=='name'||!G.v)return;
+    const name=normName(nameInput.value)||'나';
+    G.v.applyLook({...G.v.look,name});APPEAR.look={...G.v.look};
+    const saved=saveName(name)&&persistAppearance();
+    $('#ngStorageInfo').textContent=saved
+      ?'이름·외모·추가 대사는 이 브라우저에만 보관합니다. 서버 저장은 하지 않습니다.'
+      :'브라우저가 저장을 막고 있어요. 이름은 현재 화면에서만 사용하며 서버로 전송하지 않습니다.';
+    introStage='appearance';intro.hidden=true;AppearanceEditor.open();
+    if(!AppearanceEditor.isOpen){introStage='name';intro.hidden=false;}
+  });
+  function afterAppearance(){
+    if(introStage!=='appearance'||!G.ngIntro)return;
+    const name=normName(G.v?.look.name)||'나';saveName(name);
+    introStage='reveal';intro.hidden=false;nameForm.hidden=true;$('#ngReveal').hidden=false;
+    intro.setAttribute('aria-labelledby','ngGameTitle');$('#ngIdentity').textContent=name;
+    clearDialogue();$('#ngPlay').focus({preventScroll:true});
+  }
+  $('#ngPlay').addEventListener('click',()=>{
+    introStage='done';G.ngIntro=false;intro.hidden=true;document.body.classList.remove('ng-intro');
+    clearDialogue();G.lastAct=G.time;G.lastSay=G.time;lastT=performance.now();fit();setHint();
+    if(G.v){speak('', '', undefined, true);stats.openingLines++;}
+  });
+
+  /* Keep the eight-item grid intact; feeding and washing are mode buttons. */
+  const modes=$('.modes');
+  for(const [mode,label] of [['feed','나 먹이기'],['wash','나 씻기기']]){
+    const b=document.createElement('button');b.className='mode';b.dataset.mode=mode;
+    b.textContent=label;b.setAttribute('aria-pressed','false');modes.append(b);
+    b.addEventListener('click',()=>{
+      if(G.mode===mode){showItemHelp();return;}
+      cancelAux();cancelPointer();endHug();stopSocial();clearAttacks();SFX.unlock();
+      G.mode=mode;clearDialogue();renderMode();setHint();
+    });
+  }
+  const itemHelp=document.createElement('div');itemHelp.id='ngItemHelp';itemHelp.setAttribute('role','status');
+  itemHelp.setAttribute('aria-live','polite');modes.after(itemHelp);
+  const auxPanel=document.createElement('div');auxPanel.id='ngAuxPanel';auxPanel.hidden=true;
+  auxPanel.innerHTML='<span class="ng-action-icon" aria-hidden="true">🚿</span><p></p><progress id="ngCleanProgress" max="1" value="0" aria-label="씻기기 진행" hidden></progress>';
+  const FOOD_MENU=Object.freeze([
+    {name:'사과',icon:'🍎',stain:'#d97540'}, {name:'주먹밥',icon:'🍙',stain:'#d2c29b'},
+    {name:'도넛',icon:'🍩',stain:'#bf745a'}, {name:'빵',icon:'🍞',stain:'#ba814d'},
+    {name:'달걀',icon:'🍳',stain:'#f0bb25'}, {name:'바나나',icon:'🍌',stain:'#d9b63f'},
+    {name:'토마토',icon:'🍅',stain:'#de612d'}, {name:'케이크',icon:'🍰',stain:'#e69ba9'}
+  ]);
+  const feedTools=document.createElement('div');feedTools.id='ngFeedTools';feedTools.className='tools';
+  feedTools.hidden=true;feedTools.setAttribute('role','group');feedTools.setAttribute('aria-label','먹일 음식 고르기');
+  for(const [i,item] of FOOD_MENU.entries()){
+    const b=document.createElement('button');b.className='tool'+(i===0?' on':'');b.dataset.food=String(i);
+    b.setAttribute('aria-pressed',String(i===0));b.setAttribute('aria-label',item.name);
+    b.innerHTML='<span class="ng-food-icon" aria-hidden="true">'+item.icon+'</span><span>'+item.name+'</span>';
+    b.addEventListener('click',()=>{foodChoice=i;for(const a of feedTools.children){const on=a===b;a.classList.toggle('on',on);a.setAttribute('aria-pressed',String(on));}showItemHelp();});
+    feedTools.append(b);
+  }
+  $('.panel').append(feedTools);
+  $('.panel').append(auxPanel);
+  const help={
+    hit:{
+      hand:'톡: 잽 · 좌우로 쓸기: 훅 · 좌우로 왕복: 연속 따귀 · 위로 쓸기: 어퍼컷 · 아래로 쓸기: 내려치기 · 이마를 꾹: 딱밤 · 볼·코를 꾹 누르고 당기기: 얼굴 잡기 · 몸통을 꾹 잡고 움직이기: 들어 올리기·흔들기·바닥에 내려치기',
+      rope:'캐릭터를 누른 채 드래그: 목에 줄을 걸어 당기기 · 더 멀리 당길수록 팽팽해집니다 · 손을 놓으면 풀립니다',
+      brick:'톡톡: 팔을 뒤로 젖혔다가 연속 투척 · 누른 채 겨냥한 뒤 놓아도 됩니다 · 맞은 벽돌은 튕겨 바닥에 떨어집니다',
+      hammer:'톡: 내려치기 · 옆으로 쓸기: 후려치기 · 위로 쓸기: 올려치기 · 좌우로 왕복하면 연속 공격',
+      pan:'톡: 무거운 내려치기 · 좌우로 쓸기: 스테인팬 휘두르기 · 위로 쓸기: 올려치기 · 빠른 스윙과 연속 공격 가능',
+      bat:'톡: 짧은 스윙 · 좌우로 쓸기: 후려치기 · 위로 쓸기: 올려치기 · 꾹 눌러 끝까지 힘을 모은 뒤 놓기: 풀차지 스윙',
+      chair:'누른 채 들어 올려 겨냥하기 · 아래나 옆으로 휘두르며 놓기: 의자 공격 · 위로 들기만 하면 공격하지 않습니다',
+      tissue:'얼굴에 톡: 마시멜로를 먹입니다 · 체력은 회복되지만 멍·빠진 이는 따로 치료해야 합니다'
+    },
+    care:{hand:'짧게 톡: 토닥토닥 · 누른 채 머리·얼굴·몸을 움직이며 문지르기: 쓰다듬기 · 얼굴을 닦으면 눈물·코피도 닦입니다 · 드래그 중에도 대화와 체력 회복',
+      hug:'이 버튼을 꾹 누르는 동안 등을 감싸 안기 · 손을 놓으면 풀기 · 안는 동안 대화와 체력 회복',
+      love:'누르면 손가락 하트와 사랑한다는 말 · 잠시 뒤 캐릭터가 받아칩니다 · 체력 회복',
+      thumb:'누르면 엄지척과 칭찬 한마디 · 잠시 뒤 캐릭터가 받아칩니다 · 체력 회복',
+      clap:'누르는 박자대로 박수 · 화면을 톡톡 눌러도 이어 칩니다 · 박수 중에도 대화와 체력 회복',
+      five:'손을 내밀고 잠시 기다린 뒤 캐릭터 손바닥을 톡: 하이파이브 · 체력 회복',
+      bandage:'다친 곳을 톡톡 눌러 약 바르기 · 여러 번 발라야 완전히 낫습니다 · 멍·상처 치료',
+      comfort:'누를 때마다 위로 한마디 · 잠시 뒤 캐릭터가 받아칩니다 · 체력 회복'
+    }
+  };
+  const hitOrder=['hand','rope','brick','hammer','pan','bat','chair','tissue'];
+  const careOrder=['hand','hug','love','thumb','clap','five','bandage','comfort'];
+  for(const k of hitOrder){const b=$(`[data-tool="${k}"]`);if(b)$('#hitTools').append(b);}
+  for(const k of careOrder){const b=$(`[data-care="${k}"]`);if(b)$('#careTools .care-strip').append(b);}
+  const frames=[];
+  for(const strip of [$('#hitTools'),$('#careTools .care-strip'),feedTools]){
+    const frame=document.createElement('div');frame.className='ng-scroll-frame';
+    strip.before(frame);frame.append(strip);
+    const arrows=[];
+    for(const dir of [-1,1]){
+      const b=document.createElement('button');b.className='ng-scroll-arrow';b.dataset.dir=String(dir);
+      b.textContent=dir<0?'‹':'›';b.setAttribute('aria-label',dir<0?'이전 아이템 보기':'다음 아이템 더 보기');
+      b.addEventListener('click',()=>strip.scrollBy({left:dir*Math.max(120,strip.clientWidth*.65),behavior:reducedMotion?'auto':'smooth'}));
+      frame.append(b);arrows.push(b);
+    }
+    const sync=()=>{
+      const overflow=strip.scrollWidth-strip.clientWidth;
+      arrows[0].hidden=overflow<8||strip.scrollLeft<4;
+      arrows[1].hidden=overflow<8||strip.scrollLeft>overflow-4;
+    };
+    strip.addEventListener('scroll',sync,{passive:true});
+    if(window.ResizeObserver)new ResizeObserver(sync).observe(strip);
+    frames.push({frame,strip,sync});
+  }
+  function renderMode(){
+    $('#hitTools').hidden=G.mode!=='hit';$('#careTools').hidden=G.mode!=='care';
+    frames[0].frame.hidden=G.mode!=='hit';
+    feedTools.hidden=G.mode!=='feed';frames[2].frame.hidden=G.mode!=='feed';
+    auxPanel.hidden=G.mode!=='wash';
+    for(const b of $$('.mode')){const on=b.dataset.mode===G.mode;b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on));}
+    if(auxMode()){
+      auxPanel.querySelector('.ng-action-icon').textContent=G.mode==='feed'?'🍙':'🚿';
+      auxPanel.querySelector('p').textContent=G.mode==='feed'?'음식을 고른 뒤 화면을 톡.':'누른 채 움직여서 씻겨 주세요.';
+      $('#ngCleanProgress').hidden=G.mode!=='wash';
+    }
+    frames.forEach(x=>x.sync());lastMode=G.mode;fit();
+  }
+  function showItemHelp(){
+    const text=auxMode()?(G.mode==='feed'?FOOD_MENU[foodChoice].name+' · 화면을 톡톡 던지기 / 맞고 떨어진 음식을 주워 먹습니다':'화면을 꾹 누르고 움직이기 · 물이 닿은 동안 씻깁니다')
+      :(help[G.mode]?.[G.mode==='hit'?G.tool:(G.hug?'hug':G.care)]||'아이템을 선택해 주세요.');
+    ngSetItemHelp(itemHelp,text,arguments[0]===true);
+  }
+  const originalHint=setHint;
+  setHint=function(){const result=originalHint.apply(this,arguments);showItemHelp();return result;};
+  document.addEventListener('click',e=>{
+    const b=e.target.closest?.('[data-tool],[data-care],[data-food],.mode');if(!b||b.disabled)return;
+    if(b.matches('.mode')){if(lastMode!==G.mode){cancelAux();clearDialogue();}renderMode();}
+    showItemHelp(true);
+  });
+  $('[data-care="hug"]').addEventListener('pointerdown',()=>showItemHelp(true));
+
+  const settings=$('#settingsModal .sheet');
+  const avoid=document.createElement('label');avoid.id='ngAvoidLabel';
+  avoid.innerHTML='<input type="checkbox" id="ngAvoid"><span>나는 회피형이야</span>';
+  $('#settingsBtn').after(avoid);
+  const storage=document.createElement('p');storage.id='ngStorageInfo';
+  storage.textContent='이름·외모·추가 대사는 이 브라우저에만 보관합니다. 서버 저장은 하지 않습니다.';
+  const sounds=document.createElement('details');sounds.id='ngSoundGuide';
+  sounds.innerHTML='<summary>효과음은 무슨 뜻인가요?</summary><p>퍽·짝: 주먹과 손바닥 타격<br>깡·텅: 금속 도구 타격<br>짤랑: 안경 파손 / 짧은 딩: 이빨이 빠짐<br>쿵·와장창: 바닥·벽 충돌이나 의자 충격<br>뜨득·까각: 줄을 걸거나 당기는 소리<br>띠링: 힘 모으기 완료<br>반짝: 치료·씻기기 완료</p><p>큰 파열음은 별도의 크리티컬 알림이 아니라 충돌·파손 효과입니다. 일반 타격음은 유지하고 큰 충돌음만 따로 낮췄습니다.</p>';
+  settings.append(sounds,storage);
+  PREF.avoid=!!PREF.avoid;
+  $('#ngAvoid').checked=PREF.avoid;
+  $('#ngAvoid').addEventListener('change',e=>{PREF.avoid=e.target.checked;store.set('badguy.prefs',PREF);});
+
+  /* Stamina is existing damage minus recovery credit. Wounds are not silently healed. */
+  function recover(v,amount){
+    if(!v||!Number.isFinite(amount)||amount<=0)return 0;
+    const raw=Math.max(0,Number(v.damage)||0),before=Math.min(raw,Math.max(0,Number(v._marshmallowCredit)||0));
+    v._marshmallowCredit=Math.min(raw,before+amount);
+    return v._marshmallowCredit-before;
+  }
+  function health(v){return clamp(1-marshmallowFatigue(v)/(window.__SC_FATIGUE_V1?.config.collapseAt||180),0,1);}
+  function dodgeChance(v){return PREF.avoid&&v&&v.state==='stand'?CFG.dodgeHealthy*health(v):0;}
+  const previousHit=applyHit;
+  applyHit=function(h){
+    const v=G.v;
+    const eligible=G.mode==='hit'&&!blocked()&&v&&v.state==='stand'&&!v._impactV2&&!v._slapMotion&&h&&h.tool!=='tissue'&&h.tool!=='ground';
+    if(eligible&&Math.random()<dodgeChance(v)){
+      dodge={v,t:.035,side:Math.random()<.5?-1:1};
+      // Return before every old damage, bruise, tooth, dialogue and impact wrapper.
+      return false;
+    }
+    const hits=v?.st.hits||0,result=previousHit.apply(this,arguments);
+    if(v===G.v&&(v?.st.hits||0)>hits&&h?.tool!=='tissue')v._ngWashProgress=0;
+    return result;
+  };
+  const previousComfort=comfort;
+  comfort=function(amount,key){const out=previousComfort.apply(this,arguments);
+    if(key==='soft'&&G.time-careHealAt>.25){recover(G.v,CFG.careRecovery);careHealAt=G.time;}return out;};
+  const previousSocial=startSocial;
+  startSocial=function(kind){const out=previousSocial.apply(this,arguments);
+    if(G.mode==='care'&&G.social?.kind===kind&&G.time-careHealAt>.45){recover(G.v,CFG.careRecovery);careHealAt=G.time;}return out;};
+  $('#careTalk').addEventListener('click',()=>{if(G.mode==='care'&&G.time-careHealAt>.45){recover(G.v,CFG.careRecovery);careHealAt=G.time;}});
+
+  /* Pose ownership: remove only this controller's last pose before the old update.
+     Never accumulate offsets over time, and never retain an old actor after a rebuild. */
+  function restorePose(){
+    if(!poseSnapshot)return;const a=poseSnapshot;poseSnapshot=null;
+    if(a.v!==G.v||!a.v.root.parent)return;
+    a.v.root.position.copy(a.root);a.v.root.quaternion.copy(a.rootQ);
+    a.v.body.position.copy(a.bodyP);a.v.body.quaternion.copy(a.bodyQ);
+    a.v.torso.position.copy(a.torsoP);a.v.torso.quaternion.copy(a.torsoQ);
+    a.v.headPivot.quaternion.copy(a.headQ);
+    if(a.squatted)window.__SC_LEGS?.squat(a.v,0);
+  }
+  function rememberPose(v){
+    if(poseSnapshot)return;
+    poseSnapshot={v,root:v.root.position.clone(),rootQ:v.root.quaternion.clone(),bodyP:v.body.position.clone(),bodyQ:v.body.quaternion.clone(),
+      torsoP:v.torso.position.clone(),torsoQ:v.torso.quaternion.clone(),headQ:v.headPivot.quaternion.clone(),squatted:false};
+  }
+  function actorHandTo(v,index,world,weight=1){
+    v.root.updateMatrixWorld(true);
+    const p=v.torso.worldToLocal(world.clone());
+    poseCareArm(v,v.armRig[index],p,V3(0,0,1),weight,'open');v.root.updateMatrixWorld(true);
+  }
+  function muteAux(){
+    G.lastWhine=null;G.react=null;BUB.text='';bubble.classList.remove('show');
+    if(G.v){G.v.mouth.talk=0;G.v._mutterLeft=4;}
+  }
+
+  /* NG3 food: choose -> wind-up/throw -> harmless impact -> stain -> flattened
+     floor prop -> reach down and eat. The combat damage path is never called. */
+  const foods=[],templates=[],stains=[],crumbs=[];
+  const foodMats={rice:mat('#fff7dd',{roughness:.9}),nori:mat('#28493a',{roughness:.8}),red:mat('#db5945',{roughness:.6}),
+    bread:mat('#dfa367',{roughness:.8}),brown:mat('#80513a',{roughness:.8}),pink:mat('#efa8b5',{roughness:.55}),yellow:mat('#ffd054',{roughness:.7}),leaf:mat('#54885b',{roughness:.8})};
+  const foodGeo=new THREE.SphereGeometry(1,14,10),foodBox=new THREE.BoxGeometry(1,1,1);
+  function makeFoods(){
+    const ball=(g,m,x,y,z,sx,sy,sz)=>{const o=mesh(foodGeo,m,g);o.position.set(x,y,z);o.scale.set(sx,sy,sz);return o;};
+    let g=new THREE.Group();g.name='사과';ball(g,foodMats.red,0,0,0,.085,.08,.08);
+    let o=mesh(new THREE.CylinderGeometry(.008,.009,.05,7),foodMats.brown,g);o.position.y=.079;
+    ball(g,foodMats.leaf,.025,.095,0,.030,.008,.014);templates.push(g);
+    g=new THREE.Group();g.name='주먹밥';o=mesh(new THREE.ConeGeometry(.105,.155,3),foodMats.rice,g);o.rotation.y=Math.PI;
+    o=mesh(foodBox,foodMats.nori,g);o.position.set(0,-.026,.06);o.scale.set(.069,.07,.014);templates.push(g);
+    g=new THREE.Group();g.name='도넛';o=mesh(new THREE.TorusGeometry(.078,.029,10,22),foodMats.bread,g);o.rotation.x=-Math.PI/2;
+    o=mesh(new THREE.TorusGeometry(.078,.021,8,22),foodMats.pink,g);o.rotation.x=-Math.PI/2;o.position.y=.020;
+    for(let i=0;i<7;i++){const a=i*Math.PI*2/7;ball(g,foodMats.yellow,Math.cos(a)*.077,.043,Math.sin(a)*.077,.007,.003,.004);}templates.push(g);
+    g=new THREE.Group();g.name='빵';ball(g,foodMats.bread,0,0,0,.10,.055,.075);
+    for(let i=-1;i<=1;i++){o=mesh(foodBox,foodMats.rice,g);o.scale.set(.008,.009,.07);o.position.set(i*.038,.05,0);o.rotation.y=.2;}templates.push(g);
+    g=new THREE.Group();g.name='달걀';ball(g,foodMats.rice,0,0,0,.106,.012,.067);ball(g,foodMats.yellow,0,.018,.008,.043,.018,.039);templates.push(g);
+    g=new THREE.Group();g.name='바나나';
+    const arc=[];for(let i=0;i<7;i++){const a=-.7+i*.20;arc.push(V3(Math.sin(a)*.17,Math.cos(a)*.17-.14,0));}
+    o=mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(arc),12,.025,8,false),foodMats.yellow,g);
+    ball(g,foodMats.brown,arc[0].x,arc[0].y,0,.015,.020,.014);templates.push(g);
+    g=new THREE.Group();g.name='토마토';ball(g,foodMats.red,0,0,0,.088,.071,.08);
+    for(let i=0;i<5;i++){const a=i*Math.PI*2/5;o=ball(g,foodMats.leaf,Math.cos(a)*.025,.069,Math.sin(a)*.025,.032,.006,.01);o.rotation.y=-a;}templates.push(g);
+    g=new THREE.Group();g.name='케이크';
+    o=mesh(foodBox,foodMats.bread,g);o.scale.set(.15,.09,.12);
+    o=mesh(foodBox,foodMats.rice,g);o.position.y=.004;o.scale.set(.155,.018,.124);
+    o=mesh(foodBox,foodMats.pink,g);o.position.y=.049;o.scale.set(.16,.022,.13);
+    ball(g,foodMats.rice,0,.075,0,.038,.026,.034);ball(g,foodMats.red,.005,.095,0,.024,.029,.024);templates.push(g);
+    for(const t of templates)t.traverse(o=>{if(o.geometry)o.geometry.userData=Object.assign(o.geometry.userData||{},{shared:true});if(o.material){o.material.userData.shared=true;o.castShadow=true;}});
+  }
+  makeFoods();
+  const foodRay=new THREE.Raycaster(),floorPlane=new THREE.Plane(V3(0,1,0),0);
+  const foodRig=RIG.tools.brick.clone(true);foodRig.name='ng-food-throw-hand';foodRig.userData={ngFoodHand:true};
+  foodRig.children[0].visible=false;foodRig.visible=false;handsRoot.add(foodRig);
+  function aimPoint(x,y){
+    const hit=pick3D(x,y);if(hit)return hitWorld(hit);
+    foodRay.setFromCamera({x:x/innerWidth*2-1,y:1-y/innerHeight*2},camera);
+    const p=foodRay.ray.intersectPlane(floorPlane,V3());
+    if(p&&p.distanceTo(camera.position)<14)return p;
+    return planePoint(x,y,G.v?.root.position.z||0);
+  }
+  const stainTex=canvasTex(128,128);
+  (()=>{const g=stainTex.g;g.clearRect(0,0,128,128);g.fillStyle='rgba(255,255,255,.86)';
+    g.beginPath();for(let i=0;i<30;i++){const a=i*Math.PI*2/30,r=35+Math.sin(i*5.2)*8;const x=64+Math.cos(a)*r,y=64+Math.sin(a)*r;i?g.lineTo(x,y):g.moveTo(x,y);}g.closePath();g.fill();
+    for(let i=0;i<13;i++){const a=i*2.399,r=44+(i%3)*6;g.beginPath();g.ellipse(64+Math.cos(a)*r,64+Math.sin(a)*r,2+i%4,3+i%3,a,0,Math.PI*2);g.fill();}
+    stainTex.t.needsUpdate=true;stainTex.t.userData=Object.assign(stainTex.t.userData||{},{shared:true});})();
+  const stainMats=FOOD_MENU.map(item=>{const m=new THREE.MeshBasicMaterial({map:stainTex.t,color:item.stain,transparent:true,opacity:.92,depthWrite:false,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2});m.userData.shared=true;return m;});
+  const crumbMats=FOOD_MENU.map(item=>{const m=mat(item.stain,{roughness:.75});m.userData.shared=true;return m;});
+  const crumbGeo=new THREE.SphereGeometry(1,7,5);crumbGeo.userData=Object.assign(crumbGeo.userData||{},{shared:true});
+  const splatRay=new THREE.Raycaster(),A=V3(),B=V3(),C=V3();
+  function removeStain(s){s.m.parent?.remove(s.m);s.m.geometry.dispose();s.m.material.dispose();const i=stains.indexOf(s);if(i>=0)stains.splice(i,1);}
+  function clearFoodStains(){for(const s of [...stains])removeStain(s);}
+  function putFoodStain(p,hit){
+    while(stains.length>=CFG.foodStainMax)removeStain(stains[0]);
+    const obj=hit.object,src=obj.geometry?.attributes.position;if(!src||!hit.face)return;
+    const n=hit.face.normal.clone().transformDirection(obj.matrixWorld),right=V3().crossVectors(Math.abs(n.y)>.9?V3(1,0,0):V3(0,1,0),n).normalize(),up=V3().crossVectors(n,right).normalize();
+    const geo=new THREE.PlaneGeometry(1,1,6,6),pos=geo.attributes.position,uv=geo.attributes.uv,plan=[],size=.20+(p.type>=6?.04:0);
+    for(let i=0;i<pos.count;i++){
+      const base=hit.point.clone().addScaledVector(right,(uv.getX(i)-.5)*size).addScaledVector(up,(uv.getY(i)-.5)*size);
+      splatRay.set(base.clone().addScaledVector(n,.18),n.clone().negate());splatRay.near=0;splatRay.far=.42;
+      const h=splatRay.intersectObject(obj,false)[0]||hit;
+      const point=obj.worldToLocal(h.point.clone()),face=h.face;
+      A.fromBufferAttribute(src,face.a);B.fromBufferAttribute(src,face.b);C.fromBufferAttribute(src,face.c);
+      const weights=THREE.Triangle.getBarycoord(point,A,B,C,V3());
+      plan.push({a:face.a,b:face.b,c:face.c,w:weights});
+      pos.setXYZ(i,point.x+face.normal.x*.003,point.y+face.normal.y*.003,point.z+face.normal.z*.003);
+    }
+    pos.needsUpdate=true;geo.computeVertexNormals();geo.computeBoundingSphere();
+    const material=stainMats[p.type].clone();material.userData.shared=true;
+    const m=new THREE.Mesh(geo,material);m.name='ng-food-stain';m.renderOrder=2;obj.add(m);
+    stains.push({m,obj,v:p.v,source:obj.geometry,plan,version:src.version,alpha:1});p.v._ngWashProgress=0;
+  }
+  function updateFoodStains(){
+    for(const s of [...stains]){
+      if(s.v!==G.v||!isAttached(s.obj,s.v.root)||s.obj.geometry!==s.source){removeStain(s);continue;}
+      const src=s.source.attributes.position;if(src.version===s.version)continue;
+      const out=s.m.geometry.attributes.position;
+      for(let i=0;i<s.plan.length;i++){const q=s.plan[i];A.fromBufferAttribute(src,q.a);B.fromBufferAttribute(src,q.b);C.fromBufferAttribute(src,q.c);
+        const n=B.clone().sub(A).cross(C.clone().sub(A)).normalize();
+        out.setXYZ(i,A.x*q.w.x+B.x*q.w.y+C.x*q.w.z+n.x*.003,A.y*q.w.x+B.y*q.w.y+C.y*q.w.z+n.y*.003,A.z*q.w.x+B.z*q.w.y+C.z*q.w.z+n.z*.003);}
+      out.needsUpdate=true;s.m.geometry.computeBoundingSphere();s.version=src.version;
+    }
+  }
+  function washFoodStains(v,amount){for(const s of [...stains])if(s.v===v){s.alpha=Math.max(0,s.alpha-amount);s.m.material.opacity=s.alpha*.92;if(s.alpha<.015)removeStain(s);}}
+  function clearFoodCrumbs(){for(const c of crumbs)scene.remove(c.m);crumbs.length=0;}
+  function foodSplash(p,point,n,count=10){
+    for(let i=0;i<count;i++){
+      if(crumbs.length>=CFG.foodCrumbMax)scene.remove(crumbs.shift().m);
+      const m=new THREE.Mesh(crumbGeo,crumbMats[p.type]);m.position.copy(point);const size=rnd(.012,.025);m.scale.set(size,size*.65,size);scene.add(m);
+      const vel=n.clone().multiplyScalar(rnd(.5,1.3)).add(V3(rnd(-.65,.65),rnd(.5,1.4),rnd(-.5,.5)));
+      crumbs.push({m,vel,t:0,life:rnd(.55,.95),size});
+    }
+  }
+  function updateFoodCrumbs(dt){for(let i=crumbs.length-1;i>=0;i--){const c=crumbs[i];c.t+=dt;c.vel.y-=8*dt;c.m.position.addScaledVector(c.vel,dt);
+    if(c.m.position.y<.01){c.m.position.y=.01;c.vel.set(0,0,0);}
+    c.m.scale.setScalar(c.size*Math.max(0,1-c.t/c.life));if(c.t>=c.life){scene.remove(c.m);crumbs.splice(i,1);}}}
+  function removeFood(p){const i=foods.indexOf(p);if(i>=0)foods.splice(i,1);p.g.parent?.remove(p.g);}
+  function throwFood(x,y){
+    const v=G.v;if(!v||G.mode!=='feed'||blocked())return false;
+    SFX.unlock();muteAux();
+    if(foods.length>=CFG.foodMax)removeFood(foods.find(p=>p.phase!=='picked')||foods[0]);
+    const type=foodChoice,g=templates[type].clone(true),target=aimPoint(x,y);
+    if(throwMotion?.p.phase==='windup')releaseFood(throwMotion.p);
+    const shot=ngThrowPath(target),from=shot.from,launch=shot.launch;
+    g.position.copy(from);g.rotation.set(-.15,.1,.25);scene.add(g);
+    const p={id:++foodSerial,g,v,target,from,launch,shot,vel:V3(),age:0,phase:'windup',wait:0,type,hit:false,bounces:0,spin:V3(rnd(-6,6),rnd(-4,4),rnd(-5,5)),eatScale:V3(1,1,1)};
+    foods.push(p);throwMotion={p,t:0};G.lastAct=G.time;stats.foodThrown++;return true;
+  }
+  function releaseFood(p){
+    p.g.position.copy(p.launch);const time=clamp(p.launch.distanceTo(p.target)/24,.055,.16);
+    p.vel.copy(p.target).sub(p.launch).divideScalar(time);p.vel.y+=4*time;p.phase='flying';p.wait=0;SFX.whoosh(.26,true);
+  }
+  function animateFoodHand(dt){
+    const a=throwMotion;if(!a||G.mode!=='feed'){foodRig.visible=false;return;}
+    a.t+=dt;const p=a.p;
+    if(a.t>.46||p.v!==G.v){foodRig.visible=false;throwMotion=null;return;}
+    const pose=ngThrowPose(p.shot,a.t);
+    foodRig.position.copy(pose.p);foodRig.rotation.copy(pose.rotation);foodRig.visible=true;
+  }
+  function setFoodImpact(p,hit){
+    p.hit=true;p.wait=0;const n=hit.face.normal.clone().transformDirection(hit.object.matrixWorld);
+    p.g.position.copy(hit.point).addScaledVector(n,.095);p.vel.reflect(n).multiplyScalar(.10);p.vel.x=clamp(p.vel.x,-.65,.65);p.vel.z=clamp(p.vel.z,-.65,.65);p.vel.y=.30;
+    p.g.scale.set(1.12,.78,1.08);putFoodStain(p,hit);foodSplash(p,hit.point,n,12);
+    foodRecoil={v:p.v,t:0,side:Math.sign(hit.point.x-p.v.root.position.x)||1,head:['head','nose'].includes(hit.object.userData.part)};
+    stats.foodImpacts++;SFX.foodImpact(clamp(hit.point.x,-1,1));G.lastAct=G.time;
+    if(PREF.shake)G.shake=Math.max(G.shake,.055);vib(12);
+  }
+  function settleFood(p){
+    p.phase='floor';p.wait=0;p.vel.set(0,0,0);p.g.rotation.set(0,p.g.rotation.y,0);
+    p.g.scale.set(p.hit?1.22:1.13,p.hit?.56:.69,p.hit?1.16:1.09);p.eatScale.copy(p.g.scale);
+    p.g.updateMatrixWorld(true);const box=new THREE.Box3().setFromObject(p.g);p.g.position.y+=.009-box.min.y;
+    foodSplash(p,p.g.position,V3(0,1,0),5);stats.foodLanded++;SFX.pat(clamp(p.g.position.x,-1,1));
+  }
+  function updateFood(dt){
+    animateFoodHand(dt);
+    for(let i=foods.length-1;i>=0;i--){
+      const p=foods[i];p.age+=dt;p.wait+=dt;
+      if(p.v!==G.v){removeFood(p);continue;}
+      if(p.phase==='vanish'){   // 먹지 않고 사라지는 음식: 작아지며 없어진다
+        p.vt=(p.vt||0)+dt;const k=1-clamp(p.vt/.32,0,1);
+        p.g.scale.copy(p.eatScale).multiplyScalar(k*(1+.25*Math.sin(Math.PI*(1-k))));p.g.position.y+=dt*.12;
+        if(k<=0)removeFood(p);continue;
+      }
+      if(p.phase==='floor'&&p.age>18){p.phase='vanish';continue;}
+      if(p.phase==='windup'){
+        const pose=ngThrowPose(p.shot,p.wait);p.g.position.copy(pose.p);p.g.rotation.copy(pose.rotation);
+        if(p.wait>=NG4_THROW_RELEASE)releaseFood(p);continue;
+      }
+      if(p.phase!=='flying')continue;
+      let left=dt;
+      while(left>1e-6){
+        const h=Math.min(left,1/150);left-=h;const from=p.g.position.clone();p.vel.y-=8*h;
+        const to=from.clone().addScaledVector(p.vel,h),dir=to.clone().sub(from),length=dir.length();
+        if(!p.hit&&length>.00001){
+          p.v.root.updateMatrixWorld(true);foodRay.set(from,dir.clone().normalize());foodRay.near=0;foodRay.far=length+.065;
+          const hit=foodRay.intersectObjects(p.v.parts.filter(o=>attached(o)&&isAttached(o,p.v.root)),false)[0];
+          if(hit){setFoodImpact(p,hit);break;}
+        }
+        p.g.position.copy(to);p.g.rotation.x+=p.spin.x*h;p.g.rotation.y+=p.spin.y*h;p.g.rotation.z+=p.spin.z*h;
+        if(p.g.position.y<.07){
+          p.g.position.y=.07;
+          if(p.bounces===0&&Math.abs(p.vel.y)>1.4){p.bounces++;p.vel.y=Math.abs(p.vel.y)*.13;p.vel.x*=.30;p.vel.z*=.30;p.spin.multiplyScalar(.2);p.g.scale.set(1.15,.68,1.1);SFX.pat(clamp(p.g.position.x,-1,1));}
+          else settleFood(p);break;
+        }
+      }
+    }
+    // 바닥에는 MEAL.floorKeep 개까지만 남긴다. 더 쌓이면 오래된 것부터 먹지 않고 사라진다.
+    const waiting=foods.filter(p=>p.phase==='floor');
+    for(let i=0;i<waiting.length-MEAL.floorKeep;i++)waiting[i].phase='vanish';
+    const v=G.v;
+    if(G.mode!=='feed'||!v||v.state!=='stand'||v._impactV2||window.__SC_FATIGUE_V1?.active(v))return;
+    if(!eating&&G.time>=mealRestUntil)eating=beginMeal(v);
+    if(!eating)return;
+    // 새로 날아온 음식에 맞아 움찔하는 동안에는 앉은 자세는 그대로 두고 식사 시간만 멈춘다.
+    updateMeal(v,eating,foodRecoil&&foodRecoil.t<.38?0:dt);
+  }
+  /* 식사: 한 번 주저앉아서 양손을 번갈아 뻗어 최대 MEAL.perSquat 개까지 주워 먹고 일어난다.
+     음식이 흩어져 있으면 앉은 채로 다음 음식 앞까지 옮겨 간다(옮기는 동안 앞의 것을 씹는다). */
+  const MEAL={perSquat:3,floorKeep:3,squatIn:.42,first:.20,reach:.34,lift:.30,chew:.36,gap:.05,shuffle:.55,rise:.46};
+  let mealRestUntil=0;
+  const mealEnd=m=>m.items[m.items.length-1].start+MEAL.reach+MEAL.lift+MEAL.chew;
+  // 이 음식을 이 손으로 집으려면 어디에 서야 하나(평소 서 있는 자리 기준). 음식은 발 앞, 집는 쪽 어깨 앞에 온다.
+  function mealStand(v,home,p,side){
+    const w=clamp(v.look.bodyW,.3,1.3),front=.22+.20*w;
+    return V3(clamp(p.g.position.x-(side?1:-1)*.13*w-home.x,-.85,.85),0,clamp(p.g.position.z-front-home.z,-.55,.65));
+  }
+  function addMealItem(m,p,side){
+    const last=m.items[m.items.length-1],stand=mealStand(m.v,m.home,p,side);
+    const travel=last?last.stand.distanceTo(stand):0;
+    p.phase='picked';
+    m.items.push({food:p,side,stand,origin:p.g.position.clone(),fed:false,gone:false,
+      start:last?Math.max(m.t+.04,last.start+MEAL.reach+MEAL.lift+MEAL.gap+travel*MEAL.shuffle):MEAL.first});
+  }
+  function beginMeal(v){
+    const home=v.root.position.clone();
+    const near=foods.filter(p=>p.phase==='floor'&&p.wait>.35&&Math.hypot(p.g.position.x-home.x,p.g.position.z-home.z)<1.18);
+    if(!near.length)return null;
+    const m={v,t:0,items:[],home};
+    // 가까운 것부터, 그다음은 방금 집은 것에서 가까운 순으로. 손은 음식이 있는 쪽부터 번갈아 쓴다.
+    let from=home,side=-1;
+    while(near.length&&m.items.length<MEAL.perSquat){
+      near.sort((a,b)=>a.g.position.distanceToSquared(from)-b.g.position.distanceToSquared(from));
+      const p=near.shift();
+      side=side<0?(p.g.position.x<home.x?0:1):1-side;
+      addMealItem(m,p,side);from=p.g.position;
+    }
+    return m;
+  }
+  // 앉은 채로 지금 있어야 할 자리: 집는 순간에는 그 음식 앞에 와 있고, 집은 뒤에는 다음 음식 앞으로 옮겨 간다.
+  function mealPlace(m,t,out){
+    const items=m.items,arrive=it=>it.start+MEAL.reach*.35;
+    out.set(0,0,0);let moving=0;
+    if(t<=arrive(items[0])){const u=ease(clamp(t/arrive(items[0]),0,1));out.copy(items[0].stand).multiplyScalar(u);return 0;}
+    for(let i=0;i<items.length;i++){
+      const it=items[i],next=items[i+1],leave=it.start+MEAL.reach+.06;
+      if(!next||t<=leave){out.copy(it.stand);return 0;}
+      if(t<arrive(next)){const u=clamp((t-leave)/Math.max(.05,arrive(next)-leave),0,1);out.copy(it.stand).lerp(next.stand,ease(u));
+        moving=Math.sin(Math.PI*u)*clamp(it.stand.distanceTo(next.stand)/.35,0,1);return moving;}
+    }
+    return moving;
+  }
+  // 팔 하나를 월드 좌표 목표로 뻗는다. 몸통 기준 2관절 IK, 모자라면 1.45배까지 늘어난다. back: 손등이 향할 월드 방향.
+  function mealArm(v,a,world,weight,back){
+    if(weight<=.001)return;
+    v.root.updateMatrixWorld(true);
+    const origin=a.sh.position.clone(),delta=v.torso.worldToLocal(world.clone()).sub(origin);
+    const distance=Math.min(delta.length(),.575);if(distance<.001)return;
+    const axis=delta.normalize(),L=lerp(.2,Math.max(.2,(distance+.008)/2),weight),stretch=L/.2,rec=v._bodyCloth?.arms.find(r=>r.a===a);
+    a.el.position.y=a.hand.position.y=-L;
+    if(rec?.upper){rec.upper.position.y=-.10*stretch;rec.upper.scale.y=stretch;}
+    if(rec?.fore){rec.fore.position.y=-.085*stretch;rec.fore.scale.y=stretch;}
+    if(rec?.cuff)rec.cuff.position.y=-.17*stretch;
+    const pole=V3(a.s*.9,.25,-.45).projectOnPlane(axis);if(pole.lengthSq()<1e-8)pole.set(a.s,0,0).projectOnPlane(axis);pole.normalize();   // 팔꿈치는 바깥·뒤로
+    const elbow=origin.clone().addScaledVector(axis,distance/2).addScaledVector(pole,Math.sqrt(Math.max(0,L*L-distance*distance/4)));
+    const down=V3(0,-1,0),upper=new THREE.Quaternion().setFromUnitVectors(down,elbow.clone().sub(origin).normalize());
+    const fore=origin.clone().addScaledVector(axis,distance).sub(elbow).normalize();
+    const lower=new THREE.Quaternion().setFromUnitVectors(down,fore.clone().applyQuaternion(upper.clone().invert()));
+    a.sh.quaternion.slerp(upper,weight);a.el.quaternion.slerp(lower,weight);
+    // 손: 손가락(-y)은 팔뚝이 뻗는 쪽, 손등(+z)은 back 쪽.
+    const y=fore.clone().negate(),z=back.clone().applyQuaternion(v.torso.getWorldQuaternion(new THREE.Quaternion()).invert()).projectOnPlane(y);
+    if(z.lengthSq()<1e-8)z.copy(V3(0,0,1).projectOnPlane(y));z.normalize();
+    const x=y.clone().cross(z).normalize();z.copy(x.clone().cross(y)).normalize();
+    const handQ=new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x,y,z));
+    a.hand.quaternion.slerp(upper.clone().multiply(lower).invert().multiply(handQ),weight);
+    v.root.updateMatrixWorld(true);
+  }
+  const mealSpot=V3();
+  function updateMeal(v,m,dt){
+    m.t+=dt;const t=m.t;
+    // 앉아 있는 동안 새로 떨어진 음식도 이어서 집는다(한 번 앉아 최대 perSquat 개).
+    if(m.items.length<MEAL.perSquat&&t<mealEnd(m)-.12){
+      const last=m.items[m.items.length-1];
+      const extra=foods.filter(p=>p.phase==='floor'&&p.wait>.3&&Math.hypot(p.g.position.x-m.home.x,p.g.position.z-m.home.z)<1.18)
+        .sort((a,b)=>a.g.position.distanceToSquared(last.origin)-b.g.position.distanceToSquared(last.origin))[0];
+      if(extra)addMealItem(m,extra,1-last.side);
+    }
+    const end=mealEnd(m),rise=ease(clamp((t-end)/MEAL.rise,0,1)),crouch=ease(clamp(t/MEAL.squatIn,0,1))*(1-rise);
+    const waddle=mealPlace(m,Math.min(t,end),mealSpot)*(1-rise);
+    rememberPose(v);
+    v.root.position.x+=mealSpot.x*(1-rise);v.root.position.z+=mealSpot.z*(1-rise);
+    window.__SC_LEGS?.squat(v,crouch,1);poseSnapshot.squatted=true;
+    // 앉은 채 옮겨 갈 때는 오리걸음처럼 좌우로 뒤뚱거린다.
+    v.root.position.y+=Math.abs(Math.sin(t*15))*.022*waddle;v.body.rotation.z+=Math.sin(t*15)*.075*waddle;
+    // 집으려고 손을 뻗는 순간마다 몸이 한 번 더 숙여진다.
+    let dip=0,chewing=0;
+    for(const it of m.items){const u=(t-it.start)/(MEAL.reach+.12);if(u>0&&u<1)dip=Math.max(dip,Math.sin(Math.PI*u));}
+    v.torso.rotation.x+=crouch*(.86+.17*dip);
+    v.headPivot.rotation.x-=crouch*(.66+.08*dip);           // 숙여도 얼굴은 화면 쪽을 본다
+    v.root.updateMatrixWorld(true);
+    const mouth=v.mouthWorld(),atMouth=mouth.clone().add(V3(0,-.075,.05));
+    for(const index of [0,1]){
+      const a=v.armRig[index],it=[...m.items].reverse().find(it=>it.side===index&&t>=it.start);if(!it)continue;
+      const u=t-it.start,reach=clamp(u/MEAL.reach,0,1),lift=clamp((u-MEAL.reach)/MEAL.lift,0,1),after=u-MEAL.reach-MEAL.lift-MEAL.chew;
+      const weight=1-ease(clamp(after/.24,0,1));if(weight<=.001)continue;
+      const grab=it.origin.clone().add(V3(0,.04,0)),start=a.hand.getWorldPosition(V3());
+      const goal=lift>0?grab.clone().lerp(atMouth,ease(lift)).add(V3(0,.06*Math.sin(Math.PI*lift),.03*Math.sin(Math.PI*lift))):start.lerp(grab,ease(reach));
+      // 집을 때는 손바닥이 아래(손등이 위·앞), 입으로 가져가면 손바닥이 얼굴 쪽(손등이 화면 쪽).
+      mealArm(v,a,goal,weight,V3(0,1,.55).lerp(V3(0,-.3,1),ease(lift)).normalize());
+    }
+    for(const it of m.items){
+      const p=it.food,u=t-it.start;
+      if(it.gone||u<0)continue;
+      if(!foods.includes(p)){it.gone=true;continue;}      // 던진 개수가 넘쳐 밀려난 음식
+      const a=v.armRig[it.side],bite=clamp((u-MEAL.reach-MEAL.lift+.04)/MEAL.chew,0,1);
+      if(u<MEAL.reach*.9)p.g.position.copy(it.origin);
+      else if(bite<=0){a.hand.updateWorldMatrix(true,false);p.g.position.copy(a.hand.localToWorld(V3(0,-.05,-.045)));}   // 손바닥 안
+      else p.g.position.copy(mouth).add(V3(0,-.01,.02));
+      if(bite>0){
+        chewing=Math.max(chewing,Math.sin(Math.PI*Math.min(1,bite*1.15)));
+        p.g.scale.copy(p.eatScale).multiplyScalar(1-bite);
+        if(!it.fed&&bite>=.45){it.fed=true;recover(v,CFG.foodRecovery);stats.foodEaten++;SFX.pat(clamp(mouth.x,-1,1));foodSplash(p,mouth,V3(0,.2,1),4);}
+        if(bite>=1){it.gone=true;removeFood(p);}
+      }else if(u>MEAL.reach+MEAL.lift*.45)chewing=Math.max(chewing,.001);   // 음식이 다가오면 입을 벌린다
+    }
+    if(chewing>0){
+      const open=chewing<=.001?.62:.16+.30*Math.abs(Math.sin(t*19));
+      v.mouth.talk=0;v.mouth.open=open;v.mouth.smile=.1;v.mouth.wide=.75;v.paintMouth();
+    }
+    if(t>=end+MEAL.rise){eating=null;mealRestUntil=G.time+.22;for(const it of m.items)if(!it.gone&&foods.includes(it.food))it.food.phase='floor';}
+  }
+  function updateFoodRecoil(dt){
+    const a=foodRecoil;if(!a)return;a.t+=dt;const v=G.v;
+    if(a.v!==v||G.mode!=='feed'||a.t>.44){foodRecoil=null;return;}
+    if(v.state!=='stand')return;
+    rememberPose(v);const w=Math.sin(Math.PI*clamp(a.t/.44,0,1))*Math.exp(-a.t*2);
+    v.body.rotation.x-=.19*w;v.torso.rotation.z-=a.side*.13*w;v.headPivot.rotation.x-=.22*w;v.headPivot.rotation.y-=a.side*.13*w;
+    v.mouth.talk=0;v.mouth.open=.30*w;v.mouth.smile=-.5;v.paintMouth();
+    for(const e of v.eyes){const open=1-w*.92;e.lidU.rotation.x=lerp(1.62,-1.25,open);e.lidL.rotation.x=lerp(-1.62,1.4,open*.6+.4);}
+  }
+
+  /* NG3 water: diameter x3, a bright moving core, and ballistic droplets that
+     keep falling after release. The pool is bounded; washing never calls applyHit. */
+  const nozzle=new THREE.Group();nozzle.name='ng-hose';nozzle.visible=false;handsRoot.add(nozzle);
+  const hoseMetal=mat('#7692a1',{metalness:.65,roughness:.3}),hoseRubber=mat('#344f54',{roughness:.85});
+  let nm=mesh(new THREE.CylinderGeometry(.045,.055,.20,12),hoseMetal,nozzle);nm.rotation.x=Math.PI/2;nm.position.z=-.07;
+  nm=mesh(new THREE.CylinderGeometry(.055,.055,.16,12),hoseRubber,nozzle);nm.rotation.x=Math.PI/2;nm.position.z=.10;
+  const nozzleHand=buildFist(false);nozzleHand.scale.setScalar(.78);nozzleHand.position.set(0,-.04,.05);nozzle.add(nozzleHand);
+  const hoseCurve=new THREE.CatmullRomCurve3([V3(0,0,.17),V3(.09,-.20,.32),V3(.27,-.45,.5),V3(.4,-.7,.8)]);
+  mesh(new THREE.TubeGeometry(hoseCurve,16,.026,8,false),hoseRubber,nozzle);
+  const streamMat=new THREE.MeshBasicMaterial({color:'#92d9fc',transparent:true,opacity:.55,depthWrite:false});
+  const waterMat=new THREE.MeshStandardMaterial({color:'#94dcff',roughness:.09,metalness:.08,transparent:true,opacity:.92,depthWrite:false});
+  const stream=new THREE.Mesh(new THREE.CylinderGeometry(.057,.033,1,12),streamMat);stream.visible=false;stream.frustumCulled=false;scene.add(stream);
+  const streamCore=new THREE.Mesh(new THREE.CylinderGeometry(.020,.012,1,10),new THREE.MeshBasicMaterial({color:'#f0fcff',transparent:true,opacity:.84,depthWrite:false}));streamCore.visible=false;streamCore.frustumCulled=false;scene.add(streamCore);
+  const water=new THREE.InstancedMesh(new THREE.SphereGeometry(1,8,6),waterMat,CFG.waterCount);water.count=0;water.frustumCulled=false;scene.add(water);
+  water.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  const sparkMat=new THREE.MeshBasicMaterial({color:'#fff5bd',transparent:true,opacity:1,depthWrite:false});
+  const sparks=new THREE.InstancedMesh(new THREE.OctahedronGeometry(1),sparkMat,CFG.sparkCount);sparks.count=0;sparks.frustumCulled=false;scene.add(sparks);
+  sparks.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  const dummy=new THREE.Object3D(),waterRay=new THREE.Raycaster(),nozzleRay=new THREE.Raycaster();
+  const waterDrops=[],JET_COUNT=64,DROP_MAX=CFG.waterCount-JET_COUNT;
+  let waterJet=null,waterAcc=0,washPressure=0;
+  function clearWaterDrops(){waterDrops.length=0;water.count=0;waterAcc=0;waterJet=null;}
+  function stopWater(){auxPointer=null;nozzle.visible=stream.visible=streamCore.visible=false;waterJet=null;washPressure=0;SFX.waterStop?.();}
+  function emitWater(point,normal){
+    if(waterDrops.length>=DROP_MAX)waterDrops.shift();
+    const tangent=V3().crossVectors(Math.abs(normal.y)>.9?V3(1,0,0):V3(0,1,0),normal).normalize();
+    const bitangent=V3().crossVectors(normal,tangent).normalize(),angle=rnd(0,Math.PI*2),radial=rnd(.65,2.2);
+    const vel=normal.clone().multiplyScalar(rnd(.55,1.55)).addScaledVector(tangent,Math.cos(angle)*radial).addScaledVector(bitangent,Math.sin(angle)*radial);vel.y+=rnd(.25,1.25);
+    waterDrops.push({p:point.clone().addScaledVector(normal,.028),v:vel,t:0,life:rnd(.48,.95),r:rnd(.013,.029),bounced:false});stats.waterEmitted++;
+  }
+  function wash(dt){
+    if(!auxPointer||G.mode!=='wash'||blocked()){stopWater();return;}
+    const v=G.v;if(!v)return;muteAux();
+    waterRay.setFromCamera({x:auxPointer.x/innerWidth*2-1,y:1-auxPointer.y/innerHeight*2},camera);
+    v.root.updateMatrixWorld(true);
+    const hit=waterRay.intersectObjects(v.parts.filter(o=>attached(o)&&isAttached(o,v.root)),false)[0];
+    const end=hit?hit.point.clone():aimPoint(auxPointer.x,auxPointer.y);
+    nozzle.visible=true;
+    const nozzleY=Math.max(innerHeight*.48,$('.dock').getBoundingClientRect().top-57);
+    nozzleRay.setFromCamera({x:.62,y:1-nozzleY/innerHeight*2},camera);
+    nozzle.position.copy(nozzleRay.ray.at(Math.min(G.camDist*.45,1.9),V3()));
+    // Nozzle points along local -Z. Place the stream at its actual outlet.
+    nozzle.lookAt(nozzle.position.clone().multiplyScalar(2).sub(end));nozzle.updateMatrixWorld(true);
+    const start=nozzle.localToWorld(V3(0,0,-.19)),vector=end.clone().sub(start),length=vector.length(),direction=vector.clone().normalize();
+    const pulse=1+Math.sin(G.time*27)*.035;
+    stream.visible=streamCore.visible=length>.01;stream.position.copy(start).lerp(end,.5);stream.quaternion.setFromUnitVectors(V3(0,1,0),direction);stream.scale.set(pulse,length,pulse);
+    streamCore.position.copy(stream.position);streamCore.quaternion.copy(stream.quaternion);streamCore.scale.set(1,length,1);
+    waterJet={start,end,vector};
+    const normal=hit?.face?hit.face.normal.clone().transformDirection(hit.object.matrixWorld):V3(0,1,0);
+    if(hit||Math.abs(end.y)<.12){waterAcc+=dt*190;while(waterAcc>=1){waterAcc--;emitWater(end,normal);}}
+    washPressure=damp(washPressure,hit?1:0,14,dt);
+    if(!hit)return;
+    G.lastAct=G.time;rememberPose(v);
+    if(v.state==='stand'){
+      const beat=.80+.20*Math.sin(G.time*18),w=washPressure*beat,headHit=['head','nose'].includes(hit.object.userData.part),side=Math.sign(hit.point.x-v.root.position.x)||1;
+      // Braced knees + torso recoil, not vibration of the entire camera.
+      v.root.position.z-=.11*w;v.body.rotation.x-=.18*w;v.torso.rotation.z-=side*.12*w;
+      v.headPivot.rotation.x-=(headHit?.30:.17)*w;v.headPivot.rotation.y+=side*.28*w;
+      window.__SC_LEGS?.squat(v,.20*w);poseSnapshot.squatted=true;
+      v.root.updateMatrixWorld(true);
+      for(let i=0;i<2;i++){
+        const target=(headHit||i===0)?v.headMesh.localToWorld(V3(i?.23:-.23,-.11,HEAD_R+.08)):
+          v.torso.localToWorld(V3(i?.12:-.12,.29,.28));
+        actorHandTo(v,i,target,.96);
+      }
+      v.mouth.talk=0;v.mouth.open=.37+.10*w;v.mouth.smile=-.7;v.mouth.wide=.8;v.mouth.shape='grit';v.paintMouth();
+      for(const e of v.eyes){const open=.025;e.lidU.rotation.x=lerp(1.62,-1.25,open);e.lidL.rotation.x=lerp(-1.62,1.4,open*.6+.4);e.brow.userData.inner.rotation.z=Math.PI/2-e.s*(v.look.browTilt-.45);}
+    }
+    const amount=dt/CFG.washSeconds;
+    window.__SC_HYGIENE?.wash(v,amount);washFoodStains(v,amount);
+    v.noseBlood=Math.max(0,(v.noseBlood||0)-amount);v.lipBlood=Math.max(0,(v.lipBlood||0)-amount);
+    v.tear=Math.max(0,(v.tear||0)-amount*2);v.wet=Math.max(0,(v.wet||0)-amount);v.tearClear=3;
+    for(const m of v.marks||[])m.a=Math.max(0,(m.a||0)-amount);
+    v.marks=(v.marks||[]).filter(m=>m.a>.001);v.faceDirty=true;
+    const before=v._ngWashProgress||0;v._ngWashProgress=clamp(before+amount,0,1);
+    $('#ngCleanProgress').value=v._ngWashProgress;
+    if(before<1&&v._ngWashProgress>=1){
+      window.__SC_HYGIENE?.wash(v,1);washFoodStains(v,1);HEAVY_WET.clear(v);v.noseBlood=v.lipBlood=v.wet=0;v.marks=[];v.faceDirty=true;
+      sparkTime=1.65;SFX.twinkle();auxPanel.querySelector('p').textContent='반짝! 다 씻었어요.';
+    }
+  }
+  function updateWaterDrops(dt){
+    let at=0;
+    if(waterJet){
+      const {start,vector}=waterJet,direction=vector.clone().normalize(),right=V3().crossVectors(Math.abs(direction.y)>.9?V3(1,0,0):V3(0,1,0),direction).normalize(),up=V3().crossVectors(direction,right).normalize();
+      for(let i=0;i<JET_COUNT;i++){
+        const phase=(G.time*5.4+i*.618)%1,radius=.017+phase*.031,angle=i*2.399+G.time*16;
+        dummy.position.copy(start).addScaledVector(vector,phase).addScaledVector(right,Math.cos(angle)*radius).addScaledVector(up,Math.sin(angle)*radius);
+        dummy.quaternion.setFromUnitVectors(V3(0,1,0),direction);dummy.scale.set(.009,.035+.045*phase,.009);dummy.updateMatrix();water.setMatrixAt(at++,dummy.matrix);
+      }
+    }
+    for(let i=waterDrops.length-1;i>=0;i--){
+      const p=waterDrops[i];p.t+=dt;p.v.y-=8.5*dt;p.p.addScaledVector(p.v,dt);
+      if(p.p.y<p.r){p.p.y=p.r;if(!p.bounced){p.v.y=Math.abs(p.v.y)*.20;p.v.x*=.55;p.v.z*=.55;p.bounced=true;p.life=Math.min(p.life,p.t+.24);}else p.v.set(0,0,0);}
+      if(p.t>=p.life){waterDrops.splice(i,1);continue;}
+      const fade=Math.min(1,(p.life-p.t)/.20),speed=p.v.length();dummy.position.copy(p.p);
+      dummy.quaternion.setFromUnitVectors(V3(0,1,0),speed>.01?p.v.clone().normalize():V3(0,1,0));
+      dummy.scale.set(p.r*fade,p.r*fade*(p.bounced?.7:1+Math.min(.8,speed*.13)),p.r*fade);dummy.updateMatrix();water.setMatrixAt(at++,dummy.matrix);
+    }
+    water.count=at;water.instanceMatrix.needsUpdate=true;
+  }
+
+  function updateSparkles(dt){
+    if(sparkTime<=0||!G.v){sparks.count=0;return;}sparkTime=Math.max(0,sparkTime-dt);
+    const v=G.v,center=v.headMesh.getWorldPosition(V3());sparkMat.opacity=Math.min(1,sparkTime*2);
+    for(let i=0;i<CFG.sparkCount;i++){
+      const a=i*2.399+(reducedMotion?0:G.time*.4),r=.35+(i%4)*.06;
+      dummy.position.set(center.x+Math.cos(a)*r,v.root.position.y+.35+(i/CFG.sparkCount)*1.35,center.z+.15+Math.sin(a)*.22);
+      const scale=(.013+.013*Math.abs(Math.sin(G.time*4+i)))*Math.min(1,sparkTime*3);
+      dummy.scale.set(scale*.6,scale*1.4,scale*.6);dummy.rotation.set(0,a,Math.PI/4);dummy.updateMatrix();sparks.setMatrixAt(i,dummy.matrix);
+    }
+    sparks.count=CFG.sparkCount;sparks.instanceMatrix.needsUpdate=true;
+  }
+  function cancelAux(){
+    restorePose();stopWater();eating=null;foodRecoil=null;throwMotion=null;foodRig.visible=false;
+    for(const p of [...foods])removeFood(p);
+    if(G.v)restoreCareActorHands(G.v);
+  }
+  // Capture on window, before the old canvas gesture recognizers. Aux modes never leak into hit/care.
+  window.addEventListener('pointerdown',e=>{
+    if(e.target!==canvas||!auxMode()||G.editing||e.button>0||e.isPrimary===false)return;   // 편집 중에는 미리보기 회전 드래그에 양보
+    e.preventDefault();e.stopImmediatePropagation();if(blocked())return;
+    cancelPointer();endHug();stopSocial();clearAttacks();clearDialogue();SFX.unlock();
+    if(G.mode==='feed'){throwFood(e.clientX,e.clientY);return;}
+    auxPointer={id:e.pointerId,x:e.clientX,y:e.clientY};try{canvas.setPointerCapture(e.pointerId);}catch(_){}
+    SFX.waterStart?.();
+  },{capture:true,passive:false});
+  window.addEventListener('pointermove',e=>{
+    if(!auxPointer||auxPointer.id!==e.pointerId)return;e.preventDefault();e.stopImmediatePropagation();auxPointer.x=e.clientX;auxPointer.y=e.clientY;
+  },{capture:true,passive:false});
+  for(const event of ['pointerup','pointercancel','lostpointercapture'])window.addEventListener(event,e=>{
+    if(!auxPointer||auxPointer.id!==e.pointerId)return;e.preventDefault();e.stopImmediatePropagation();stopWater();
+  },{capture:true,passive:false});
+  addEventListener('blur',cancelAux);
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)cancelAux();});
+  canvas.addEventListener('webglcontextlost',cancelAux);
+  new MutationObserver(()=>{if(G.editing||document.querySelector('.modal:not([hidden])'))cancelAux();})
+    .observe(document.body,{subtree:true,attributes:true,attributeFilter:['hidden']});
+
+  /* Keep the hand origins out of the torso, then aim sleeves towards the player.
+     Real depth testing is kept; arms are not painted through the avatar. */
+  const sleeveCache=new WeakMap();
+  function protectPlayerArms(){
+    const v=G.v,core=v?._bodyCloth?.core;if(!core||blocked())return;
+    v.root.updateMatrixWorld(true);if(!core.geometry.boundingBox)core.geometry.computeBoundingBox();
+    const box=core.geometry.boundingBox,rx=Math.max(.1,Math.abs(box.max.x),Math.abs(box.min.x));
+    const rz=Math.max(.08,Math.abs(box.max.z),Math.abs(box.min.z));
+    for(const rig of handsRoot.children){
+      if(!rig.visible||rig===nozzle||rig.userData.ngHugPalm||rig.userData.ngHugArms)continue;
+      const world=rig.getWorldPosition(V3()),local=core.worldToLocal(world.clone());
+      if(Math.abs(local.x)<rx+.025&&local.y>box.min.y-.025&&local.y<box.max.y+.025){
+        const front=rz*Math.sqrt(Math.max(0,1-(local.x/(rx+.04))**2))+.065;
+        if(local.z<front&&local.z>-rz-.16){local.z=front;rig.position.copy(rig.parent.worldToLocal(core.localToWorld(local)));}
+      }
+      let list=sleeveCache.get(rig);
+      if(!list){list=[];rig.traverse(o=>{if(o.userData?.ngSleeve)list.push(o);});sleeveCache.set(rig,list);}
+      rig.updateMatrixWorld(true);
+      for(const sleeve of list){
+        const wrist=sleeve.getWorldPosition(V3()),side=wrist.x<0?-1:1,target=camRest(side,-1.25);
+        target.z=Math.max(target.z,wrist.z+.45);
+        const direction=target.sub(wrist).normalize();
+        const q=sleeve.parent.getWorldQuaternion(new THREE.Quaternion()).invert();direction.applyQuaternion(q);
+        sleeve.quaternion.setFromUnitVectors(V3(0,1,0),direction);
+      }
+      rig.updateMatrixWorld(true);
+    }
+  }
+  const oldStep=step;
+  step=function(dt){
+    restorePose();
+    if(G.ngIntro){clearDialogue();return;}
+    if(owner!==G.v){cancelAux();clearFoodStains();clearFoodCrumbs();clearWaterDrops();owner=G.v;dodge=null;careHealAt=petTalkAt=clapTalkAt=-100;sparkTime=0;}
+    if(blocked()){cancelAux();return;}
+    const result=oldStep.apply(this,arguments),v=G.v;
+    if(!v)return result;
+    if(G.mode==='care'){
+      if(G.hug)recover(v,CFG.hugPerSecond*dt);
+      if(G.ptr?.rubbing&&['pet','wipe','stroke'].includes(G.ptr.kind)){
+        if(G.rub>.03)recover(v,CFG.petPerSecond*dt);
+        if(G.time-petTalkAt>3.5){const before=G.careLastVoice;careSay('hand');if(G.careLastVoice!==before)petTalkAt=G.time;}
+      }
+      if(G.social?.kind==='clap'&&G.time-clapTalkAt>3.7){
+        const before=G.careLastVoice;careSay('clap');if(G.careLastVoice!==before)clapTalkAt=G.time;
+      }
+    }
+    if(auxMode()){muteAux();updateFood(dt);wash(dt);}
+    updateFoodRecoil(dt);updateFoodStains();updateFoodCrumbs(dt);updateWaterDrops(dt);
+    if(dodge){
+      if(dodge.v!==v||v.state!=='stand'||G.mode!=='hit')dodge=null;
+      else{dodge.t+=dt;const w=Math.sin(Math.PI*clamp(dodge.t/.36,0,1));rememberPose(v);
+        v.root.position.x+=dodge.side*.25*w;v.body.rotation.z-=dodge.side*.20*w;v.headPivot.rotation.z+=dodge.side*.10*w;
+        if(dodge.t>=.36)dodge=null;}
+    }
+    updateSparkles(dt);v.root.updateMatrixWorld(true);protectPlayerArms();return result;
+  };
+  renderMode();showItemHelp();
+  window.__NG2={version:'NG4_20260919',config:CFG,beginIntro,afterAppearance,recover,dodgeChance,throwFood,cancelAux,
+    inspect:()=>({mode:G.mode,intro:introStage,foods:foods.length,foodPhases:foods.map(p=>p.phase),eating:!!eating,
+      washing:!!auxPointer,water:water.count,waterDrops:waterDrops.length,foodChoice:FOOD_MENU[foodChoice].name,stains:stains.length,crumbs:crumbs.length,foodPositions:foods.map(p=>({type:FOOD_MENU[p.type].name,phase:p.phase,xyz:p.g.position.toArray(),scale:p.g.scale.toArray()})),stats:{...stats},sparkles:sparks.count,health:G.v?health(G.v):0,dodgeChance:dodgeChance(G.v)})};
+  if(window.__api)Object.assign(window.__api,{step,applyHit,comfort,startSocial,setHint,careSay,updateCareReply});
+})();
+/* NG3 systems retained; NG4 fixes follow. Dialogue wording is unchanged. */
+
+
+/* NG4 rendering and morphology. Original expressions, hit deformation, head scale,
+   damage values, camera shake and all spoken line strings are deliberately retained. */
+(() => {
+  'use strict';
+  if(window.__NG4)return;
+  const actors=new Set();
+  renderer.localClippingEnabled=true;
+  function installEyeMask(v){
+    for(const e of v.eyes){
+      if(e._ngLidPlanes)continue;
+      const planes=e._ngLidPlanes=[new THREE.Plane(),new THREE.Plane()];
+      // Eyelids are hemispheres. Their transformed equatorial planes exactly
+      // delimit the eye opening, including blinking, swelling and tilted eyes.
+      for(const o of [e.pupil,e.shine]){
+        o.material.clippingPlanes=planes;o.material.clipIntersection=false;
+        o.material.needsUpdate=true;
+      }
+    }
+  }
+  function syncEyeMask(v){
+    if(!v.root?.parent)return;
+    v.root.updateMatrixWorld(true);
+    for(const e of v.eyes){
+      if(!e._ngLidPlanes)continue;
+      const lids=[e.lidU,e.lidL];
+      for(let i=0;i<2;i++){
+        lids[i].updateMatrixWorld(true);
+        e._ngLidPlanes[i].set(V3(0,-1,0),-.001).applyMatrix4(lids[i].matrixWorld);
+      }
+    }
+  }
+  function shapeEars(v){
+    const L=v.look;
+    for(const e of v.ears||[]){
+      const m=e.mesh,p=m.geometry.attributes.position;
+      if(!e.base)e.base=Float32Array.from(p.array);
+      // 귀의 로컬 x는 오른쪽 귀(s=+1)에서 뒤쪽, 왼쪽 귀에서 앞쪽을 향한다. back 은 어느 쪽이든 「머리 뒤쪽」으로 미는 양.
+      // 축(머리에 붙는 자리)이 귀 앞 가장자리에 오게 한 다음, 뒤쪽 가장자리가 바깥으로 벌어지도록 세로축으로 돌린다.
+      const back=e.s*.036;
+      m.userData.splay=-e.s*.82;
+      for(let i=0;i<p.count;i++){
+        const x=e.base[i*3],y=e.base[i*3+1],z=e.base[i*3+2],yn=y/.075;
+        const tip=clamp((yn-.05)/.95,0,1),low=clamp((-yn-.40)/.60,0,1);
+        p.setXYZ(i,x*.67*(1-L.earPoint*.64*tip)+back,y*(1+L.earPoint*.52*tip+L.earLobe*.18*low),z*.40);
+      }
+      p.needsUpdate=true;m.geometry.computeVertexNormals();m.geometry.computeBoundingSphere();
+      m.scale.setScalar(L.earSize);
+      e.inner.position.set(back,.004,.023);e.inner.scale.set(.52,.83,.19);
+      e.inner.visible=true;
+      if(!e.lobe){e.lobe=mesh(new THREE.SphereGeometry(.025,14,10),v.skinMat,m);}
+      e.lobe.visible=L.earLobe>.04;
+      e.lobe.position.set(back,-.056-.012*L.earLobe,.003);
+      e.lobe.scale.set(.82+.10*L.earLobe,.45+L.earLobe*.72,.55);
+      const anchor=v.anchor.find(a=>a.obj===m);
+      if(anchor){anchor.d.copy(dirN(e.s,L.earY,-.05));m.userData.oriented=false;}
+    }
+  }
+  function shapeNose(v){
+    const L=v.look,m=v.noseM,p=m.geometry.attributes.position;
+    if(!v._ngNoseBase||v._ngNoseGeo!==m.geometry){v._ngNoseGeo=m.geometry;v._ngNoseBase=Float32Array.from(p.array);}
+    const b=v._ngNoseBase;
+    for(let i=0;i<p.count;i++){
+      const x=b[i*3],y=b[i*3+1],z=b[i*3+2];
+      const alar=Math.exp(-Math.pow((y+.023)/.034,2));
+      p.setXYZ(i,x*(1+(L.nostrilWidth-1)*alar),y,z);
+    }
+    p.needsUpdate=true;m.geometry.computeVertexNormals();m.geometry.computeBoundingSphere();
+    // Existing nostril meshes follow the new alar width, without growing the whole tip.
+    for(let i=0;i<2;i++){const n=m.children[i];if(n)n.position.x=(i?1:-1)*.022*L.nostrilWidth;}
+    if(!v._ngNoseBridge){
+      const b=mesh(new THREE.SphereGeometry(1,20,16),v.noseMat,v.noseG);b.userData.part='nose';
+      v._ngNoseBridge=b;if(v.parts&&!v.parts.includes(b))v.parts.push(b);
+    }
+    const bridge=v._ngNoseBridge;
+    bridge.position.set(0,.047,.008+.032*L.bridgeHeight);
+    bridge.scale.set(.023*L.nose,.057*L.nose,.012+.033*L.bridgeHeight);
+  }
+  const oldLook=Villain.prototype.applyLook;
+  Villain.prototype.applyLook=function(...args){
+    const result=oldLook.apply(this,args);
+    shapeEars(this);shapeNose(this);installEyeMask(this);
+    this.headDirty=true;this.applyDeform();this.captureResources();actors.add(this);syncEyeMask(this);
+    return result;
+  };
+  const oldDispose=Villain.prototype.dispose;
+  Villain.prototype.dispose=function(...args){actors.delete(this);return oldDispose.apply(this,args);};
+  const oldRender=renderer.render;
+  renderer.render=function(sc,cam){
+    for(const v of actors)if(v.hostScene===sc)syncEyeMask(v);
+    return oldRender.call(this,sc,cam);
+  };
+  const oldStep=step;
+  step=function(dt){
+    const r=oldStep.apply(this,arguments);
+    if(!G.hug||G.editing||G.mode!=='care')ngEndHugPose();
+    return r;
+  };
+  // Keep test hooks local. No telemetry or names are sent anywhere.
+  window.__NG4={version:'NG4_20260919',throwRelease:NG4_THROW_RELEASE,
+    inspect:()=>({histories:{player:[...RECENT_DIALOGUE.player],character:[...RECENT_DIALOGUE.character]},
+      avoidance:PREF.avoid,rubCount:SFX._rubCount||0,actors:actors.size,
+      careDelay:G.react?.delay??null,careReplyFired:!!G.react?.fired,shape:G.v?{...G.v.look}:null}),
+    syncEyes:syncEyeMask};
+  if(window.__api)Object.assign(window.__api,{step,careRub,careSay,queueCareReply,updateCareReply,SFX,RECENT_DIALOGUE,
+    chooseDialogue,dialogueCandidates,pickCharacterLine,ngThrowPath,ngThrowPose,ngPoseHug,ngEndHugPose,normaliseLook});
+})();
+
 /* ================= 시작 ================= */
 function boot() {
   fit();
   newVillain();
-  // 처음 온 기기: 입장 연출 대신 기본 외모로 세워 두고 외모 만들기부터 띄운다. 한 번 열어 본 기기는 건너뛴다.
-  const firstVisit = !APPEAR.seen;
+  // 처음 온 기기: 입장 연출 대신 기본 외모로 세워 두고 나를 떠올리기부터 띄운다. 한 번 열어 본 기기는 건너뛴다.
+  const firstVisit = true;
   if (firstVisit) { const v = G.v; v.state = 'stand'; v.stateT = 0; v.root.position.set(0, 0, 0); v.root.rotation.set(0, 0, 0); }
   requestAnimationFrame(t => { lastT = t; frame(t); });
   window.__game=G;window.__refreshGameFonts=()=>{document.fonts.ready.then(()=>{if(G.v)G.v.drawName();});};window.__bootGuard.ready=true;$('#fallback').style.display='none';
-  if (firstVisit) AppearanceEditor.open();
+  if (firstVisit) window.__NG2.beginIntro();
   setHint();   // 편집기가 떠 있으면 안내문은 닫은 뒤에 뜬다
 }
 if (document.fonts && document.fonts.ready) {
