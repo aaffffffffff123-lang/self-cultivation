@@ -510,6 +510,7 @@ body .dock .mode{font-size:clamp(13px,3.7vw,18px);height:41px;letter-spacing:0;p
 .mode.on[data-mode=wash]{background:#8fdcc9;color:var(--ink);box-shadow:inset 0 -4px 0 #62b9a6}
 #ngItemHelp{height:33px;display:flex;align-items:center;justify-content:center;gap:5px;padding:2px 8px;border-radius:9px;background:#eef3ed;font:700 10.5px/1.4 var(--body);color:#4b587d;text-align:center;word-break:keep-all;overflow:hidden}
 #ngItemHelp.changed{animation:ngHelpIn .18s ease-out}
+body #ngItemHelp[hidden]{display:none!important}
 body #hint{display:none!important}
 #ngAuxPanel{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:9px;min-height:80px;padding:12px;background:#fff7dd;border-radius:12px}
 #ngAuxPanel[hidden]{display:none}
@@ -989,22 +990,96 @@ const SFX = (() => {
     tone(o,t,{f0:145,f1:62,dur:.10,peak:.45});
     burst(o,t,{dur:.10,peak:.32,type:'lowpass',f:1800,f1:420,q:.55});
   };
+  // 얇은 조각이 튕길 때: 마르고 가벼운 '탁'
+  S.foodTick = (pan = 0) => {
+    if (!ctx) return;
+    const t = ctx.currentTime, o = out(pan, 0.18);
+    tone(o, t, { type: 'triangle', f0: R(900, 1250), f1: R(420, 560), dur: 0.045, peak: 0.20, a: 0.001 });
+    burst(o, t, { dur: 0.030, peak: 0.16, type: 'bandpass', f: R(2600, 3400), q: 1.3 });
+    clicks(o, t + 0.004, 4, 0.035, 3000, 0.10);
+  };
   S.pat = (pan = 0) => {
     if (!ctx) return;
     const t = ctx.currentTime, o = out(pan, 0.15);
     tone(o, t, { f0: 190, f1: 110, dur: 0.07, peak: 0.2 });
     burst(o, t, { dur: 0.06, peak: 0.12, type: 'lowpass', f: 800, q: 0.6 });
   };
-  // 냠냠·쩝쩝: 입술이 떨어지는 축축한 쩝 + 입 안에서 울리는 낮은 냠 + 혀 소리
-  S.chew = (pan = 0, hard = 0) => {
+
+
+
+  // 붙어 있던 입술이 떨어지는 '쩝'. 입안 공명이 순식간에 낮아지는 것이 이 소리의 전부다.
+  function smack(dest, t, level, bright) {
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2600; lp.Q.value = 0.7; lp.connect(dest);
+    const s = ctx.createBufferSource(), bp = ctx.createBiquadFilter(), g = ctx.createGain();
+    s.buffer = noise; bp.type = 'bandpass'; bp.Q.value = 6;
+    bp.frequency.setValueAtTime(bright, t);
+    bp.frequency.exponentialRampToValueAtTime(bright * 0.18, t + 0.024);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(level * 0.55, t + 0.0015);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.042);
+    s.connect(bp); bp.connect(g); g.connect(lp);
+    s.start(t, Math.random() * 1.5); s.stop(t + 0.09);
+    tone(lp, t, { type: 'sine', f0: bright * 0.62, f1: 118, dur: 0.042, peak: level * 1.25, a: 0.0012 });
+    tone(lp, t, { type: 'triangle', f0: bright * 0.30, f1: 96, dur: 0.030, peak: level * 0.55, a: 0.0012 });
+    burst(lp, t, { dur: 0.006, peak: level * 0.20, type: 'highpass', f: 4200 });
+  }
+  // 입을 다문 채 내는 '냠'. 코로 울리다(ㄴ) 잠깐 벌어졌다(ㅑ) 다시 닫힌다(ㅁ).
+  function nyam(dest, t, pitch, level, dur) {
+    const src = ctx.createOscillator(), sub = ctx.createOscillator(), g = ctx.createGain(), mix = ctx.createGain();
+    src.type = 'sawtooth'; sub.type = 'triangle';
+    for (const [o, k] of [[src, 1], [sub, 0.5]]) {
+      o.frequency.setValueAtTime(pitch * 0.92 * k, t);
+      o.frequency.linearRampToValueAtTime(pitch * 1.05 * k, t + dur * 0.38);
+      o.frequency.linearRampToValueAtTime(pitch * 0.82 * k, t + dur);
+    }
+    const sg = ctx.createGain(); sg.gain.value = 0.55;
+    src.connect(mix); sub.connect(sg); sg.connect(mix);
+    for (const [a, b, q, amt] of [[250, 720, 6, 1], [1050, 1300, 8, 0.5], [2500, 2600, 5, 0.12]]) {
+      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = q;
+      bp.frequency.setValueAtTime(a, t);
+      bp.frequency.linearRampToValueAtTime(b, t + dur * 0.40);
+      bp.frequency.linearRampToValueAtTime(a, t + dur);
+      const ga = ctx.createGain(); ga.gain.value = amt * 3.0;
+      mix.connect(bp); bp.connect(ga); ga.connect(g);
+    }
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(level * 0.5, t + 0.018);
+    g.gain.linearRampToValueAtTime(level, t + dur * 0.42);
+    g.gain.linearRampToValueAtTime(level * 0.30, t + dur * 0.86);
+    g.gain.linearRampToValueAtTime(0.0001, t + dur);
+    g.connect(dest);
+    for (const o of [src, sub]) { o.start(t); o.stop(t + dur + 0.05); }
+  }
+  // 냠냠·쩝쩝: 한 번은 '쩝+냠', 한 번은 '쩝쩝'. 음식에 따라 바삭·후루룩·꿀꺽으로 바뀐다.
+  let chewTick = 0;
+  S.chew = (pan = 0, amount = 1, kind = 'soft') => {
     if (!ctx) return;
-    const t = ctx.currentTime, o = out(pan, 0.16);
-    burst(o, t, { dur: 0.030, peak: 0.26 + 0.10 * hard, type: 'bandpass', f: R(1000, 1600), f1: R(280, 420), q: 1.7 });
-    burst(o, t + 0.005, { dur: 0.055, peak: 0.14, type: 'lowpass', f: 760, f1: 230, q: 0.7 });
-    tone(o, t + 0.012, { type: 'triangle', f0: R(180, 225), f1: R(95, 120), dur: 0.11, peak: 0.15, a: 0.012 });
-    tone(o, t + 0.012, { type: 'sine', f0: R(360, 440), f1: R(200, 250), dur: 0.09, peak: 0.07, a: 0.014 });
-    clicks(o, t + 0.035, 3, 0.06, 2200, 0.10);
+    const t = ctx.currentTime, o = out(pan, 0.10), a = 0.55 + 0.45 * Math.min(1, Math.max(0, amount));
+    if (kind === 'drink') {
+      tone(o, t, { type: 'sine', f0: R(300, 380), f1: R(90, 120), dur: 0.085, peak: 0.30 * a, a: 0.004 });
+      burst(o, t, { dur: 0.05, peak: 0.13 * a, type: 'lowpass', f: 900, f1: 260, q: 0.8 });
+      tone(o, t + 0.10, { type: 'sine', f0: R(130, 170), f1: R(320, 400), dur: 0.07, peak: 0.22 * a, a: 0.005 });
+      smack(o, t + 0.19, 0.13 * a, R(620, 820));
+      return;
+    }
+    if (kind === 'slurp') {
+      burst(o, t, { dur: 0.16, peak: 0.16 * a, type: 'bandpass', f: 520, f1: 1750, q: 2.4 });
+      burst(o, t + 0.02, { dur: 0.14, peak: 0.055 * a, type: 'bandpass', f: 2300, q: 1.2 });
+      tone(o, t + 0.02, { type: 'sine', f0: R(330, 400), f1: R(700, 880), dur: 0.13, peak: 0.05 * a, a: 0.03 });
+      smack(o, t + 0.175, 0.14 * a, R(700, 920));
+      return;
+    }
+    const voiced = (chewTick++ % 2) === 0;
+    smack(o, t, (voiced ? 0.17 : 0.23) * a, R(720, 980));
+    if (kind === 'crisp') {
+      clicks(o, t + 0.006, 10, 0.095, 3200, 0.26 * a);
+      burst(o, t + 0.010, { dur: 0.060, peak: 0.16 * a, type: 'bandpass', f: 3400, q: 0.9 });
+    }
+    if (voiced) nyam(o, t + 0.050, R(150, 182), 0.17 * a, R(0.16, 0.20));
+    else smack(o, t + R(0.10, 0.14), 0.14 * a, R(560, 760));
   };
+
+
+
   function contLoop(name, filterF, q, gain) {
     if (!ctx || loops[name]) return;
     const t = ctx.currentTime, o = out(0, 0.05);
@@ -10624,7 +10699,7 @@ function ngPoseHug(v,dt){
   const intro=$('#ngIntro'),nameForm=$('#ngNameForm'),nameInput=$('#ngNameInput');
   let introStage='name',ready=false,owner=null,auxPointer=null,eating=null,dodge=null;
   let poseSnapshot=null,careHealAt=-100,petTalkAt=-100,clapTalkAt=-100,foodSerial=0;
-  let cleanTime=0,sparkTime=0,lastMode=G.mode,foodChoice=0,foodRecoil=null,throwMotion=null;
+  let cleanTime=0,sparkTime=0,lastMode=G.mode,foodRecoil=null,throwMotion=null;
   const stats={foodThrown:0,foodImpacts:0,foodLanded:0,foodEaten:0,waterEmitted:0,openingLines:0};
   const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
   const auxMode=()=>G.mode==='feed'||G.mode==='wash';
@@ -10691,22 +10766,33 @@ function ngPoseHug(v,dt){
   itemHelp.setAttribute('aria-live','polite');modes.after(itemHelp);
   const auxPanel=document.createElement('div');auxPanel.id='ngAuxPanel';auxPanel.hidden=true;
   auxPanel.innerHTML='<span class="ng-action-icon" aria-hidden="true">🚿</span><p></p><progress id="ngCleanProgress" max="1" value="0" aria-label="씻기기 진행" hidden></progress>';
+
+
+
+
+  // 먹이기는 고르지 않는다. 던질 때마다 무작위로 나오되 여덟 가지를 한 바퀴 돈 뒤 다시 섞는다.
+  // light: 얇은 조각이라 박히지 않고 튕긴다 / firm: 컵·캔처럼 찌그러지지 않는다
+  // rx·rz: 바닥에 놓일 때의 자세 / bite: 먹는 소리
   const FOOD_MENU=Object.freeze([
-    {name:'사과',icon:'🍎',stain:'#d97540'}, {name:'주먹밥',icon:'🍙',stain:'#d2c29b'},
-    {name:'도넛',icon:'🍩',stain:'#bf745a'}, {name:'빵',icon:'🍞',stain:'#ba814d'},
-    {name:'달걀',icon:'🍳',stain:'#f0bb25'}, {name:'바나나',icon:'🍌',stain:'#d9b63f'},
-    {name:'토마토',icon:'🍅',stain:'#de612d'}, {name:'케이크',icon:'🍰',stain:'#e69ba9'}
+    {name:'햄버거',stain:'#c2703a',splat:.22,bite:'soft'},
+    {name:'피자',stain:'#cf5330',splat:.22,bite:'soft'},
+    {name:'치킨',stain:'#c1803c',splat:.18,bite:'crisp',rx:.30},
+    {name:'컵라면',stain:'#d95f33',splat:.27,bite:'slurp',firm:true},
+    {name:'감자칩',stain:'#e0b45f',splat:.09,bite:'crisp',light:true,rx:.62},
+    {name:'도넛',stain:'#e2c187',splat:.18,bite:'soft'},
+    {name:'아이스크림',stain:'#f0d6bf',splat:.23,bite:'soft',firm:true,rz:-1.30},
+    {name:'콜라',stain:'#5a3222',splat:.26,bite:'drink',firm:true,rz:1.45}
   ]);
-  const feedTools=document.createElement('div');feedTools.id='ngFeedTools';feedTools.className='tools';
-  feedTools.hidden=true;feedTools.setAttribute('role','group');feedTools.setAttribute('aria-label','먹일 음식 고르기');
-  for(const [i,item] of FOOD_MENU.entries()){
-    const b=document.createElement('button');b.className='tool'+(i===0?' on':'');b.dataset.food=String(i);
-    b.setAttribute('aria-pressed',String(i===0));b.setAttribute('aria-label',item.name);
-    b.innerHTML='<span class="ng-food-icon" aria-hidden="true">'+item.icon+'</span><span>'+item.name+'</span>';
-    b.addEventListener('click',()=>{foodChoice=i;for(const a of feedTools.children){const on=a===b;a.classList.toggle('on',on);a.setAttribute('aria-pressed',String(on));}showItemHelp();});
-    feedTools.append(b);
+  let foodBag=[];
+  function nextFood(){
+    if(!foodBag.length){foodBag=FOOD_MENU.map((_,i)=>i);
+      for(let i=foodBag.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[foodBag[i],foodBag[j]]=[foodBag[j],foodBag[i]];}}
+    return foodBag.pop();
   }
-  $('.panel').append(feedTools);
+
+
+
+
   $('.panel').append(auxPanel);
  
   const help={
@@ -10738,7 +10824,7 @@ function ngPoseHug(v,dt){
   for(const k of hitOrder){const b=$(`[data-tool="${k}"]`);if(b)$('#hitTools').append(b);}
   for(const k of careOrder){const b=$(`[data-care="${k}"]`);if(b)$('#careTools .care-strip').append(b);}
   const frames=[];
-  for(const strip of [$('#hitTools'),$('#careTools .care-strip'),feedTools]){
+  for(const strip of [$('#hitTools'),$('#careTools .care-strip')]){
     const frame=document.createElement('div');frame.className='ng-scroll-frame';
     strip.before(frame);frame.append(strip);
     const arrows=[];
@@ -10760,11 +10846,10 @@ function ngPoseHug(v,dt){
   function renderMode(){
     $('#hitTools').hidden=G.mode!=='hit';$('#careTools').hidden=G.mode!=='care';
     frames[0].frame.hidden=G.mode!=='hit';
-    feedTools.hidden=G.mode!=='feed';frames[2].frame.hidden=G.mode!=='feed';
-    auxPanel.hidden=!auxMode();
+    auxPanel.hidden=!auxMode();itemHelp.hidden=auxMode();
     for(const b of $$('.mode')){const on=b.dataset.mode===G.mode;b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on));}
     if(auxMode()){
-      auxPanel.querySelector('.ng-action-icon').textContent=G.mode==='feed'?'🍙':'🚿';
+      auxPanel.querySelector('.ng-action-icon').textContent=G.mode==='feed'?'🍜':'🚿';
       auxPanel.querySelector('p').innerHTML=G.mode==='feed'
         ?'<em class="ng-creed-lead">식사는 몸과 마음에 에너지를 채워,</em><strong class="ng-creed-punch">내면의 중심을 다시 세우는 능동적인 충전 의식</strong><em class="ng-creed-tail">입니다.</em>'
         :'<em class="ng-creed-lead">목욕은 마음의 찌꺼기를 씻어내고,</em><strong class="ng-creed-punch">온전한 나로 돌아가는 정화 의식</strong><em class="ng-creed-tail">입니다.</em>';
@@ -10773,14 +10858,14 @@ function ngPoseHug(v,dt){
     frames.forEach(x=>x.sync());lastMode=G.mode;fit();
   }
   function showItemHelp(){
-    const text=auxMode()?(G.mode==='feed'?[['화면을 톡톡',FOOD_MENU[foodChoice].name+' 던지기'],'떨어진 음식은 주워 먹습니다']:['물이 닿은 동안 씻깁니다'])
-      :(help[G.mode]?.[G.mode==='hit'?G.tool:(G.hug?'hug':G.care)]||['아이템을 선택해 주세요.']);
-    ngSetItemHelp(itemHelp,text,arguments[0]===true);
+    // 먹이기·씻기기는 명언 한 줄만 두고 설명란을 띄우지 않는다.
+    itemHelp.hidden=auxMode();if(auxMode())return;
+    ngSetItemHelp(itemHelp,help[G.mode]?.[G.mode==='hit'?G.tool:(G.hug?'hug':G.care)]||['아이템을 선택해 주세요.'],arguments[0]===true);
   }
   const originalHint=setHint;
   setHint=function(){const result=originalHint.apply(this,arguments);showItemHelp();return result;};
   document.addEventListener('click',e=>{
-    const b=e.target.closest?.('[data-tool],[data-care],[data-food],.mode');if(!b||b.disabled)return;
+    const b=e.target.closest?.('[data-tool],[data-care],.mode');if(!b||b.disabled)return;
     if(b.matches('.mode')){if(lastMode!==G.mode){cancelAux();clearDialogue();}renderMode();}
     showItemHelp(true);
   });
@@ -10793,7 +10878,7 @@ function ngPoseHug(v,dt){
   const storage=document.createElement('p');storage.id='ngStorageInfo';
   storage.textContent='이름·외모·추가 대사는 이 브라우저에만 보관합니다. 서버 저장은 하지 않습니다.';
   const sounds=document.createElement('details');sounds.id='ngSoundGuide';
-  sounds.innerHTML='<summary>효과음은 무슨 뜻인가요?</summary><p>퍽·짝: 주먹과 손바닥 타격<br>깡·텅: 금속 도구 타격<br>짤랑: 안경 파손 / 짧은 딩: 이빨이 빠짐<br>쿵·와장창: 바닥·벽 충돌이나 의자 충격<br>뜨득·까각: 줄을 걸거나 당기는 소리<br>띠링: 힘 모으기 완료<br>반짝: 치료·씻기기 완료</p><p>큰 파열음은 별도의 크리티컬 알림이 아니라 충돌·파손 효과입니다. 일반 타격음은 유지하고 큰 충돌음만 따로 낮췄습니다.</p>';
+  sounds.innerHTML='<summary>효과음은 무슨 뜻인가요?</summary><p>퍽·짝: 주먹과 손바닥 타격<br>깡·텅: 금속 도구 타격<br>짤랑: 안경 파손 / 짧은 딩: 이빨이 빠짐<br>쿵·와장창: 바닥·벽 충돌이나 의자 충격<br>뜨득·까각: 줄을 걸거나 당기는 소리<br>띠링: 힘 모으기 완료<br>쩝·냠: 먹는 소리 / 탁: 가벼운 조각이 튕김<br>반짝: 치료·씻기기 완료</p><p>큰 파열음은 별도의 크리티컬 알림이 아니라 충돌·파손 효과입니다. 일반 타격음은 유지하고 큰 충돌음만 따로 낮췄습니다.</p>';
   settings.append(sounds,storage);
   PREF.avoid=!!PREF.avoid;
   $('#ngAvoid').checked=PREF.avoid;
@@ -10855,39 +10940,108 @@ function ngPoseHug(v,dt){
     if(G.v){G.v.mouth.talk=0;G.v._mutterLeft=4;}
   }
 
-  /* NG3 food: choose -> wind-up/throw -> harmless impact -> stain -> flattened
-     floor prop -> reach down and eat. The combat damage path is never called. */
+  /* 먹이기: 무작위로 뽑기 -> 팔을 젖혀 투척 -> 맞아도 아프지 않은 충돌 -> 얼룩 ->
+     바닥에 눕기 -> 앉아서 주워 먹기. 때리기의 데미지 경로는 한 번도 타지 않는다. */
   const foods=[],templates=[],stains=[],crumbs=[];
-  const foodMats={rice:mat('#fff7dd',{roughness:.9}),nori:mat('#28493a',{roughness:.8}),red:mat('#db5945',{roughness:.6}),
-    bread:mat('#dfa367',{roughness:.8}),brown:mat('#80513a',{roughness:.8}),pink:mat('#efa8b5',{roughness:.55}),yellow:mat('#ffd054',{roughness:.7}),leaf:mat('#54885b',{roughness:.8})};
+ 
+ 
+ 
+
+  const foodMats={
+    bun:mat('#e7a95c',{roughness:.85}),patty:mat('#7b4a2c',{roughness:.92}),cheese:mat('#ffc63c',{roughness:.6}),
+    lettuce:mat('#7cbb5e',{roughness:.8}),sesame:mat('#fbeccb',{roughness:.7}),dough:mat('#e5b06a',{roughness:.85}),
+    sauce:mat('#cc4527',{roughness:.7}),melt:mat('#f6cb61',{roughness:.6}),pepper:mat('#b23530',{roughness:.65}),
+    fried:mat('#cd8b3c',{roughness:.95}),friedDark:mat('#ab6b2a',{roughness:.95}),bone:mat('#f3ead7',{roughness:.6}),cup:mat('#f7f3e8',{roughness:.75}),
+    cupRed:mat('#d9483b',{roughness:.7}),soup:mat('#d4622c',{roughness:.45}),noodle:mat('#f0d489',{roughness:.6}),
+    chip:mat('#e7b456',{roughness:.7}),glaze:mat('#f3dfb4',{roughness:.22}),cone:mat('#cf9a55',{roughness:.85}),
+    coneDark:mat('#a9762f',{roughness:.85}),cream:mat('#fff4e7',{roughness:.5}),berry:mat('#f4a6b3',{roughness:.5}),
+    can:mat('#d0362a',{roughness:.42}),canWhite:mat('#f6f1e7',{roughness:.42}),canMetal:mat('#c3c9d1',{roughness:.3,metalness:.7}),
+    red:mat('#db5945',{roughness:.6})};
   const foodGeo=new THREE.SphereGeometry(1,14,10),foodBox=new THREE.BoxGeometry(1,1,1);
+
   function makeFoods(){
     const ball=(g,m,x,y,z,sx,sy,sz)=>{const o=mesh(foodGeo,m,g);o.position.set(x,y,z);o.scale.set(sx,sy,sz);return o;};
-    let g=new THREE.Group();g.name='사과';ball(g,foodMats.red,0,0,0,.085,.08,.08);
-    let o=mesh(new THREE.CylinderGeometry(.008,.009,.05,7),foodMats.brown,g);o.position.y=.079;
-    ball(g,foodMats.leaf,.025,.095,0,.030,.008,.014);templates.push(g);
-    g=new THREE.Group();g.name='주먹밥';o=mesh(new THREE.ConeGeometry(.105,.155,3),foodMats.rice,g);o.rotation.y=Math.PI;
-    o=mesh(foodBox,foodMats.nori,g);o.position.set(0,-.026,.06);o.scale.set(.069,.07,.014);templates.push(g);
-    g=new THREE.Group();g.name='도넛';o=mesh(new THREE.TorusGeometry(.078,.029,10,22),foodMats.bread,g);o.rotation.x=-Math.PI/2;
-    o=mesh(new THREE.TorusGeometry(.078,.021,8,22),foodMats.pink,g);o.rotation.x=-Math.PI/2;o.position.y=.020;
-    for(let i=0;i<7;i++){const a=i*Math.PI*2/7;ball(g,foodMats.yellow,Math.cos(a)*.077,.043,Math.sin(a)*.077,.007,.003,.004);}templates.push(g);
-    g=new THREE.Group();g.name='빵';ball(g,foodMats.bread,0,0,0,.10,.055,.075);
-    for(let i=-1;i<=1;i++){o=mesh(foodBox,foodMats.rice,g);o.scale.set(.008,.009,.07);o.position.set(i*.038,.05,0);o.rotation.y=.2;}templates.push(g);
-    g=new THREE.Group();g.name='달걀';ball(g,foodMats.rice,0,0,0,.106,.012,.067);ball(g,foodMats.yellow,0,.018,.008,.043,.018,.039);templates.push(g);
-    g=new THREE.Group();g.name='바나나';
-    const arc=[];for(let i=0;i<7;i++){const a=-.7+i*.20;arc.push(V3(Math.sin(a)*.17,Math.cos(a)*.17-.14,0));}
-    o=mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(arc),12,.025,8,false),foodMats.yellow,g);
-    ball(g,foodMats.brown,arc[0].x,arc[0].y,0,.015,.020,.014);templates.push(g);
-    g=new THREE.Group();g.name='토마토';ball(g,foodMats.red,0,0,0,.088,.071,.08);
-    for(let i=0;i<5;i++){const a=i*Math.PI*2/5;o=ball(g,foodMats.leaf,Math.cos(a)*.025,.069,Math.sin(a)*.025,.032,.006,.01);o.rotation.y=-a;}templates.push(g);
-    g=new THREE.Group();g.name='케이크';
-    o=mesh(foodBox,foodMats.bread,g);o.scale.set(.15,.09,.12);
-    o=mesh(foodBox,foodMats.rice,g);o.position.y=.004;o.scale.set(.155,.018,.124);
-    o=mesh(foodBox,foodMats.pink,g);o.position.y=.049;o.scale.set(.16,.022,.13);
-    ball(g,foodMats.rice,0,.075,0,.038,.026,.034);ball(g,foodMats.red,.005,.095,0,.024,.029,.024);templates.push(g);
+    let g,o;
+    // 햄버거
+    g=new THREE.Group();g.name='햄버거';
+    ball(g,foodMats.bun,0,-.050,0,.090,.032,.090);
+    o=mesh(new THREE.CylinderGeometry(.086,.084,.034,18),foodMats.patty,g);o.position.y=-.014;
+    o=mesh(foodBox,foodMats.cheese,g);o.position.y=.008;o.scale.set(.158,.010,.158);o.rotation.y=.62;
+    for(let i=0;i<10;i++){const a=i*Math.PI*2/10;ball(g,foodMats.lettuce,Math.cos(a)*.078,.021,Math.sin(a)*.078,.031,.013,.031);}
+    o=mesh(new THREE.SphereGeometry(1,18,12,0,Math.PI*2,0,Math.PI*.56),foodMats.bun,g);o.position.y=.030;o.scale.set(.094,.078,.094);
+    for(let i=0;i<8;i++){const a=i*2.4,r=.018+(i%4)*.019;
+      ball(g,foodMats.sesame,Math.cos(a)*r,.030+.078*Math.sqrt(Math.max(0,1-(r/.094)**2)),Math.sin(a)*r,.009,.004,.006);}
+    templates.push(g);
+    // 피자 한 조각
+    g=new THREE.Group();g.name='피자';
+    const pz=new THREE.Group();pz.position.z=-.082;pz.rotation.x=.32;g.add(pz);
+    const slice=(r,h,m,y)=>{const s=mesh(new THREE.CylinderGeometry(r,r,h,20,1,false,-Math.PI/7,Math.PI*2/7),m,pz);s.position.y=y;return s;};
+    slice(.166,.024,foodMats.dough,0);slice(.150,.012,foodMats.sauce,.016);slice(.142,.014,foodMats.melt,.024);
+    for(let i=0;i<3;i++){const a=(-.62+i*.62)*Math.PI/7,r=.052+i*.038;
+      o=mesh(new THREE.CylinderGeometry(.024,.024,.011,12),foodMats.pepper,pz);o.position.set(Math.sin(a)*r,.034,Math.cos(a)*r);}
+    const crustPivot=new THREE.Group();crustPivot.rotation.x=-Math.PI/2;crustPivot.position.y=.004;pz.add(crustPivot);
+    o=mesh(new THREE.TorusGeometry(.157,.023,8,16,Math.PI*2/7),foodMats.dough,crustPivot);o.rotation.z=-(Math.PI/2+Math.PI/7);
+    templates.push(g);
+    // 치킨 다리
+    g=new THREE.Group();g.name='치킨';
+    ball(g,foodMats.fried,0,-.016,0,.074,.086,.074);
+    for(let i=0;i<11;i++){const a=i*2.4,k=i%3;
+      ball(g,k===1?foodMats.friedDark:foodMats.fried,Math.cos(a)*.046,-.026+Math.sin(a*1.7)*.048,Math.sin(a)*.040,.030+k*.008,.026+k*.007,.030+k*.008);}
+    o=mesh(new THREE.CylinderGeometry(.017,.015,.098,10),foodMats.bone,g);o.position.set(.044,.076,0);o.rotation.z=-.40;
+    ball(g,foodMats.bone,.0630,.1205,0,.026,.022,.024);
+    templates.push(g);
+    // 컵라면
+    g=new THREE.Group();g.name='컵라면';
+    mesh(new THREE.CylinderGeometry(.079,.056,.118,18),foodMats.cup,g);
+    o=mesh(new THREE.CylinderGeometry(.0718,.0632,.044,18),foodMats.cupRed,g);o.position.y=-.004;
+    o=mesh(new THREE.CylinderGeometry(.0745,.0745,.012,16),foodMats.soup,g);o.position.y=.056;
+    for(let i=0;i<6;i++){const a=i*1.28;o=mesh(new THREE.TorusGeometry(.019,.0065,6,12),foodMats.noodle,g);
+      o.position.set(Math.cos(a)*.032,.063+((i%2)?.008:0),Math.sin(a)*.030);o.rotation.set(-Math.PI/2+.22*Math.cos(a),a,0);}
+    o=mesh(foodBox,foodMats.cup,g);o.scale.set(.132,.004,.090);o.position.set(0,.0905,-.0495);o.rotation.x=-.92;
+    templates.push(g);
+    // 감자칩 한 조각
+    g=new THREE.Group();g.name='감자칩';
+    const chip=new THREE.CylinderGeometry(.064,.064,.0055,24,1);
+    {const pa=chip.attributes.position;
+      for(let i=0;i<pa.count;i++){
+        const x=pa.getX(i),z=pa.getZ(i),r=Math.hypot(x,z);
+        if(r>1e-5){const k=1+.07*Math.cos(Math.atan2(x,z)*5);pa.setX(i,x*k);pa.setZ(i,z*k);}
+        const X=pa.getX(i),Z=pa.getZ(i);pa.setY(i,pa.getY(i)+(X*X-Z*Z*1.25)*4.6);}
+      chip.computeVertexNormals();}
+    mesh(chip,foodMats.chip,g);
+    templates.push(g);
+    // 도넛
+    g=new THREE.Group();g.name='도넛';
+    o=mesh(new THREE.TorusGeometry(.076,.031,12,24),foodMats.fried,g);o.rotation.x=-Math.PI/2;
+    o=mesh(new THREE.TorusGeometry(.076,.0295,12,24),foodMats.glaze,g);o.rotation.x=-Math.PI/2;o.position.y=.012;o.scale.set(1,1,.78);
+    for(let i=0;i<6;i++){const a=i*Math.PI*2/6+.3;ball(g,foodMats.glaze,Math.cos(a)*.1015,-.014,Math.sin(a)*.1015,.013,.021,.013);}
+    templates.push(g);
+    // 아이스크림
+    g=new THREE.Group();g.name='아이스크림';
+    o=mesh(new THREE.ConeGeometry(.053,.130,14),foodMats.cone,g);o.rotation.x=Math.PI;o.position.y=-.048;
+    for(let i=0;i<3;i++){const y=-.006-i*.030,r=.053*(y+.113)/.130;
+      o=mesh(new THREE.TorusGeometry(Math.max(.006,r),.0045,6,14),foodMats.coneDark,g);o.rotation.x=-Math.PI/2;o.position.y=y;}
+    ball(g,foodMats.cream,-.014,.044,0,.062,.058,.058);
+    ball(g,foodMats.berry,.018,.086,.004,.049,.047,.047);
+    ball(g,foodMats.red,.020,.126,.004,.016,.016,.016);
+    templates.push(g);
+    // 콜라 캔
+    g=new THREE.Group();g.name='콜라';
+    mesh(new THREE.CylinderGeometry(.050,.050,.132,18),foodMats.can,g);
+    o=mesh(new THREE.CylinderGeometry(.0506,.0506,.034,18),foodMats.canWhite,g);o.position.y=.004;
+    o=mesh(new THREE.CylinderGeometry(.044,.050,.016,18),foodMats.canMetal,g);o.position.y=.070;
+    o=mesh(new THREE.CylinderGeometry(.045,.045,.006,18),foodMats.canMetal,g);o.position.y=.080;
+    o=mesh(new THREE.TorusGeometry(.015,.0035,6,12),foodMats.canMetal,g);o.rotation.x=-Math.PI/2;o.position.set(.010,.085,0);
+    o=mesh(new THREE.CylinderGeometry(.050,.044,.014,18),foodMats.canMetal,g);o.position.y=-.070;
+    templates.push(g);
     for(const t of templates)t.traverse(o=>{if(o.geometry)o.geometry.userData=Object.assign(o.geometry.userData||{},{shared:true});if(o.material){o.material.userData.shared=true;o.castShadow=true;}});
   }
   makeFoods();
+
+
+
+
+
   const foodRay=new THREE.Raycaster(),floorPlane=new THREE.Plane(V3(0,1,0),0);
   const foodRig=RIG.tools.brick.clone(true);foodRig.name='ng-food-throw-hand';foodRig.userData={ngFoodHand:true};
   foodRig.children[0].visible=false;foodRig.visible=false;handsRoot.add(foodRig);
@@ -10913,7 +11067,7 @@ function ngPoseHug(v,dt){
     while(stains.length>=CFG.foodStainMax)removeStain(stains[0]);
     const obj=hit.object,src=obj.geometry?.attributes.position;if(!src||!hit.face)return;
     const n=hit.face.normal.clone().applyMatrix3(new THREE.Matrix3().getNormalMatrix(obj.matrixWorld)).normalize(),right=V3().crossVectors(Math.abs(n.y)>.9?V3(1,0,0):V3(0,1,0),n).normalize(),up=V3().crossVectors(n,right).normalize();
-    const geo=new THREE.PlaneGeometry(1,1,6,6),pos=geo.attributes.position,uv=geo.attributes.uv,plan=[],size=.20+(p.type>=6?.04:0);
+    const geo=new THREE.PlaneGeometry(1,1,6,6),pos=geo.attributes.position,uv=geo.attributes.uv,plan=[],size=FOOD_MENU[p.type].splat||.20;
     for(let i=0;i<pos.count;i++){
       const base=hit.point.clone().addScaledVector(right,(uv.getX(i)-.5)*size).addScaledVector(up,(uv.getY(i)-.5)*size);
       splatRay.set(base.clone().addScaledVector(n,.18),n.clone().negate());splatRay.near=0;splatRay.far=.42;
@@ -10958,11 +11112,14 @@ function ngPoseHug(v,dt){
     const v=G.v;if(!v||G.mode!=='feed'||blocked())return false;
     SFX.unlock();muteAux();
     if(foods.length>=CFG.foodMax)removeFood(foods.find(p=>p.phase!=='picked')||foods[0]);
-    const type=foodChoice,g=templates[type].clone(true),target=aimPoint(x,y);
+    const type=nextFood(),item=FOOD_MENU[type],g=templates[type].clone(true),target=aimPoint(x,y);
     if(throwMotion?.p.phase==='windup')releaseFood(throwMotion.p);
     const shot=ngThrowPath(target),from=shot.from,launch=shot.launch;
-    g.position.copy(from);g.rotation.set(-.15,.1,.25);scene.add(g);
-    const p={id:++foodSerial,g,v,target,from,launch,shot,vel:V3(),age:0,phase:'windup',wait:0,type,hit:false,bounces:0,spin:V3(rnd(-6,6),rnd(-4,4),rnd(-5,5)),eatScale:V3(1,1,1)};
+    g.position.copy(from);scene.add(g);
+    // 감자칩은 얇은 조각이라 표창처럼 납작하게 눕혀 빠르게 돌고, 나머지는 굴러가듯 돈다.
+    if(item.light)g.rotation.set(.13,0,-.07);else g.rotation.set(-.15,.1,.25);
+    const spin=item.light?V3(0,rnd(25,34)*(Math.random()<.5?-1:1),0):V3(rnd(-6,6),rnd(-4,4),rnd(-5,5));
+    const p={id:++foodSerial,g,v,target,from,launch,shot,vel:V3(),age:0,phase:'windup',wait:0,type,hit:false,bounces:0,spin,eatScale:V3(1,1,1)};
     foods.push(p);throwMotion={p,t:0};G.lastAct=G.time;stats.foodThrown++;return true;
   }
   function releaseFood(p){
@@ -10977,16 +11134,30 @@ function ngPoseHug(v,dt){
     foodRig.position.copy(pose.p);foodRig.rotation.copy(pose.rotation);foodRig.visible=true;
   }
   function setFoodImpact(p,hit){
+    const item=FOOD_MENU[p.type];
     p.hit=true;p.wait=0;const n=hit.face.normal.clone().applyMatrix3(new THREE.Matrix3().getNormalMatrix(hit.object.matrixWorld)).normalize();
-    p.g.position.copy(hit.point).addScaledVector(n,.095);p.vel.reflect(n).multiplyScalar(.10);p.vel.x=clamp(p.vel.x,-.65,.65);p.vel.z=clamp(p.vel.z,-.65,.65);p.vel.y=.30;
-    p.g.scale.set(1.12,.78,1.08);putFoodStain(p,hit);foodSplash(p,hit.point,n,12);
-    foodRecoil={v:p.v,t:0,side:Math.sign(hit.point.x-p.v.root.position.x)||1,head:['head','nose'].includes(hit.object.userData.part)};
-    stats.foodImpacts++;SFX.foodImpact(clamp(hit.point.x,-1,1));G.lastAct=G.time;
-    if(PREF.shake)G.shake=Math.max(G.shake,.055);vib(12);
+    p.g.position.copy(hit.point).addScaledVector(n,.095);
+    if(item.light){
+      // 얇은 조각은 퍽 박히지 않고 탁 튕겨 나간다. 얼룩도 남기지 않는다.
+      p.vel.reflect(n).multiplyScalar(.45);p.vel.x=clamp(p.vel.x,-1.2,1.2);p.vel.z=clamp(p.vel.z,-1.2,1.2);p.vel.y=.80;
+      p.spin.multiplyScalar(.55);foodSplash(p,hit.point,n,4);SFX.foodTick(clamp(hit.point.x,-1,1));
+    }else{
+      p.vel.reflect(n).multiplyScalar(.10);p.vel.x=clamp(p.vel.x,-.65,.65);p.vel.z=clamp(p.vel.z,-.65,.65);p.vel.y=.30;
+      if(!item.firm)p.g.scale.set(1.12,.78,1.08);
+      putFoodStain(p,hit);foodSplash(p,hit.point,n,12);SFX.foodImpact(clamp(hit.point.x,-1,1));
+    }
+    foodRecoil={v:p.v,t:0,side:Math.sign(hit.point.x-p.v.root.position.x)||1,head:['head','nose'].includes(hit.object.userData.part),light:!!item.light};
+    stats.foodImpacts++;G.lastAct=G.time;
+    if(PREF.shake)G.shake=Math.max(G.shake,item.light?.020:.055);vib(item.light?6:12);
   }
   function settleFood(p){
-    p.phase='floor';p.wait=0;p.vel.set(0,0,0);p.g.rotation.set(0,p.g.rotation.y,0);
-    p.g.scale.set(p.hit?1.22:1.13,p.hit?.56:.69,p.hit?1.16:1.09);p.eatScale.copy(p.g.scale);
+    const item=FOOD_MENU[p.type];
+    // 옆으로 눕는 것(캔·콘)은 화면을 가로질러 눕혀야 옆모습이 보인다.
+    const ry=item.rz?(Math.random()<.5?0:Math.PI)+rnd(-.45,.45):p.g.rotation.y;
+    p.phase='floor';p.wait=0;p.vel.set(0,0,0);p.g.rotation.set(item.rx||0,ry,item.rz||0);
+    if(item.light||item.firm)p.g.scale.set(1,1,1);
+    else p.g.scale.set(p.hit?1.22:1.13,p.hit?.56:.69,p.hit?1.16:1.09);
+    p.eatScale.copy(p.g.scale);
     p.g.updateMatrixWorld(true);const box=new THREE.Box3().setFromObject(p.g);p.g.position.y+=.009-box.min.y;
     foodSplash(p,p.g.position,V3(0,1,0),5);stats.foodLanded++;SFX.pat(clamp(p.g.position.x,-1,1));
   }
@@ -11041,7 +11212,7 @@ function ngPoseHug(v,dt){
   /* 식사: 한 번 주저앉아서 양손을 번갈아 뻗어 최대 MEAL.perSquat 개까지 주워 먹고 일어난다.
      음식이 흩어져 있으면 앉은 채로 다음 음식 앞까지 옮겨 간다(옮기는 동안 앞의 것을 씹는다). */
   const MEAL={perSquat:3,floorKeep:3,squatIn:.42,first:.20,reach:.34,lift:.30,chew:.36,gap:.05,shuffle:.55,rise:.46};
-  let mealRestUntil=0,chewSoundAt=0;
+  let mealRestUntil=0,chewSoundAt=0,chewBite='soft';
   const mealEnd=m=>m.items[m.items.length-1].start+MEAL.reach+MEAL.lift+MEAL.chew;
   // 이 음식을 이 손으로 집으려면 어디에 서야 하나(평소 서 있는 자리 기준). 음식은 발 앞, 집는 쪽 어깨 앞에 온다.
   function mealStand(v,home,p,side){
@@ -11154,12 +11325,14 @@ function ngPoseHug(v,dt){
       if(bite>0){
         chewing=Math.max(chewing,Math.sin(Math.PI*Math.min(1,bite*1.15)));
         p.g.scale.copy(p.eatScale).multiplyScalar(1-bite);
-        if(!it.fed&&bite>=.45){it.fed=true;recover(v,CFG.foodRecovery);stats.foodEaten++;chewSoundAt=G.time;SFX.chew(clamp(mouth.x,-1,1),1);foodSplash(p,mouth,V3(0,.2,1),4);}
+        if(!it.fed&&bite>=.45){it.fed=true;recover(v,CFG.foodRecovery);stats.foodEaten++;
+          chewBite=FOOD_MENU[p.type].bite||'soft';chewSoundAt=G.time;SFX.chew(clamp(mouth.x,-1,1),1,chewBite);foodSplash(p,mouth,V3(0,.2,1),4);}
         if(bite>=1){it.gone=true;removeFood(p);}
       }else if(u>MEAL.reach+MEAL.lift*.45)chewing=Math.max(chewing,.001);   // 음식이 다가오면 입을 벌린다
     }
     if(chewing>0){
-      if(chewing>.002&&G.time-chewSoundAt>.185){chewSoundAt=G.time;SFX.chew(clamp(mouth.x,-1,1),chewing);}
+      const gap=chewBite==='drink'?.30:chewBite==='slurp'?.24:.185;
+      if(chewing>.002&&G.time-chewSoundAt>gap){chewSoundAt=G.time;SFX.chew(clamp(mouth.x,-1,1),chewing,chewBite);}
       const open=chewing<=.001?.62:.16+.30*Math.abs(Math.sin(t*19));
       v.mouth.talk=0;v.mouth.open=open;v.mouth.smile=.1;v.mouth.wide=.75;v.paintMouth();
     }
@@ -11169,7 +11342,7 @@ function ngPoseHug(v,dt){
     const a=foodRecoil;if(!a)return;a.t+=dt;const v=G.v;
     if(a.v!==v||G.mode!=='feed'||a.t>.44){foodRecoil=null;return;}
     if(v.state!=='stand')return;
-    rememberPose(v);const w=Math.sin(Math.PI*clamp(a.t/.44,0,1))*Math.exp(-a.t*2);
+    rememberPose(v);const w=Math.sin(Math.PI*clamp(a.t/.44,0,1))*Math.exp(-a.t*2)*(a.light?.45:1);
     v.body.rotation.x-=.19*w;v.torso.rotation.z-=a.side*.13*w;v.headPivot.rotation.x-=.22*w;v.headPivot.rotation.y-=a.side*.13*w;
     v.mouth.talk=0;v.mouth.open=.30*w;v.mouth.smile=-.5;v.paintMouth();
     for(const e of v.eyes){const open=1-w*.92;e.lidU.rotation.x=lerp(1.62,-1.25,open);e.lidL.rotation.x=lerp(-1.62,1.4,open*.6+.4);}
@@ -11374,7 +11547,7 @@ function ngPoseHug(v,dt){
   renderMode();showItemHelp();
   window.__NG2={version:'NG4_20260919',config:CFG,beginIntro,afterAppearance,recover,dodgeChance,throwFood,cancelAux,
     inspect:()=>({mode:G.mode,intro:introStage,foods:foods.length,foodPhases:foods.map(p=>p.phase),eating:!!eating,
-      washing:!!auxPointer,water:water.count,waterDrops:waterDrops.length,foodChoice:FOOD_MENU[foodChoice].name,stains:stains.length,crumbs:crumbs.length,foodPositions:foods.map(p=>({type:FOOD_MENU[p.type].name,phase:p.phase,xyz:p.g.position.toArray(),scale:p.g.scale.toArray()})),stats:{...stats},sparkles:sparks.count,health:G.v?health(G.v):0,dodgeChance:dodgeChance(G.v)})};
+      washing:!!auxPointer,water:water.count,waterDrops:waterDrops.length,stains:stains.length,crumbs:crumbs.length,foodPositions:foods.map(p=>({type:FOOD_MENU[p.type].name,phase:p.phase,xyz:p.g.position.toArray(),scale:p.g.scale.toArray()})),stats:{...stats},sparkles:sparks.count,health:G.v?health(G.v):0,dodgeChance:dodgeChance(G.v)})};
   if(window.__api)Object.assign(window.__api,{step,applyHit,comfort,startSocial,setHint,careSay,updateCareReply});
 })();
 /* NG3 systems retained; NG4 fixes follow. Dialogue wording is unchanged. */
