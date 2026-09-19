@@ -514,10 +514,11 @@ body #hint{display:none!important}
 #ngAuxPanel{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:9px;min-height:80px;padding:12px;background:#fff7dd;border-radius:12px}
 #ngAuxPanel[hidden]{display:none}
 #ngAuxPanel .ng-action-icon{font-size:27px;line-height:1}
-#ngAuxPanel p{margin:0;display:flex;flex-direction:column;align-items:center;gap:1px;font:800 12px/1.5 var(--body);text-align:center;word-break:keep-all}
-#ngAuxPanel .ng-creed-lead,#ngAuxPanel .ng-creed-tail{font:600 10.5px/1.45 var(--body);font-style:normal;letter-spacing:.02em;color:#8a7a52}
-#ngAuxPanel .ng-creed-punch{font:900 13.5px/1.5 var(--body);letter-spacing:-.01em;color:#4a3a12;background:linear-gradient(transparent 62%,#ffe08a 62%,#ffd35c 92%,transparent 92%);padding:0 3px}
-#ngAuxPanel .ng-creed-rule{width:38px;height:2px;margin:5px 0;border-radius:2px;background:linear-gradient(90deg,transparent,#e0b95a,transparent)}
+#ngAuxPanel p{margin:0;font:800 12px/1.6 var(--body);text-align:center;word-break:keep-all}
+#ngAuxPanel .ng-creed-lead{display:block;font:600 10.5px/1.5 var(--body);font-style:normal;letter-spacing:.02em;color:#8a7a52}
+#ngAuxPanel .ng-creed-tail{font:600 10.5px/1.5 var(--body);font-style:normal;letter-spacing:.02em;color:#8a7a52}
+#ngAuxPanel .ng-creed-punch{font:900 13.5px/1.6 var(--body);letter-spacing:-.01em;color:#4a3a12;background:linear-gradient(transparent 62%,#ffe08a 62%,#ffd35c 92%,transparent 92%);padding:0 3px}
+#ngAuxPanel .ng-creed-rule{display:block;width:38px;height:2px;margin:7px auto;border-radius:2px;background:linear-gradient(90deg,transparent,#e0b95a,transparent)}
 #ngCleanProgress{height:7px;width:min(230px,80%);appearance:none;border:0;border-radius:9px;overflow:hidden;background:#dbe7e3}
 #ngCleanProgress::-webkit-progress-bar{background:#dbe7e3}#ngCleanProgress::-webkit-progress-value{background:#3aa589;border-radius:9px}
 .ng-scroll-frame{position:relative;min-width:0}
@@ -993,6 +994,16 @@ const SFX = (() => {
     const t = ctx.currentTime, o = out(pan, 0.15);
     tone(o, t, { f0: 190, f1: 110, dur: 0.07, peak: 0.2 });
     burst(o, t, { dur: 0.06, peak: 0.12, type: 'lowpass', f: 800, q: 0.6 });
+  };
+  // 냠냠·쩝쩝: 입술이 떨어지는 축축한 쩝 + 입 안에서 울리는 낮은 냠 + 혀 소리
+  S.chew = (pan = 0, hard = 0) => {
+    if (!ctx) return;
+    const t = ctx.currentTime, o = out(pan, 0.16);
+    burst(o, t, { dur: 0.030, peak: 0.26 + 0.10 * hard, type: 'bandpass', f: R(1000, 1600), f1: R(280, 420), q: 1.7 });
+    burst(o, t + 0.005, { dur: 0.055, peak: 0.14, type: 'lowpass', f: 760, f1: 230, q: 0.7 });
+    tone(o, t + 0.012, { type: 'triangle', f0: R(180, 225), f1: R(95, 120), dur: 0.11, peak: 0.15, a: 0.012 });
+    tone(o, t + 0.012, { type: 'sine', f0: R(360, 440), f1: R(200, 250), dur: 0.09, peak: 0.07, a: 0.014 });
+    clicks(o, t + 0.035, 3, 0.06, 2200, 0.10);
   };
   function contLoop(name, filterF, q, gain) {
     if (!ctx || loops[name]) return;
@@ -7446,7 +7457,46 @@ window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,startSoci
     }
   }
 
+
+
+
   // 평면을 앞에 세우지 않고, 실제 바지 표면과 같은 형상의 얇은 레이어를 쓴다.
+  // 다리를 접으면 바지 메시가 정점 단위로 휜다. 얼룩 레이어는 만들 때 뜬 모양 그대로라
+  // 접힌 다리 밖으로 날개처럼 떠 버렸다. 매 프레임 원본 정점을 그대로 따라가게 한다.
+  function stainGeometry(src) {
+    const geo = src.geometry.clone(); geo.computeBoundingBox();
+    const p = geo.attributes.position, n = geo.attributes.normal, uv = geo.attributes.uv;
+    if (!uv || !n) return null;
+    const lo = geo.boundingBox.min.y, height = Math.max(1e-6, geo.boundingBox.max.y - lo);
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+      uv.setXY(i, .5 + Math.atan2(x, z) / (Math.PI * 2), (y - lo) / height);
+      p.setXYZ(i, x + n.getX(i) * .0011, y + n.getY(i) * .0011, z + n.getZ(i) * .0011);
+    }
+    p.needsUpdate = uv.needsUpdate = true;
+    p.setUsage(THREE.DynamicDrawUsage); geo.computeBoundingSphere();
+    return geo;
+  }
+  function followLegShape(v, s) {
+    let rebuilt = false;
+    for (const a of s.stains) {
+      const src = a.m.parent; if (!src || !src.geometry || !src.geometry.attributes.position) continue;
+      const sp = src.geometry.attributes.position, sn = src.geometry.attributes.normal;
+      if (a.src !== src.geometry || a.m.geometry.attributes.position.count !== sp.count) {
+        const geo = stainGeometry(src); if (!geo) continue;
+        a.m.geometry.dispose(); a.m.geometry = geo;
+        a.src = src.geometry; a.version = sp.version; rebuilt = true; continue;
+      }
+      if (a.version === sp.version) continue;
+      a.version = sp.version;
+      const p = a.m.geometry.attributes.position;
+      for (let i = 0; i < p.count; i++)
+        p.setXYZ(i, sp.getX(i) + sn.getX(i) * .0011, sp.getY(i) + sn.getY(i) * .0011, sp.getZ(i) + sn.getZ(i) * .0011);
+      p.needsUpdate = true;
+      a.m.geometry.computeVertexNormals(); a.m.geometry.computeBoundingSphere();
+    }
+    if (rebuilt) v.captureResources && v.captureResources();
+  }
   function makeStains(v, s) {
     if (s.stains.length) return;
     v.legs.forEach((leg, side) => {
@@ -7465,7 +7515,8 @@ window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,startSoci
       const material = new THREE.MeshStandardMaterial({map: tex.t, transparent: true,
         depthWrite: false, roughness: .3, polygonOffset: true, polygonOffsetFactor: -1});
       const m = new THREE.Mesh(geo, material); m.renderOrder = 1;
-      src.add(m); s.stains.push({m, tex, side});
+      geo.attributes.position.setUsage(THREE.DynamicDrawUsage);
+      src.add(m); s.stains.push({m, tex, side, src: src.geometry, version: src.geometry.attributes.position.version});
     });
     v.captureResources();
   }
@@ -7730,7 +7781,7 @@ window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,startSoci
 
     if (s.peed) s.wet = Math.min(1, s.wet + dt * .65);
     if (s.soiled) s.dirt = Math.min(1, s.dirt + dt * 1.5);
-    if (s.stains.length) paintStains(v, s);
+    if (s.stains.length) { followLegShape(v, s); paintStains(v, s); }
     tickDrops(dt);
     const peeDt = Math.min(dt, s.peeT), soilDt = Math.min(dt, s.soilT);
     s.peeT = Math.max(0, s.peeT - dt); s.soilT = Math.max(0, s.soilT - dt);
@@ -10989,7 +11040,7 @@ function ngPoseHug(v,dt){
   /* 식사: 한 번 주저앉아서 양손을 번갈아 뻗어 최대 MEAL.perSquat 개까지 주워 먹고 일어난다.
      음식이 흩어져 있으면 앉은 채로 다음 음식 앞까지 옮겨 간다(옮기는 동안 앞의 것을 씹는다). */
   const MEAL={perSquat:3,floorKeep:3,squatIn:.42,first:.20,reach:.34,lift:.30,chew:.36,gap:.05,shuffle:.55,rise:.46};
-  let mealRestUntil=0;
+  let mealRestUntil=0,chewSoundAt=0;
   const mealEnd=m=>m.items[m.items.length-1].start+MEAL.reach+MEAL.lift+MEAL.chew;
   // 이 음식을 이 손으로 집으려면 어디에 서야 하나(평소 서 있는 자리 기준). 음식은 발 앞, 집는 쪽 어깨 앞에 온다.
   function mealStand(v,home,p,side){
@@ -11102,11 +11153,12 @@ function ngPoseHug(v,dt){
       if(bite>0){
         chewing=Math.max(chewing,Math.sin(Math.PI*Math.min(1,bite*1.15)));
         p.g.scale.copy(p.eatScale).multiplyScalar(1-bite);
-        if(!it.fed&&bite>=.45){it.fed=true;recover(v,CFG.foodRecovery);stats.foodEaten++;SFX.pat(clamp(mouth.x,-1,1));foodSplash(p,mouth,V3(0,.2,1),4);}
+        if(!it.fed&&bite>=.45){it.fed=true;recover(v,CFG.foodRecovery);stats.foodEaten++;chewSoundAt=G.time;SFX.chew(clamp(mouth.x,-1,1),1);foodSplash(p,mouth,V3(0,.2,1),4);}
         if(bite>=1){it.gone=true;removeFood(p);}
       }else if(u>MEAL.reach+MEAL.lift*.45)chewing=Math.max(chewing,.001);   // 음식이 다가오면 입을 벌린다
     }
     if(chewing>0){
+      if(chewing>.002&&G.time-chewSoundAt>.185){chewSoundAt=G.time;SFX.chew(clamp(mouth.x,-1,1),chewing);}
       const open=chewing<=.001?.62:.16+.30*Math.abs(Math.sin(t*19));
       v.mouth.talk=0;v.mouth.open=open;v.mouth.smile=.1;v.mouth.wide=.75;v.paintMouth();
     }
