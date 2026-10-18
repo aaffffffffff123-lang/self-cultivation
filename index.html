@@ -4241,9 +4241,10 @@ const CHARACTER_LINES = [
   '나 혼자 두지 마',
   '괜찮다고 말해 줘',
   '버림받을까 봐 무서워',
-  '다들 떠날 것 같아',
-  '내일이 무서워',
-  '나는 사랑 받을 자격이 없는 거 같아'
+'다들 떠날 것 같아',
+'출근하는 게 무서워',
+'내일이 무서워',
+'나는 사랑 받을 자격이 없는 거 같아'
 ];
 
 
@@ -9707,9 +9708,10 @@ if (G.tool==='brick') {
     '나 혼자 두지 마': '제발 혼자 있어',
     '괜찮다고 말해 줘': '좀 닥치고 있어도 괜찮아',
     '버림받을까 봐 무서워': '주운 적도 없어 이 새끼야',
-    '다들 떠날 것 같아': '온 적도 없어 이 새끼야',
-    '내일이 무서워': '잠이나 처 자',
-    '나는 사랑 받을 자격이 없는 거 같아': '맞아'
+'다들 떠날 것 같아': '온 적도 없어 이 새끼야',
+'출근하는 게 무서워': '그럼 굶어죽어',
+'내일이 무서워': '잠이나 처 자',
+'나는 사랑 받을 자격이 없는 거 같아': '맞아'
   };
 
   const SHOW_MS = 1700;  // 말풍선 최소 표시 시간(긴 말은 글자 수만큼 더 오래)
@@ -13112,8 +13114,8 @@ body.ng-intro #recordBtn,body.look-editing #recordBtn{visibility:hidden}
   const ownedDrops = new Set();
   let owner = null;
 
-  const liquidMat = mat('#a6a044', { roughness: .28, transparent: true, opacity: .93 });
-  const chunkMat = mat('#d2b85b', { roughness: .72 });
+const liquidMat = mat('#63c51c', { roughness: .30, transparent: true, opacity: .98 });
+const chunkMat = mat('#e0c95a', { roughness: .76 });
   liquidMat.userData.shared = true;
   chunkMat.userData.shared = true;
 
@@ -13248,27 +13250,62 @@ body.ng-intro #recordBtn,body.look-editing #recordBtn{visibility:hidden}
     vib([18, 24, 18]);
   }
 
-  function emitVomit(v, n) {
-    v.root.updateMatrixWorld(true);
-    const at = v.mouthWorld().add(V3(0, -.018, .025));
-    const q = v.headMesh.getWorldQuaternion(new THREE.Quaternion());
-    const forward = V3(0, -.20, 1).normalize().applyQuaternion(q).normalize();
-    for (let i = 0; i < n; i++) {
-      const vel = forward.clone().multiplyScalar(rnd(1.25, 2.25))
-        .add(V3(rnd(-.34, .34), rnd(-.20, .30), rnd(-.16, .16)));
-      const size = rnd(.011, .025);
-      const mesh = new THREE.Mesh(partGeo.drop, Math.random() < .22 ? chunkMat : liquidMat);
-      mesh.scale.set(size * .78, size * rnd(1.15, 1.85), size * .78);
-      mesh.quaternion.setFromUnitVectors(V3(0, 1, 0), vel.clone().normalize());
-      const p = spawn(
-        mesh,
-        at.clone().add(V3(rnd(-.012, .012), rnd(-.008, .008), 0)),
-        vel,
-        { kind: 'vomit', r: size, life: rnd(1.10, 1.70), bounce: .06, spin: V3(), groundVanish: true }
+function emitVomit(v, n) {
+  v.root.updateMatrixWorld(true);
+  const at = v.mouthWorld().add(V3(0, -.018, .025));
+  const q = v.headMesh.getWorldQuaternion(new THREE.Quaternion());
+  const forward = V3(0, -.22, 1).normalize().applyQuaternion(q).normalize();
+
+  for (let i = 0; i < n; i++) {
+    const isChunk = Math.random() < .16;
+    const spread = isChunk ? .32 : .14;
+
+    const vel = forward.clone()
+      .multiplyScalar(isChunk ? rnd(1.55, 2.35) : rnd(2.15, 3.05))
+      .add(V3(
+        rnd(-spread, spread),
+        rnd(-.18, .22),
+        rnd(-spread * .45, spread * .45)
+      ));
+
+    const size = isChunk ? rnd(.014, .024) : rnd(.018, .032);
+    const mesh = new THREE.Mesh(
+      partGeo.drop,
+      isChunk ? chunkMat : liquidMat
+    );
+
+    if (isChunk) {
+      mesh.scale.set(
+        size * rnd(.80, 1.18),
+        size * rnd(.85, 1.25),
+        size * rnd(.80, 1.18)
       );
-      ownedDrops.add(p);
+    } else {
+      mesh.scale.set(size, size * rnd(2.50, 4.10), size);
     }
+
+    mesh.quaternion.setFromUnitVectors(
+      V3(0, 1, 0),
+      vel.clone().normalize()
+    );
+
+    const p = spawn(
+      mesh,
+      at.clone().add(V3(rnd(-.010, .010), rnd(-.007, .007), 0)),
+      vel,
+      {
+        kind: 'vomit',
+        r: size,
+        life: rnd(1.15, 1.65),
+        bounce: .06,
+        spin: V3(),
+        groundVanish: true
+      }
+    );
+
+    ownedDrops.add(p);
   }
+}
 
   function poseSick(v, s) {
     let w = 1;
@@ -13312,9 +13349,16 @@ body.ng-intro #recordBtn,body.look-editing #recordBtn{visibility:hidden}
       return;
     }
     if (s.phase === 'vomit') {
-      if (s.t < 1.15) {
-        s.emit += dt * 52;
-        const n = Math.min(7, Math.floor(s.emit));
+    
+
+if (s.t < 1.15) {
+  const rate = s.t < .22
+    ? 150
+    : 105 + Math.max(0, Math.sin(s.t * 25)) * 28;
+
+  s.emit += dt * rate;
+  const n = Math.min(12, Math.floor(s.emit));
+
         if (n) {
           s.emit -= n;
           emitVomit(v, n);
@@ -13326,8 +13370,8 @@ body.ng-intro #recordBtn,body.look-editing #recordBtn{visibility:hidden}
         const p = v.mouthWorld();
         const q = v.headMesh.getWorldQuaternion(new THREE.Quaternion());
         const d = V3(0, -.20, 1).normalize().applyQuaternion(q);
-        p.addScaledVector(d, .72);
-        paintSplat(p.x, clamp(p.z, -1.55, 1.55), .085, '#9f963e', .88);
+     p.addScaledVector(d, .90);
+paintSplat(p.x, clamp(p.z, -1.55, 1.55), .16, '#4e861b', .92);
       }
       if (s.t >= CFG.vomitSeconds) {
         s.phase = 'recover';
