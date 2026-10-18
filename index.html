@@ -12350,7 +12350,7 @@ function ngPoseHug(v,dt){
   window.__SC_FULLNESS_V1?.feed(v,FOOD_MENU[p.type].name);
   chewBite=FOOD_MENU[p.type].bite||'soft';chewSoundAt=G.time;SFX.chew(clamp(mouth.x,-1,1),1,chewBite);foodSplash(p,mouth,V3(0,.2,1),4);
 }
-          chewBite=FOOD_MENU[p.type].bite||'soft';chewSoundAt=G.time;SFX.chew(clamp(mouth.x,-1,1),1,chewBite);foodSplash(p,mouth,V3(0,.2,1),4);}
+
         if(bite>=1){it.gone=true;removeFood(p);}
       }else if(u>MEAL.reach+MEAL.lift*.45)chewing=Math.max(chewing,.001);   // 음식이 다가오면 입을 벌린다
     }
