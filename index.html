@@ -9508,7 +9508,7 @@ if (G.tool==='brick') {
       else if(m.kind==='homerun')updateHomerun(v,m,dt);
       else if(m.kind==='limp')limpPose(v,m);
       v.root.updateMatrixWorld(true);
-    }else{
+    }else if(!window.__SC_FULLNESS_V1?.busy?.(v)){
   reactiveArms(v,dt);
   fixActorHandPose(v);
 }
@@ -13102,7 +13102,7 @@ body.ng-intro #recordBtn,body.look-editing #recordBtn{visibility:hidden}
 
   const CFG = Object.freeze({
     max: 100, visibleAt: 10, fullAt: 60, gagAt: 42, strongHit: 1.20,
-    gagSeconds: .72, vomitSeconds: 1.05, recoverSeconds: .58
+    gagSeconds: .90, vomitSeconds: 1.45, recoverSeconds: .75
   });
   const FOOD_GAIN = Object.freeze({
     햄버거: 9, 피자: 7, 치킨: 8, 컵라면: 8,
@@ -13272,7 +13272,7 @@ body.ng-intro #recordBtn,body.look-editing #recordBtn{visibility:hidden}
 
   function poseSick(v, s) {
     let w = 1;
-    if (s.phase === 'gag') w = .18 + .82 * Math.sin(Math.PI * clamp(s.t / CFG.gagSeconds, 0, 1));
+    if (s.phase === 'gag') w = easeOut(clamp(s.t / CFG.gagSeconds, 0, 1));
     else if (s.phase === 'recover') w = 1 - easeOut(clamp(s.t / CFG.recoverSeconds, 0, 1));
     const heave = s.phase === 'vomit' ? .88 + .12 * Math.sin(s.t * 22) : w;
 
@@ -13312,7 +13312,7 @@ body.ng-intro #recordBtn,body.look-editing #recordBtn{visibility:hidden}
       return;
     }
     if (s.phase === 'vomit') {
-      if (s.t < .82) {
+      if (s.t < 1.15) {
         s.emit += dt * 52;
         const n = Math.min(7, Math.floor(s.emit));
         if (n) {
