@@ -13277,7 +13277,7 @@ body.ng-intro #recordBtn,body.look-editing #recordBtn{visibility:hidden}
     const heave = s.phase === 'vomit' ? .88 + .12 * Math.sin(s.t * 22) : w;
 
     v.body.rotation.x += .16 * w;
-    v.torso.rotation.x += .54 * w;
+    v.torso.rotation.x = .54 * w;
     v.headPivot.rotation.x -= .30 * w;
     v.root.position.y -= .018 * w;
     v.root.updateMatrixWorld(true);
