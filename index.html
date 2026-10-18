@@ -6,6 +6,17 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#8fdcc9">
 <title>나 기르기</title>
+<meta property="og:type" content="website">
+<meta property="og:title" content="나 기르기">
+<meta property="og:url" content="https://aaffffffffff123-lang.github.io/self-cultivation/">
+<meta property="og:image" content="https://aaffffffffff123-lang.github.io/self-cultivation/preview.png?v=1">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="나 기르기">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="나 기르기">
+<meta name="twitter:image" content="https://aaffffffffff123-lang.github.io/self-cultivation/preview.png?v=1">
 <meta name="game-build" content="nagireugi-1-20260918">
 <meta name="game-fix" content="NG3_20260919">
 <meta name="referrer" content="no-referrer">
@@ -1673,6 +1684,27 @@ S.batOffscreenCrash = (pan = 0) => {
     try{w.src.stop(t+.13);}catch(_){}w.src.onended=()=>{w.src.disconnect();w.filter.disconnect();w.gate.disconnect();};
   };
   S.audioTrims=Object.freeze(trims);
+
+  // FULLNESS_V1: 토하기 전 헛구역질과 토사물 소리
+  S.gag=({pitch=155,pan=0}={})=>{
+    if(!ctx)return;
+    const t=ctx.currentTime+.01,o=out(pan,.08);
+    voice(t,{pitch:pitch*.78,dur:.24,peak:.18,vowel:[530,840],bend:-.32,pan,rough:.82,wet:.08});
+    burst(o,t+.045,{dur:.16,peak:.12,type:'bandpass',f:520,f1:230,q:1.2});
+    tone(o,t+.06,{type:'triangle',f0:118,f1:58,dur:.19,peak:.12});
+  };
+  S.vomit=(pan=0)=>{
+    if(!ctx)return;
+    const t=ctx.currentTime,o=out(pan,.035);
+    burst(o,t,{dur:.78,peak:.34,a:.025,type:'lowpass',f:1250,f1:170,q:.55});
+    burst(o,t+.05,{dur:.58,peak:.17,a:.02,type:'bandpass',f:430,f1:155,q:.7});
+    [0,.12,.25,.39,.55,.70].forEach((d,i)=>{
+      tone(o,t+d,{type:'sine',f0:150-i*8,f1:62,dur:.10,peak:.16+(i%2)*.05,a:.006});
+      burst(o,t+d,{dur:.055,peak:.13,type:'lowpass',f:760,f1:210,q:.65});
+    });
+  };
+
+
   S.unlock = unlock; S.setOn = function(v){if(!v)S.waterStop();setOn(v);};
   return S;
 })();
@@ -12313,7 +12345,11 @@ function ngPoseHug(v,dt){
       if(bite>0){
         chewing=Math.max(chewing,Math.sin(Math.PI*Math.min(1,bite*1.15)));
         p.g.scale.copy(p.eatScale).multiplyScalar(1-bite);
-        if(!it.fed&&bite>=.45){it.fed=true;recover(v,CFG.foodRecovery);stats.foodEaten++;window.__SC_RECORD?.add('feed');
+        if(!it.fed&&bite>=.45){
+  it.fed=true;recover(v,CFG.foodRecovery);stats.foodEaten++;window.__SC_RECORD?.add('feed');
+  window.__SC_FULLNESS_V1?.feed(v,FOOD_MENU[p.type].name);
+  chewBite=FOOD_MENU[p.type].bite||'soft';chewSoundAt=G.time;SFX.chew(clamp(mouth.x,-1,1),1,chewBite);foodSplash(p,mouth,V3(0,.2,1),4);
+}
           chewBite=FOOD_MENU[p.type].bite||'soft';chewSoundAt=G.time;SFX.chew(clamp(mouth.x,-1,1),1,chewBite);foodSplash(p,mouth,V3(0,.2,1),4);}
         if(bite>=1){it.gone=true;removeFood(p);}
       }else if(u>MEAL.reach+MEAL.lift*.45)chewing=Math.max(chewing,.001);   // 음식이 다가오면 입을 벌린다
@@ -13058,6 +13094,754 @@ body.ng-intro #recordBtn,body.look-editing #recordBtn{visibility:hidden}
 
   window.__SC_RECORD = { add, reset, get: () => ({ ...counts }) };
 })();
+
+/* SC_FULLNESS_V1_BEGIN — 숨은 포만도, 체형 변화, 복부 강타 뒤 구역질·토하기 */
+(() => {
+  'use strict';
+  if (window.__SC_FULLNESS_V1) return;
+
+  const CFG = Object.freeze({
+    max: 100, visibleAt: 10, fullAt: 60, gagAt: 42, strongHit: 1.20,
+    gagSeconds: .72, vomitSeconds: 1.05, recoverSeconds: .58
+  });
+  const FOOD_GAIN = Object.freeze({
+    햄버거: 9, 피자: 7, 치킨: 8, 컵라면: 8,
+    감자칩: 3, 도넛: 5, 아이스크림: 5, 콜라: 4
+  });
+  const states = new WeakMap();
+  const ownedDrops = new Set();
+  let owner = null;
+
+  const liquidMat = mat('#a6a044', { roughness: .28, transparent: true, opacity: .93 });
+  const chunkMat = mat('#d2b85b', { roughness: .72 });
+  liquidMat.userData.shared = true;
+  chunkMat.userData.shared = true;
+
+  function ensure(v) {
+    let s = states.get(v);
+    if (!s) {
+      s = { fullness: 0, shown: 0, bump: 0, phase: 'idle', t: 0, emit: 0, puddled: false };
+      states.set(v, s);
+    }
+    return s;
+  }
+
+  function clearOwnedDrops() {
+    for (let i = particles.length - 1; i >= 0; i--) {
+      if (ownedDrops.has(particles[i])) removeParticle(i);
+    }
+    ownedDrops.clear();
+  }
+
+  function pruneOwnedDrops() {
+    for (const p of ownedDrops) if (!p.obj.parent) ownedDrops.delete(p);
+  }
+
+  function adopt(v) {
+    if (v === owner) return;
+    const previous = owner ? states.get(owner) : null;
+    clearOwnedDrops();
+    owner = v || null;
+    if (v && previous && !states.has(v)) {
+      states.set(v, {
+        ...previous,
+        phase: 'idle', t: 0, emit: 0, puddled: false
+      });
+    }
+  }
+
+  function busy(v = G.v) {
+    return !!v && ensure(v).phase !== 'idle';
+  }
+
+  function feed(v, name) {
+    if (!v) return 0;
+    const s = ensure(v);
+    s.fullness = clamp(s.fullness + (FOOD_GAIN[name] || 5), 0, CFG.max);
+    s.bump = 1;
+    return s.fullness;
+  }
+
+  function fullnessMix(s) {
+    const x = clamp((s.fullness - CFG.visibleAt) / (CFG.fullAt - CFG.visibleAt), 0, 1);
+    return x * x * (3 - 2 * x);
+  }
+
+  function shapeBody(v, s, dt) {
+    s.shown = damp(s.shown, fullnessMix(s), 4.2, dt);
+    s.bump = Math.max(0, s.bump - dt * 3);
+    const pulse = Math.sin((1 - s.bump) * Math.PI) * s.bump * .022;
+    const sx = 1 + s.shown * .35 + pulse;
+    const sz = 1 + s.shown * .42 + pulse * 1.25;
+    const c = v._bodyCloth;
+    const core = c?.core || v.parts.find(m => m.parent === v.torso && m.geometry?.type === 'LatheGeometry');
+
+    if (core) core.scale.set(sx, 1, sz);
+    if (c?.skirt) c.skirt.scale.set(sx, 1, sz);
+    if (c?.belt) c.belt.scale.set(sx, 1, .8 * sz);
+    if (c?.buckle) {
+      c.buckle.scale.set(Math.min(sx, 1.25), 1, 1);
+      c.buckle.position.z = .168 * sz;
+    }
+    if (c?.tag) {
+      c.tag.scale.set(1, 1, 1);
+      c.tag.position.z = v.torsoFront(.26) * (sz - 1);
+    }
+    if (c?.details) c.details.scale.set(1 + (sx - 1) * .38, 1, 1 + (sz - 1) * .38);
+    for (const cl of c?.collars || []) cl.scale.set(1 + (sx - 1) * .35, 1, .3 * (1 + (sz - 1) * .35));
+    for (const a of v.armRig) a.sh.position.x = a.s * .245 * (1 + (sx - 1) * .82);
+    v.tie.position.z = v.torsoFront(.475) * sz + .018;
+    for (const b of v.buttons) {
+      if (b.parent === v.torso) b.position.z = v.torsoFront(b.position.y) * sz + .003;
+    }
+  }
+
+  function silence(v) {
+    G.lastWhine = null;
+    G.react = null;
+    CareVoice.stop();
+    v.mouth.talk = 0;
+    v._mutterLeft = Math.max(v._mutterLeft || 0, 3);
+    BUB.text = '';
+    bubble.classList.remove('show');
+  }
+
+  function cancelSick(v, s) {
+    s.phase = 'idle';
+    s.t = 0;
+    s.emit = 0;
+    s.puddled = false;
+    clearOwnedDrops();
+    if (v) restoreCareActorHands(v);
+  }
+
+  function beginGag(v, s) {
+    s.phase = 'gag';
+    s.t = 0;
+    s.emit = 0;
+    s.puddled = false;
+    clearAttacks();
+    G.attackQueue = [];
+    cancelPointer();
+    endHug();
+    stopSocial();
+    silence(v);
+    v._guardV2 = null;
+    v._wipeV2 = null;
+    G.hitstop = Math.max(G.hitstop, .10);
+    v.root.updateMatrixWorld(true);
+    popText('욱…', v.mouthWorld(), 'tissue', 38);
+    SFX.gag?.({ pitch: v.look.pitch, pan: clamp(v.root.position.x, -1, 1) });
+  }
+
+  function beginVomit(v, s) {
+    s.phase = 'vomit';
+    s.t = 0;
+    s.emit = 0;
+    s.puddled = false;
+    s.fullness = Math.max(0, s.fullness * .28 - 2);
+    s.bump = 0;
+    silence(v);
+    v.root.updateMatrixWorld(true);
+    popText('우웨엑!', v.mouthWorld(), 'tissue', 50);
+    SFX.vomit?.(clamp(v.root.position.x, -1, 1));
+    vib([18, 24, 18]);
+  }
+
+  function emitVomit(v, n) {
+    v.root.updateMatrixWorld(true);
+    const at = v.mouthWorld().add(V3(0, -.018, .025));
+    const q = v.headMesh.getWorldQuaternion(new THREE.Quaternion());
+    const forward = V3(0, -.20, 1).normalize().applyQuaternion(q).normalize();
+    for (let i = 0; i < n; i++) {
+      const vel = forward.clone().multiplyScalar(rnd(1.25, 2.25))
+        .add(V3(rnd(-.34, .34), rnd(-.20, .30), rnd(-.16, .16)));
+      const size = rnd(.011, .025);
+      const mesh = new THREE.Mesh(partGeo.drop, Math.random() < .22 ? chunkMat : liquidMat);
+      mesh.scale.set(size * .78, size * rnd(1.15, 1.85), size * .78);
+      mesh.quaternion.setFromUnitVectors(V3(0, 1, 0), vel.clone().normalize());
+      const p = spawn(
+        mesh,
+        at.clone().add(V3(rnd(-.012, .012), rnd(-.008, .008), 0)),
+        vel,
+        { kind: 'vomit', r: size, life: rnd(1.10, 1.70), bounce: .06, spin: V3(), groundVanish: true }
+      );
+      ownedDrops.add(p);
+    }
+  }
+
+  function poseSick(v, s) {
+    let w = 1;
+    if (s.phase === 'gag') w = .18 + .82 * Math.sin(Math.PI * clamp(s.t / CFG.gagSeconds, 0, 1));
+    else if (s.phase === 'recover') w = 1 - easeOut(clamp(s.t / CFG.recoverSeconds, 0, 1));
+    const heave = s.phase === 'vomit' ? .88 + .12 * Math.sin(s.t * 22) : w;
+
+    v.body.rotation.x += .16 * w;
+    v.torso.rotation.x += .54 * w;
+    v.headPivot.rotation.x -= .30 * w;
+    v.root.position.y -= .018 * w;
+    v.root.updateMatrixWorld(true);
+
+    const mouthLocal = v.torso.worldToLocal(v.mouthWorld().add(V3(-.025, -.018, .045)));
+    poseCareArm(v, v.armRig[0], mouthLocal, V3(0, 0, 1), w, 'open');
+    poseCareArm(v, v.armRig[1], V3(.025, .22, .30), V3(0, 0, 1), w, 'open');
+    v.mouth.talk = 0;
+    v.mouth.open = .30 + .52 * heave;
+    v.mouth.smile = -.80;
+    v.mouth.smirk = 0;
+    v.mouth.wide = .62;
+    v.mouth.shape = 'grit';
+    v.paintMouth();
+    for (const e of v.eyes) {
+      const open = .05 + .12 * (1 - w);
+      e.lidU.rotation.x = lerp(1.62, -1.25, open);
+      e.lidL.rotation.x = lerp(-1.62, 1.4, open * .6 + .4);
+    }
+    v.root.updateMatrixWorld(true);
+  }
+
+  function advance(v, s, dt) {
+    if (s.phase === 'idle') return;
+    s.t += dt;
+    silence(v);
+    clearAttacks();
+    G.attackQueue = [];
+
+    if (s.phase === 'gag' && s.t >= CFG.gagSeconds) {
+      beginVomit(v, s);
+      return;
+    }
+    if (s.phase === 'vomit') {
+      if (s.t < .82) {
+        s.emit += dt * 52;
+        const n = Math.min(7, Math.floor(s.emit));
+        if (n) {
+          s.emit -= n;
+          emitVomit(v, n);
+        }
+      }
+      if (!s.puddled && s.t >= .48) {
+        s.puddled = true;
+        v.root.updateMatrixWorld(true);
+        const p = v.mouthWorld();
+        const q = v.headMesh.getWorldQuaternion(new THREE.Quaternion());
+        const d = V3(0, -.20, 1).normalize().applyQuaternion(q);
+        p.addScaledVector(d, .72);
+        paintSplat(p.x, clamp(p.z, -1.55, 1.55), .085, '#9f963e', .88);
+      }
+      if (s.t >= CFG.vomitSeconds) {
+        s.phase = 'recover';
+        s.t = 0;
+      }
+    } else if (s.phase === 'recover' && s.t >= CFG.recoverSeconds) {
+      s.phase = 'idle';
+      s.t = 0;
+      restoreCareActorHands(v);
+    }
+  }
+
+  const oldHit = applyHit;
+  applyHit = function (h) {
+    const v = G.v;
+    const s = v ? ensure(v) : null;
+    if (s && s.phase !== 'idle') return false;
+    const before = v?.st?.hits || 0;
+    const wasStanding = v?.state === 'stand';
+    const out = oldHit.apply(this, arguments);
+    let belly = false;
+    if (v && h?.point) {
+      v.root.updateMatrixWorld(true);
+      const p = v.torso.worldToLocal(h.point.clone());
+      belly = p.y >= .03 && p.y <= .34;
+    }
+    const special = h?.tool === 'ground' || h?.tool === 'chair' ||
+      (h?.tool === 'bat' && Number(h.charge) >= .98);
+    if (
+      v && G.v === v && wasStanding && v.state === 'stand' && v.st.hits > before &&
+      G.mode === 'hit' && h?.part === 'body' && belly && !special &&
+      Number(h.power) >= CFG.strongHit && s.fullness >= CFG.gagAt &&
+      !v._impactV2 && !v._slapMotion && !window.__SC_FATIGUE_V1?.active?.(v)
+    ) beginGag(v, s);
+    return out;
+  };
+
+  const oldStartAttack = startAttack;
+  startAttack = function () {
+    if (busy()) return false;
+    return oldStartAttack.apply(this, arguments);
+  };
+
+  function reset(v = G.v) {
+    if (!v) return;
+    const s = ensure(v);
+    Object.assign(s, {
+      fullness: 0, shown: 0, bump: 0,
+      phase: 'idle', t: 0, emit: 0, puddled: false
+    });
+    clearOwnedDrops();
+    restoreCareActorHands(v);
+    shapeBody(v, s, 0);
+  }
+
+  const oldStep = step;
+  step = function (dt) {
+    const out = oldStep.apply(this, arguments);
+    const v = G.v;
+    adopt(v);
+    if (!v) return out;
+    const s = ensure(v);
+    const paused = G.editing || G.ngIntro || document.hidden ||
+      !!document.querySelector('.modal:not([hidden])');
+    if (paused && s.phase !== 'idle') cancelSick(v, s);
+    if (!paused) advance(v, s, dt);
+    shapeBody(v, s, paused ? 0 : dt);
+    if (!paused && s.phase !== 'idle') poseSick(v, s);
+    pruneOwnedDrops();
+    return out;
+  };
+
+  addEventListener('pointerdown', event => {
+    if (!busy() || event.target !== canvas) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }, { capture: true, passive: false });
+
+  const api = window.__SC_FULLNESS_V1 = {
+    version: 'FULLNESS_V1', config: CFG, feed, busy, reset,
+    inspect(v = G.v) {
+      const s = v ? ensure(v) : null;
+      return s ? { fullness: s.fullness, shown: s.shown, phase: s.phase, t: s.t } : null;
+    }
+  };
+
+  $('#ngRestart')?.addEventListener('click', () => {
+    api.reset(G.v);
+    window.__SC_AUTO_MODE_V1?.stop?.('restart');
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && G.v) cancelSick(G.v, ensure(G.v));
+  });
+
+  if (window.__api) Object.assign(window.__api, { applyHit, startAttack, step });
+})();
+/* SC_FULLNESS_V1_END */
+
+
+
+
+/* SC_AUTO_MODE_V1_BEGIN */
+(() => {
+  'use strict';
+  if (window.__SC_AUTO_MODE_V1) return;
+
+  const HOLD_MS = 700;
+  const routines = new Map();
+  const boundButtons = new WeakSet();
+  const state = { mode: null, routine: null, actor: null, data: null, button: null };
+  let internalClick = false;
+
+  const style = document.createElement('style');
+  style.textContent =
+    '.mode[data-auto-ready="true"]{position:relative;overflow:hidden;isolation:isolate}' +
+    '.mode[data-auto-ready="true"]::after{content:"";position:absolute;inset:0;background:#ffd23f;' +
+      'transform:scaleX(0);transform-origin:left;opacity:.32;pointer-events:none}' +
+    '.mode[data-auto-ready="true"].auto-arming::after{animation:scAutoHold .7s linear forwards}' +
+    '.mode[data-auto-ready="true"].auto-running{outline:3px solid #ffd23f;outline-offset:2px}' +
+    '.mode[data-auto-ready="true"].auto-running::after{transform:scaleX(1);opacity:.14}' +
+    '@keyframes scAutoHold{from{transform:scaleX(0)}to{transform:scaleX(1)}}';
+  document.head.append(style);
+
+  const modalOpen = () => !!document.querySelector('.modal:not([hidden])');
+
+  function routineContext(snapshot) {
+    return {
+      game: G,
+      data: snapshot ? snapshot.data : state.data,
+      button: snapshot ? snapshot.button : state.button,
+      stop
+    };
+  }
+
+  function paintButton(button, running, routine) {
+    if (!button) return;
+    const normal = button.dataset.autoLabel || button.textContent.trim();
+    button.dataset.autoLabel = normal;
+    button.classList.toggle('auto-running', running);
+    button.classList.remove('auto-arming');
+    button.textContent = running ? (routine.activeLabel || ('자동 ' + normal)) : normal;
+    button.setAttribute(
+      'aria-label',
+      running ? button.textContent + ' 중 · 누르면 멈춤' : normal + ' · 길게 누르면 자동'
+    );
+    button.title = running ? '한 번 누르면 자동 종료' : '길게 누르면 자동 시작';
+  }
+
+  function stop(reason = 'manual') {
+    if (!state.mode) return false;
+    const snapshot = { ...state };
+    state.mode = state.routine = state.actor = state.data = state.button = null;
+    try { snapshot.routine.stop?.(routineContext(snapshot), reason); } catch (error) { console.error(error); }
+    clearAttacks();
+    paintButton(snapshot.button, false, snapshot.routine);
+    if (!document.hidden && !G.editing && !G.ngIntro && G.mode === snapshot.mode) setHint();
+    return true;
+  }
+
+  function start(mode) {
+    const routine = routines.get(mode);
+    const button = document.querySelector('.mode[data-mode="' + mode + '"]');
+    if (!routine || !button || document.hidden || modalOpen()) return false;
+    if (state.mode) stop('replace');
+
+    if (G.mode !== mode) {
+      internalClick = true;
+      try { button.click(); } finally { internalClick = false; }
+    }
+    if (G.mode !== mode) return false;
+
+    cancelPointer();
+    endHug();
+    stopSocial();
+    clearAttacks();
+
+    state.mode = mode;
+    state.routine = routine;
+    state.actor = G.v;
+    state.data = {};
+    state.button = button;
+    paintButton(button, true, routine);
+    try { routine.start?.(routineContext(), mode); } catch (error) {
+      console.error(error);
+      stop('error');
+      return false;
+    }
+    vib(24);
+    SFX.pop(0);
+    return true;
+  }
+
+  function tick(dt) {
+    if (!state.mode) return;
+    if (
+      document.hidden || G.editing || G.ngIntro || modalOpen() ||
+      G.mode !== state.mode || G.v !== state.actor
+    ) {
+      stop('blocked');
+      return;
+    }
+    try { state.routine.tick(routineContext(), dt); }
+    catch (error) { console.error(error); stop('error'); }
+  }
+
+  function bindModeButton(button) {
+    if (!button || boundButtons.has(button)) return;
+    const mode = button.dataset.mode;
+    if (!routines.has(mode)) return;
+    boundButtons.add(button);
+    button.dataset.autoReady = 'true';
+    paintButton(button, false, routines.get(mode));
+
+    let timer = 0, pointerId = -1, startX = 0, startY = 0;
+    let longFired = false, suppressNextClick = false, suppressTimer = 0;
+
+    const cancelArm = () => {
+      if (timer) clearTimeout(timer);
+      timer = 0;
+      pointerId = -1;
+      button.classList.remove('auto-arming');
+    };
+
+    button.addEventListener('pointerdown', event => {
+      if (internalClick || state.mode || event.button > 0 || event.isPrimary === false) return;
+      SFX.unlock();
+      longFired = false;
+      clearTimeout(suppressTimer);
+      suppressNextClick = false;
+      pointerId = event.pointerId;
+      startX = event.clientX;
+      startY = event.clientY;
+      button.classList.add('auto-arming');
+      try { button.setPointerCapture(pointerId); } catch (_) {}
+      timer = setTimeout(() => {
+        timer = 0;
+        if (!button.isConnected || pointerId < 0) return;
+        button.classList.remove('auto-arming');
+        longFired = true;
+        suppressNextClick = true;
+        start(mode);
+      }, HOLD_MS);
+    });
+
+    button.addEventListener('pointermove', event => {
+      if (!timer || event.pointerId !== pointerId) return;
+      if (Math.hypot(event.clientX - startX, event.clientY - startY) > 12) cancelArm();
+    });
+    for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+      button.addEventListener(type, event => {
+        if (event.pointerId !== pointerId) return;
+        cancelArm();
+        if (longFired) {
+          clearTimeout(suppressTimer);
+          suppressTimer = setTimeout(() => {
+            suppressNextClick = false;
+            longFired = false;
+          }, 400);
+        }
+      });
+    }
+    button.addEventListener('contextmenu', event => event.preventDefault());
+
+    button.addEventListener('click', event => {
+      if (internalClick) return;
+      if (suppressNextClick) {
+        suppressNextClick = false;
+        longFired = false;
+        clearTimeout(suppressTimer);
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return;
+      }
+      if (state.mode === mode) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        stop('button');
+      }
+    }, true);
+  }
+
+  function bindRegisteredButtons() {
+    for (const button of document.querySelectorAll('.mode[data-mode]')) bindModeButton(button);
+  }
+
+  function register(mode, routine) {
+    if (!mode || !routine || typeof routine.tick !== 'function') {
+      throw new TypeError('자동 모드는 mode와 tick(ctx, dt)이 필요합니다.');
+    }
+    if (state.mode === mode) stop('replace-routine');
+    routines.set(mode, routine);
+    bindRegisteredButtons();
+    return api;
+  }
+
+  const api = {
+    register,
+    start,
+    stop,
+    inspect: () => ({ active: !!state.mode, mode: state.mode })
+  };
+  window.__SC_AUTO_MODE_V1 = api;
+
+  new MutationObserver(bindRegisteredButtons).observe($('.modes'), { childList: true, subtree: true });
+
+  document.addEventListener('click', event => {
+    if (internalClick || !state.mode) return;
+    const modeButton = event.target.closest?.('.mode[data-mode]');
+    if (modeButton && modeButton.dataset.mode !== state.mode) {
+      stop('mode-switch');
+      return;
+    }
+    if (event.target.closest?.('[data-tool],[data-care],.top button,#recordBtn')) stop('manual-control');
+  }, true);
+
+  window.addEventListener('pointerdown', event => {
+    if (state.mode && event.target === canvas) stop('manual-canvas');
+  }, { capture: true, passive: true });
+
+  addEventListener('blur', () => stop('blur'));
+  document.addEventListener('visibilitychange', () => { if (document.hidden) stop('hidden'); });
+  canvas.addEventListener('webglcontextlost', () => stop('context-lost'));
+
+  const oldStepAuto = step;
+  step = function (dt) {
+    const result = oldStepAuto.apply(this, arguments);
+    tick(dt);
+    return result;
+  };
+  if (window.__api) Object.assign(window.__api, { step });
+
+  const HEAD_SPOTS = Object.freeze({
+    left: [-.54, -.08],
+    right: [.54, -.08],
+    brow: [-.18, .50],
+    jaw: [.18, -.48],
+    center: [0, .06]
+  });
+
+  const HIT_BLOCKS = Object.freeze([
+    { tool: 'hand', gap: .08, rest: [.28, .44], strikes: [
+      ['jab', 'left'], ['hook', 'right'], ['slap', 'left'], ['upper', 'body']
+    ] },
+    { tool: 'hammer', gap: .11, rest: [.30, .48], strikes: [
+      ['bonk', 'brow'], ['swing', 'right'], ['bonk', 'center']
+    ] },
+    { tool: 'pan', gap: .14, rest: [.34, .52], strikes: [
+      ['swing', 'left'], ['bonk', 'brow'], ['swing', 'right']
+    ] },
+    { tool: 'bat', gap: .15, rest: [.34, .55], strikes: [
+      ['swing', 'right'], ['upswing', 'jaw'], ['swing', 'left']
+    ] },
+    { tool: 'rope', gap: .10, rest: [.28, .46], strikes: [
+      ['swing', 'left'], ['bonk', 'center'], ['swing', 'right']
+    ] },
+    { tool: 'chair', gap: .22, rest: [.48, .72], strikes: [
+      ['bonk', 'brow'], ['swing', 'right']
+    ] }
+  ]);
+
+  function hitBlockAvailable(block) {
+    if (!document.querySelector('#hitTools [data-tool="' + block.tool + '"]')) return false;
+    return block.tool === 'hand' || !!(TOOL_SPEC[block.tool] && RIG.tools[block.tool]);
+  }
+
+  function refillHitBag(data) {
+    const bag = HIT_BLOCKS.filter(hitBlockAvailable).slice();
+    for (let i = bag.length - 1; i > 0; i--) {
+      const j = (Math.random() * (i + 1)) | 0;
+      [bag[i], bag[j]] = [bag[j], bag[i]];
+    }
+    if (bag.length > 1 && bag[0].tool === data.lastTool) {
+      const swap = bag.findIndex(block => block.tool !== data.lastTool);
+      [bag[0], bag[swap]] = [bag[swap], bag[0]];
+    }
+    data.bag = bag;
+  }
+
+  function nextHitBlock(data) {
+    if (!data.bag.length) refillHitBag(data);
+    const block = data.bag.shift() || null;
+    if (block) data.lastTool = block.tool;
+    return block;
+  }
+
+  function equipAutoTool(tool) {
+    const button = document.querySelector('#hitTools [data-tool="' + tool + '"]');
+    if (!button) return false;
+    G.tool = tool;
+    G.equipTime = G.time;
+    for (const other of document.querySelectorAll('#hitTools [data-tool]')) {
+      other.classList.toggle('on', other === button);
+      other.setAttribute('aria-pressed', String(other === button));
+    }
+    for (const rig of Object.values(RIG.tools)) {
+      rig.visible = false;
+      if (rig.userData.otherHand) rig.userData.otherHand.visible = false;
+    }
+    setHint();
+    $('#hint').innerHTML = '자동 손보기 중 · <b>나 손보기</b>를 누르면 멈춤';
+    try {
+      button.scrollIntoView({
+        behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        block: 'nearest',
+        inline: 'center'
+      });
+    } catch (_) {}
+    return true;
+  }
+
+  function autoTarget(spot, side) {
+    if (spot === 'body') {
+      const v = G.v;
+      v.root.updateMatrixWorld(true);
+      const obj = v._bodyCloth?.core || v.torso;
+      const local = V3(side * .12, .22, v.torsoFront(.22) + .02);
+      const point = obj.localToWorld(local.clone());
+      const normal = V3(0, 0, 1).applyQuaternion(
+        obj.getWorldQuaternion(new THREE.Quaternion())
+      ).normalize();
+      const info = hitInfo(obj, point, normal);
+      info.part = 'body';
+      return info;
+    }
+    const xy = HEAD_SPOTS[spot] || HEAD_SPOTS.center;
+    return headTarget(xy[0], xy[1]);
+  }
+
+  register('hit', {
+    activeLabel: '자동 손보기',
+    start(ctx) {
+      Object.assign(ctx.data, {
+        bag: [],
+        current: null,
+        strike: 0,
+        side: 1,
+        lastTool: '',
+        nextAt: G.time + .12,
+        wasBusy: false
+      });
+    },
+    tick(ctx) {
+      const data = ctx.data, v = G.v;
+      if (
+        !v || G.ptr || G.hug || G.social ||
+        v._impactV2 || v._slapMotion ||
+        v.state !== 'stand' || window.__SC_FATIGUE_V1?.active?.(v) ||
+        window.__SC_FULLNESS_V1?.busy?.(v)
+      ) return;
+
+      const busy = G.attacks.length > 0 || (G.attackQueue && G.attackQueue.length > 0);
+      if (busy) {
+        data.wasBusy = true;
+        return;
+      }
+      if (data.wasBusy) {
+        data.wasBusy = false;
+        data.nextAt = G.time + (data.current?.gap || .10);
+        return;
+      }
+      if (G.time < data.nextAt) return;
+
+      if (!data.current) {
+        data.current = nextHitBlock(data);
+        data.strike = 0;
+        if (!data.current) {
+          ctx.stop('no-tools');
+          return;
+        }
+        if (!equipAutoTool(data.current.tool)) {
+          data.current = null;
+          data.nextAt = G.time + .1;
+          return;
+        }
+        data.nextAt = G.time + .12;
+        return;
+      }
+
+      if (data.strike >= data.current.strikes.length) {
+        const range = data.current.rest;
+        data.current = null;
+        data.nextAt = G.time + rnd(range[0], range[1]);
+        return;
+      }
+
+      if (G.tool !== data.current.tool && !equipAutoTool(data.current.tool)) {
+        data.current = null;
+        data.nextAt = G.time + .1;
+        return;
+      }
+
+      const strike = data.current.strikes[data.strike];
+      data.side = -data.side;
+      const target = autoTarget(strike[1], data.side);
+      const before = G.attacks.length;
+      startAttack(strike[0], target, data.side, {
+        strength: data.current.tool === 'chair' ? .90 : rnd(.92, 1.16)
+      });
+      if (G.attacks.length > before) {
+        data.strike++;
+        data.wasBusy = true;
+      } else {
+        data.nextAt = G.time + .12;
+      }
+    },
+    stop() {}
+  });
+
+  bindRegisteredButtons();
+})();
+/* SC_AUTO_MODE_V1_END */
+
+
+
 
 
 function boot() {
