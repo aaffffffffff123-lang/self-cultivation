@@ -13316,7 +13316,7 @@ function emitVomit(v, n) {
     v.body.rotation.x += .16 * w;
     v.torso.rotation.x = .54 * w;
     v.headPivot.rotation.x -= .30 * w;
-    v.root.position.y -= .018 * w;
+    v.torso.position.y -= .018 * w;
     v.root.updateMatrixWorld(true);
 
     const mouthLocal = v.torso.worldToLocal(v.mouthWorld().add(V3(-.025, -.018, .045)));
