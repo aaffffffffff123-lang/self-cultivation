@@ -13256,7 +13256,9 @@ const chunkMat = mat('#e0c95a', { roughness: .76 });
 
 function emitVomit(v, n) {
   v.root.updateMatrixWorld(true);
-  const at = v.mouthWorld().add(V3(0, -.018, .025));
+  const d = (v.mouthDir || dirN(0, v.look.mouthY, .9)).clone();
+  const o = V3(); v.offsetAt(d, o);
+  const at = v.headMesh.localToWorld(v.surfacePoint(d, .02).add(o));
   const q = v.headMesh.getWorldQuaternion(new THREE.Quaternion());
   const forward = V3(0, -.22, 1).normalize().applyQuaternion(q).normalize();
 
@@ -13365,7 +13367,7 @@ if (s.t < 1.15) {
 
         if (n) {
           s.emit -= n;
-          emitVomit(v, n);
+          lateFX(v, a => a, a => emitVomit(a, n));
         }
       }
       if (!s.puddled && s.t >= .48) {
@@ -13443,7 +13445,7 @@ paintSplat(p.x, clamp(p.z, -1.55, 1.55), .16, '#4e861b', .92);
     if (paused && s.phase !== 'idle') cancelSick(v, s);
     if (!paused) advance(v, s, dt);
     shapeBody(v, s, paused ? 0 : dt);
-    if (!paused && s.phase !== 'idle') poseSick(v, s);
+    if (!paused && s.phase !== 'idle') { poseSick(v, s); flushLateFX(); }
     pruneOwnedDrops();
     return out;
   };
