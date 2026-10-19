@@ -1696,6 +1696,10 @@ S.batOffscreenCrash = (pan = 0) => {
   S.vomit=(pan=0)=>{
     if(!ctx)return;
     const t=ctx.currentTime,o=out(pan,.035);
+    voice(t+.015,{pitch:155,dur:.20,peak:.24,vowel:[300,870],bend:-.20,pan,rough:.90,wet:.04});
+    voice(t+.16,{pitch:135,dur:.38,peak:.31,vowel:[530,1840],bend:-.42,pan,rough:1,wet:.035});
+    burst(o,t+.035,{dur:1.06,peak:.24,a:.012,type:'bandpass',f:1550,f1:420,q:.55});
+    burst(o,t+.48,{dur:.14,peak:.29,a:.003,type:'bandpass',f:1150,f1:330,q:.75});
     burst(o,t,{dur:.78,peak:.34,a:.025,type:'lowpass',f:1250,f1:170,q:.55});
     burst(o,t+.05,{dur:.58,peak:.17,a:.02,type:'bandpass',f:430,f1:155,q:.7});
     [0,.12,.25,.39,.55,.70].forEach((d,i)=>{
