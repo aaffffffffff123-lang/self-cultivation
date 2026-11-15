@@ -448,49 +448,55 @@ body.look-editing .care-caption{visibility:hidden}
 
 </style>
 <style>
-/* Only the unlinked preview includes these rules. */
+/* 시험판(malangi-preview.html)에만 들어가는 규칙. 본편 index.html에는 없다. */
 body .modes{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:5px!important}
 body .modes .mode{min-width:0;height:48px;padding:3px 0;font-size:14px;line-height:1.12;letter-spacing:-.3px;border-radius:12px}
 body .modes .mode::first-line{font-size:10px}
-body .modes .mode[data-mode="malangi"].on{background:#ccacf2;color:#30233e;box-shadow:inset 0 -4px 0 #ad8bd0}
-body.malangi-active{background:#e6e6dc}
+body .modes .mode[data-mode="malangi"].on{background:#c9a4f5;color:var(--ink);box-shadow:inset 0 -4px 0 #9f77d2}
+
+/* 말랑이 모드에서는 본편 도구칸·말풍선·안내문을 치운다. 방과 캐릭터, 아래 패널 틀은 본편 그대로 쓴다. */
 body.malangi-active #bubble,body.malangi-active #careCaption,body.malangi-active .player-bubble,body.malangi-active #hint,body.malangi-active #ngItemHelp,body.malangi-active #ngAuxPanel,body.malangi-active .ng-scroll-frame,body.malangi-active #hitTools,body.malangi-active #careTools{display:none!important}
 body.malangi-active #ngAvoidLabel,body.malangi-active #recordBtn{display:none!important}
-body.malangi-active .top{padding:calc(13px + var(--safe-t)) 15px 0}
-body.malangi-active .top .pill{background:#fffcf0d9;border-color:#413e42;color:#413e42;box-shadow:0 2px 0 #413e421c;height:37px;border-width:1.5px}
-body #appearanceBtn{width:37px!important;min-width:37px!important;margin:0!important;padding:0!important;display:flex!important;pointer-events:auto!important}
-body #appearanceBtn .label{display:none!important}
-body.malangi-active .dock{width:min(100%,610px);padding-bottom:calc(13px + var(--safe-b))}
-body.malangi-active .panel{background:#fffdf5e8;border:1px solid #b9b8ac;box-shadow:0 8px 30px #38392a12;padding:8px;border-radius:19px;backdrop-filter:blur(10px)}
-body.malangi-active .mode{border-width:1.5px;border-color:#b2b1a7;font-family:var(--body);font-weight:800;color:#65625d}
-#malangiTools{display:none;align-items:center;justify-content:space-between;gap:8px;padding:6px 3px 0;min-height:44px}
-body.malangi-active #malangiTools{display:flex}
-.ml-colors{display:flex;gap:7px;align-items:center}
-.ml-color{width:24px;height:24px;border:2px solid #fffdf4;outline:1px solid #77746b55;border-radius:50%;background:var(--wax);padding:0;position:relative}
-.ml-color[aria-pressed=true]{outline:2px solid #494349;outline-offset:2px}
-.ml-small{height:32px;border:1px solid #afa99e;background:#fffdf4;border-radius:10px;padding:0 10px;color:#4c4744;font-size:12px;font-weight:800;white-space:nowrap}
-.ml-small:active{transform:translateY(1px)}
-.ml-small[aria-pressed=true]{background:#e8e0f1;border-color:#9a83ad}
-.ml-right{display:flex;align-items:center;gap:6px}
-#mlHeading{position:fixed;left:50%;top:calc(17px + var(--safe-t));transform:translateX(-50%);text-align:center;pointer-events:none;color:#504a4c;z-index:4;display:none}
-body.malangi-active #mlHeading{display:block}
-#mlHeading small{font:800 9px var(--body);letter-spacing:2px;color:#8b8282}
-#mlHeading strong{display:block;font:24px var(--display);font-weight:400;letter-spacing:1px;margin-top:2px}
-#mlHint{position:fixed;left:0;right:0;text-align:center;pointer-events:none;z-index:4;color:#79716c;font:700 11px var(--body);opacity:0;transition:opacity .5s;bottom:132px}
-body.malangi-active #mlHint.show{opacity:1}
-body.look-editing #mlHeading,body.look-editing #mlHint{display:none!important}
-body.malangi-active #look-tab-clothes{display:none!important}
-#mlVolume{width:33px;padding:0;display:grid;place-items:center}
-#mlVolume svg{width:17px;height:17px}
-@media(max-width:440px){
- body .modes .mode{font-size:12.5px;height:46px;gap:3px}
- body.malangi-active .top .label{display:none}
- #mlHeading{top:calc(13px + var(--safe-t))}#mlHeading strong{font-size:20px}#mlHeading small{font-size:8px}
- #malangiTools{gap:5px;padding-left:1px;padding-right:1px}.ml-colors{gap:7px}.ml-color{width:21px;height:21px}.ml-small{padding:0 8px;font-size:11px}.ml-right{gap:5px}
-}
-@media(max-width:340px){.ml-colors{gap:5px}.ml-color{width:18px;height:18px}.ml-small{padding:0 6px}.ml-right{gap:4px}}
 
+/* 위쪽 버튼: 설정은 본편 자리(왼쪽 위) 그대로, 「나를 떠올리기」는 그 옆에 붙인다. */
+body.malangi-active .top-buttons{justify-content:flex-start!important;gap:6px!important}
+body.malangi-active .top-buttons #appearanceBtn{width:44px!important;min-width:44px!important;height:44px!important;margin:0!important;padding:0!important;display:flex!important;pointer-events:auto!important}
+body.malangi-active .top-buttons #appearanceBtn .label{display:none!important}
+body.malangi-active .top-buttons #appearanceBtn svg{width:24px;height:24px}
+
+#malangiTools{display:none;align-items:center;justify-content:space-between;gap:8px;padding:2px 2px 0;min-height:46px}
+body.malangi-active #malangiTools{display:flex}
+.ml-colors{display:flex;gap:8px;align-items:center}
+.ml-color{width:30px;height:30px;border:2.5px solid var(--ink);border-radius:50%;background:var(--wax);padding:0;position:relative;box-shadow:0 2px 0 var(--ink)}
+.ml-color[aria-pressed=true]{outline:3px solid var(--sun);outline-offset:2px}
+.ml-color:active{transform:translateY(2px);box-shadow:none}
+.ml-small{height:38px;border:2.5px solid var(--ink);background:#fff;border-radius:11px;padding:0 11px;color:var(--ink);font-size:13.5px;font-weight:800;white-space:nowrap;box-shadow:0 2px 0 var(--ink)}
+.ml-small:active{transform:translateY(2px);box-shadow:none}
+.ml-small:disabled{opacity:.45}
+.ml-small[aria-pressed=true]{background:#e7d6ff}
+#mlDip{background:var(--sun)}
+.ml-right{display:flex;align-items:center;gap:6px}
+#mlVolume{width:40px;padding:0;display:grid;place-items:center}
+#mlVolume svg{width:20px;height:20px}
+#mlVolume[aria-pressed=false]{background:#e9e6dc}
+#mlVolume[aria-pressed=false] .ml-wave{display:none}
+
+#mlHeading{position:fixed;left:50%;top:calc(9px + var(--safe-t));transform:translateX(-50%);text-align:center;pointer-events:none;color:var(--ink);z-index:4;display:none;white-space:nowrap}
+body.malangi-active #mlHeading{display:block}
+#mlHeading small{display:inline-block;font:800 10px/1 var(--body);letter-spacing:1.5px;color:#fff;background:var(--ink);border-radius:99px;padding:3px 8px 3px 9px}
+#mlHeading strong{display:block;font:400 25px/1.1 var(--display);letter-spacing:.5px;margin-top:3px;text-shadow:0 2px 0 #fffdf4,2px 0 0 #fffdf4,-2px 0 0 #fffdf4,0 -2px 0 #fffdf4,1.5px 1.5px 0 #fffdf4,-1.5px 1.5px 0 #fffdf4,1.5px -1.5px 0 #fffdf4,-1.5px -1.5px 0 #fffdf4}
+#mlHint{position:fixed;left:50%;transform:translateX(-50%);pointer-events:none;z-index:4;background:#1f2a5cde;color:#fff;font:700 13px/1.35 var(--body);border-radius:99px;padding:7px 15px;white-space:nowrap;opacity:0;transition:opacity .45s;bottom:132px}
+body.malangi-active #mlHint.show{opacity:1}
+body.look-editing #mlHeading,body.look-editing #mlHint,body.ng-intro #mlHeading,body.ng-intro #mlHint{display:none!important}
+@media(max-width:440px){
+ body .modes .mode{font-size:12.5px;height:46px}
+ #mlHeading strong{font-size:22px}
+ #malangiTools{gap:5px}.ml-colors{gap:6px}.ml-color{width:27px;height:27px}.ml-small{padding:0 9px;font-size:12.5px}.ml-right{gap:5px}
+}
+@media(max-width:350px){.ml-colors{gap:4px}.ml-color{width:23px;height:23px}.ml-small{padding:0 6px;font-size:11.5px}.ml-right{gap:4px}#mlVolume{width:34px}}
+@media(max-height:520px){#mlHeading small{display:none}#mlHeading strong{font-size:19px;margin-top:0}}
 </style>
+
 <script>
 try { const k="malangi-preview.badguy.appearance.v1"; if(!localStorage.getItem(k)){const previous=localStorage.getItem("badguy.appearance.v1");if(previous)localStorage.setItem(k,previous);} } catch (_) {}
 </script>
@@ -1757,6 +1763,8 @@ S.batOffscreenCrash = (pan = 0) => {
   };
 
 
+  // 말랑이 시험판: 본편과 같은 출력단(압축·리버브·소리 끄기)을 쓰도록 내부 도구를 내어 준다.
+  S.__ml = { get ctx() { return ctx; }, get noise() { return noise; }, out, env, tone, burst, clicks, voice, init };
   S.unlock = unlock; S.setOn = function(v){if(!v)S.waterStop();setOn(v);};
   return S;
 })();
@@ -11422,6 +11430,8 @@ function pose(v,f) {
   if(window.__api)Object.assign(window.__api,{applyHit,updateVillain,startGrab});
   window.__SC_LEGS={squat};
   window.__SC_FATIGUE_V1={config:CFG,active,
+    // 말랑이 시험판: 쓰러져 있을 때 모드를 바꾸면 똑바로 세워 놓고 넘겨받는다.
+    standUp(v){const f=v&&data.get(v);if(f&&f.phase!=='stand'){f.phase='stand';f.pending=false;f.quiet=0;f.cover=f.coverTo=0;finish(v,f);v.stagger=0;}},
     inspect:()=>{const f=G.v&&data.get(G.v);return f?{phase:f.phase,quiet:f.quiet,cover:f.cover,pending:f.pending}:null;}
   };
 })();
@@ -13945,624 +13955,1575 @@ paintSplat(p.x, clamp(p.z, -1.55, 1.55), .16, '#4e861b', .92);
 
 
 
-/* MALANGI LAB — independent toy scene, shared renderer/editor, preview only. */
+/* MALANGI V2 — 전신 3D 말랑이. 본편 방·본편 캐릭터(G.v)를 그대로 쓰고, 이 시험판 파일에만 들어 있다. */
 (() => {
-  'use strict';
-  const T=THREE, PI=Math.PI, TAU=PI*2;
-  const V=(x=0,y=0,z=0)=>new T.Vector3(x,y,z);
-  const sat=x=>Math.max(0,Math.min(1,x));
-  const mix=(a,b,t)=>a+(b-a)*t;
-  const smooth=x=>{x=sat(x);return x*x*(3-2*x);};
-  const decay=(a,b,k,dt)=>mix(a,b,1-Math.exp(-k*dt));
-  const rand=(a,b)=>a+Math.random()*(b-a);
-  const color=h=>new T.Color(h).convertSRGBToLinear();
-  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const renderDefaults={tone:renderer.toneMapping,exposure:renderer.toneMappingExposure};
-  const restoreLighting=()=>{renderer.toneMapping=renderDefaults.tone;renderer.toneMappingExposure=renderDefaults.exposure;};
-  let seed=41717;
-  function random(){seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;}
-  const state={time:0,p:0,pv:0,target:0,grip:0,held:0,holding:false,release:99,
-    focusX:0,focusY:0,dragX:0,dragY:0,dragVX:0,dragVY:0,eyeOrder:0,
-    gut:0,gutV:0,gutOut:false,burst:0,breath:0,blink:0,nextBlink:3.2,
-    hands:true,waxColor:0,dip:-1,waxLeft:1,cracked:0,squeezes:0,
-    lastCrunch:-10,lastRub:0,lastMotion:0,lastShard:0,firstTouch:false,active:false,
-    visible:false,lookKey:'',width:0,height:0,screenX:0,screenY:0,screenR:1,lastFrame:0,
-    metrics:{frames:0,totalMs:0,maxMs:0,pops:0,retractions:0,cracks:0,dips:0},
-    hoverX:0,hoverY:0,pinchStart:0,initialX:0,initialY:0};
-  const pointers=new Map();
-  const palette=['#c6abe4','#a9d7c2','#efb1af','#efcf82'];
-  const lab=new T.Scene();lab.background=color('#e6e6dc');
-  const cam=new T.PerspectiveCamera(34,1,.1,35);
-  const actor=new T.Group();lab.add(actor);
-  let body,bodyRest,hairGroup,skinMat,softSkin,bodyShader,eyeList=[],gutMesh,gutVein,
-    lips,mouthHole,tongue,nose,ears=[],brows=[],glasses,noseDots=[],cheekDetails=[],waxMesh,waxGeo,waxFaces=[],
-    skinColor='#efb990',look={},envTarget,shadow,shadowTex,stageFloor,pot,potWax;
-  const ownedGeos=new Set(),ownedMats=new Set(),ownedTextures=new Set();
-  const trackGeo=g=>(ownedGeos.add(g),g);
-  const trackMat=m=>(ownedMats.add(m),m);
-  const trackTex=t=>(ownedTextures.add(t),t);
-  const sphere=trackGeo(new T.SphereGeometry(1,28,20));
-  function material(hex,opts={}){return trackMat(new T.MeshPhysicalMaterial({color:color(hex),roughness:.34,metalness:0,clearcoat:.35,clearcoatRoughness:.29,...opts}));}
-  function ellipsoid(parent,mat,x,y,z,sx,sy,sz,geo=sphere){const m=new T.Mesh(geo,mat);m.position.set(x,y,z);m.scale.set(sx,sy,sz);parent.add(m);return m;}
-  const tmp=V(),tmp2=V(),tmp3=V(),tmp4=V(),qTmp=new T.Quaternion();
-  function spring(object,key,vel,target,k,d,dt){object[vel]+=(target-object[key])*k*dt;object[vel]*=Math.exp(-d*dt);object[key]+=object[vel]*dt;}
+'use strict';
+/* ---- ml-00-core.js ---- */
+const T = THREE, PI = Math.PI, TAU = PI * 2;
+const sat = x => Math.max(0, Math.min(1, x));
+const mix = (a, b, t) => a + (b - a) * t;
+const smooth = x => { x = sat(x); return x * x * (3 - 2 * x); };
+const smoothstep = (a, b, x) => smooth((x - a) / (b - a));
+const rand = (a, b) => a + Math.random() * (b - a);
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const _a = V3(), _b = V3(), _c = V3(), _d = V3(), _hw = V3(), _q = new T.Quaternion(), _m = new T.Matrix4(), _e = new T.Euler();
+const detach = o => { if (o && o.parent) o.parent.remove(o); };     // 이 판의 three.js에는 removeFromParent가 없다
+// 스프링 한 걸음(반암시적). 호출하는 쪽에서 dt를 잘게 쪼개 준다.
+function spring(o, key, vel, target, k, c, dt) { o[vel] += ((target - o[key]) * k - o[vel] * c) * dt; o[key] += o[vel] * dt; }
 
-  /* One compressor and a bounded voice pool. No media downloads or speech. */
-  const audio=(()=>{
-    let ctx=null,bus,compressor,noiseBuf,friction,frictionGain,frictionFilter;
-    const voices=new Set();
-    function unlock(){
-      if(!PREF.sound)return;
-      try{
-        if(!ctx){
-          ctx=new(window.AudioContext||window.webkitAudioContext)();
-          bus=ctx.createGain();bus.gain.value=.43;
-          compressor=ctx.createDynamicsCompressor();compressor.threshold.value=-16;compressor.knee.value=18;compressor.ratio.value=5;compressor.attack.value=.004;compressor.release.value=.12;
-          bus.connect(compressor);compressor.connect(ctx.destination);
-          noiseBuf=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate);const a=noiseBuf.getChannelData(0);let b=0;
-          for(let i=0;i<a.length;i++){b=(b+.08*(Math.random()*2-1))/1.08;a[i]=b*3.8;}
-          friction=ctx.createBufferSource();friction.buffer=noiseBuf;friction.loop=true;
-          frictionFilter=ctx.createBiquadFilter();frictionFilter.type='bandpass';frictionFilter.frequency.value=360;frictionFilter.Q.value=1.5;
-          frictionGain=ctx.createGain();frictionGain.gain.value=0;friction.connect(frictionFilter);frictionFilter.connect(frictionGain);frictionGain.connect(bus);friction.start();
-        }
-        if(ctx.state==='suspended')ctx.resume().catch(()=>{});
-      }catch(e){console.warn('말랑이 소리 초기화 실패',e);}
-    }
-    function tone(type='sine',freq=200,end=70,duration=.18,volume=.2,delay=0){
-      if(!ctx||!PREF.sound||ctx.state!=='running'||voices.size>20)return;
-      const at=ctx.currentTime+delay,o=ctx.createOscillator(),g=ctx.createGain();
-      o.type=type;o.frequency.setValueAtTime(freq,at);o.frequency.exponentialRampToValueAtTime(Math.max(12,end),at+duration);
-      g.gain.setValueAtTime(.0001,at);g.gain.exponentialRampToValueAtTime(Math.max(.001,volume),at+.008);g.gain.exponentialRampToValueAtTime(.0001,at+duration);
-      o.connect(g);g.connect(bus);voices.add(o);o.onended=()=>{o.disconnect();g.disconnect();voices.delete(o);};o.start(at);o.stop(at+duration+.01);
-    }
-    function noise(duration=.1,volume=.2,freq=1000,type='bandpass',delay=0){
-      if(!ctx||!PREF.sound||ctx.state!=='running'||voices.size>20)return;
-      const at=ctx.currentTime+delay,n=ctx.createBufferSource(),f=ctx.createBiquadFilter(),g=ctx.createGain();
-      n.buffer=noiseBuf;f.type=type;f.frequency.setValueAtTime(freq,at);f.frequency.exponentialRampToValueAtTime(Math.max(30,freq*.35),at+duration);f.Q.value=1;
-      g.gain.setValueAtTime(.0001,at);g.gain.exponentialRampToValueAtTime(Math.max(.001,volume),at+.004);g.gain.exponentialRampToValueAtTime(.0001,at+duration);
-      n.connect(f);f.connect(g);g.connect(bus);voices.add(n);n.onended=()=>{n.disconnect();f.disconnect();g.disconnect();voices.delete(n);};n.start(at,rand(0,1));n.stop(at+duration+.01);
-    }
-    function pop(side=0,back=false){
-      tone('sine',back?380:150,back?150:65,back?.12:.19,back?.20:.32);
-      tone('triangle',back?690:320,back?230:530,.075,.065,.014);
-      noise(.055,.18,back?1400:850);
-      if(PREF.vibe&&navigator.vibrate)navigator.vibrate(back?9:17);
-    }
-    function crunch(strength=1){
-      for(let i=0;i<5;i++){noise(rand(.02,.065),(.2+i*.01)*strength,rand(1900,6400),'highpass',i*.022);tone('triangle',rand(450,1100),90,.045,.035*strength,i*.021);}
-    }
-    function slurp(back=false){
-      for(let i=0;i<6;i++){const d=i*.055;tone('sine',back?rand(270,480):rand(95,160),back?rand(100,210):rand(170,310),.11,.075,d);noise(.10,.13,back?800:500,'bandpass',d);}
-    }
-    function pressure(p,motion){if(!ctx||!frictionGain)return;const at=ctx.currentTime;frictionGain.gain.setTargetAtTime(PREF.sound&&state.active&&state.holding?Math.min(.16,motion*.07+Math.abs(state.pv)*.035):0,at,.035);frictionFilter.frequency.setTargetAtTime(190+p*550,at,.08);}
-    function hush(){if(ctx&&frictionGain)frictionGain.gain.setTargetAtTime(0,ctx.currentTime,.02);}
-    function stop(){hush();for(const v of voices){try{v.stop();}catch(_){}}}
-    return {unlock,tone,noise,pop,crunch,slurp,pressure,hush,stop,inspect:()=>({voices:voices.size,state:ctx?.state||'unopened'})};
-  })();
+/* 말랑이 모드의 모든 상태. 좌표는 따로 적지 않으면 캐릭터 루트(v.root) 기준이다. */
+const ML = {
+  active: false, time: 0, v: null, lookRef: null, dim: null,
+  // 입력
+  ptrs: new Map(), holding: false, held: 0, sinceRelease: 99, pinch0: 0, pinch: 0,
+  hover: { x: 0, y: 0, t: -99 }, dragW: V3(), press0: V3(),
+  // 쥐는 자리와 누르는 세기
+  gy: 1, gyWant: 1, gh: .2, gPart: 'torso',
+  p: 0, pv: 0, target: 0, peak: 0,
+  pull: V3(), pullV: V3(), pullC: V3(0, 1, 0), pullWant: V3(), pullR: .32,
+  poke: 0, pokeC: V3(0, 1, .3),
+  jelly: 0, jellyV: 0, wob: 0, wobV: 0, wobPh: 0,
+  lift: 0, liftV: 0, landed: true,
+  // 살아 있는 반응
+  pain: 0, fear: 0, tired: 0, flail: 0, burstT: 0, burstOn: true, spasm: 0, pant: 0, daze: 0, maxT: 0, faint: 0,
+  blinkIn: 2.4, blink: 0, gaze: new T.Vector2(), sweatAcc: 0, tearAcc: 0, tearEye: 0, faceT: 0, lastGrunt: -9,
+  eyes: [{ out: false, e: 0, ev: 0, sx: 0, svx: 0, sy: 0, svy: 0, backAt: 0 }, { out: false, e: 0, ev: 0, sx: 0, svx: 0, sy: 0, svy: 0, backAt: 0 }],
+  gut: 0, gutV: 0, gutOut: false, eyeFirst: 0, events: [], landFx: 0, pokeV: 0, lastCrackPop: -9,
+  // 왁스·도구
+  showHands: true, waxColor: 0, waxLeft: 1, waxHead: 1, dip: -1, dipY: 0, stir: 0, stirIn: 2.2,
+  firstTouch: false, fitKey: '', shake: 0,
+  stats: { frames: 0, ms: 0, maxMs: 0, pops: 0, guts: 0, cracks: 0, dips: 0, squeezes: 0 }
+};
+const WAX_COLORS = ['#c9a4f5', '#8fdcc9', '#ff9fb6', '#ffd23f'];
+const WAX_NAMES = ['보라', '민트', '분홍', '노랑'];
 
-  /* Analytic, volume-preserving deformation shared by skin and face anchors. */
-  function shape(x,y,z,out,amount=state.p,offset=0){
-    const p=Math.max(-.07,amount),f=state.focusY*.40;
-    const belt=Math.exp(-Math.pow((y-f)/.57,2));
-    const edge=Math.pow(Math.abs(x),1.4);
-    const sx=1-p*(.15+.17*belt),sy=1+p*.12,sz=1+p*.12;
-    const front=Math.max(0,z),local=Math.exp(-((x-state.focusX*.75)**2*6+(y-state.focusY*.7)**2*5));
-    const pinch=Math.exp(-((Math.abs(x)-.78)**2*38+(y-f)**2*19));
-    const mass=.075*p*Math.exp(-((Math.abs(x)-.43)**2*18+(y-f-.18)**2*14));
-    const b=state.breath;
-    const wx=(look.headW||1),wy=(look.headH||1.05);
-    const lower=Math.exp(-Math.pow((y+.56)/.28,2)),cheek=Math.exp(-Math.pow((y+.20)/.30,2));
-    const silhouette=(faceWidthAt(look.faceShape||'oval',y)/faceWidthAt('oval',y))+
-      .15*((look.jawWidth||1)-1)*lower+.13*((look.cheekFat??.15)-.15)*cheek;
-    out.set(
-      x*(sx+offset)*(.97+(.48*(Math.max(.55,wx)-1)))*silhouette+state.dragX*.26*(.3+front*.7)*local,
-      y*(sy+offset)*(1.07+(wy-1.05)*.48)-.14*((look.jawLength||1)-1)*lower+p*.035+state.dragY*.22*front*local+b*.01,
-      z*(.79*(sz+offset))-.12*p*local*front-.12*p*pinch*front+mass+front*b*.005
-    );
-    return out;
-  }
-  function anchor(x,y,z,out=V()){return shape(x,y,z,out);}
+/* 지금 외모에서 몸 각 부위가 어디쯤인지. 외모를 바꾸면 다시 잰다. */
+function measure() {
+  const v = ML.v, L = v.look, H = L.bodyH, W = L.bodyW, M = ML.dim = {};
+  M.hip = .5 * H; M.neck = 1.06 * H;
+  M.headC = M.neck + v.headStandY();
+  M.headRy = HEAD_R * L.headH;
+  M.top = M.headC + M.headRy + (['spiky', 'mohawk'].includes(L.style) ? .17 : .07);
+  M.headHalf = v.surfacePoint(dirN(1, 0, 0)).x + .035;
+  M.torsoHalf = .285 * W;
+  M.legHalf = (['skirt'].includes(L.bottomStyle) || L.topStyle === 'dress' ? .30 : .2) * W;
+  M.mouthY = M.headC + v.surfacePoint(v.mouthDir || dirN(0, L.mouthY, .9)).y;
+}
+function regionOf(y) { const M = ML.dim; return y > M.neck + .03 ? 'head' : y > M.hip ? 'torso' : 'legs'; }
+function beltHeight(y) {
+  const M = ML.dim, a = smoothstep(M.hip - .1, M.hip + .12, y), b = smoothstep(M.neck - .04, M.neck + .2, y);
+  return mix(mix(.17, .2, a), .25 * Math.max(.9, ML.v.look.headH), b);
+}
+function halfWidth(y) {
+  const M = ML.dim, a = smoothstep(M.hip - .08, M.hip + .08, y), b = smoothstep(M.neck - .02, M.neck + .16, y);
+  const d = clamp((y - M.headC) / M.headRy, -.9, .9);
+  const head = ML.v.surfacePoint(_hw.set(Math.sqrt(1 - d * d), d, 0)).x + .035;
+  return mix(mix(M.legHalf, M.torsoHalf, a), head, b);
+}
 
-  /* Dynamic tubes reuse their typed arrays; no geometries are created while squeezing. */
-  function tube(parent,mat,n=32,radial=8){
-    const g=trackGeo(new T.BufferGeometry()),pos=new Float32Array((n+1)*(radial+1)*3),norm=new Float32Array(pos.length),uv=new Float32Array((n+1)*(radial+1)*2),indices=[];
-    for(let i=0;i<=n;i++)for(let j=0;j<=radial;j++){const a=i*(radial+1)+j;uv[a*2]=j/radial;uv[a*2+1]=i/n;if(i<n&&j<radial){const b=a+radial+1;indices.push(a,b,a+1,b,b+1,a+1);}}
-    g.setAttribute('position',new T.BufferAttribute(pos,3).setUsage(T.DynamicDrawUsage));g.setAttribute('normal',new T.BufferAttribute(norm,3).setUsage(T.DynamicDrawUsage));g.setAttribute('uv',new T.BufferAttribute(uv,2));g.setIndex(indices);
-    const m=new T.Mesh(g,mat);m.frustumCulled=false;parent.add(m);m.userData={n,radial,points:Array.from({length:n+1},()=>V()),radii:new Float32Array(n+1)};return m;
-  }
-  const tubeT=V(),tubeN=V(),tubeB=V();
-  function updateTube(m,pointFn,radius){
-    const d=m.userData,pa=m.geometry.attributes.position.array,na=m.geometry.attributes.normal.array;
-    for(let i=0;i<=d.n;i++)pointFn(i/d.n,d.points[i]);
-    for(let i=0;i<=d.n;i++){
-      const p=d.points[i];tubeT.subVectors(d.points[Math.min(d.n,i+1)],d.points[Math.max(0,i-1)]).normalize();
-      tubeN.set(tubeT.y,-tubeT.x,0);if(tubeN.lengthSq()<.01)tubeN.set(1,0,0);tubeN.normalize();tubeB.crossVectors(tubeT,tubeN).normalize();
-      const r=typeof radius==='function'?radius(i/d.n):radius;
-      for(let j=0;j<=d.radial;j++){const a=j/d.radial*TAU,c=Math.cos(a),s=Math.sin(a),k=(i*(d.radial+1)+j)*3;
-        const nx=tubeN.x*c+tubeB.x*s,ny=tubeN.y*c+tubeB.y*s,nz=tubeN.z*c+tubeB.z*s;
-        pa[k]=p.x+nx*r;pa[k+1]=p.y+ny*r;pa[k+2]=p.z+nz*r;na[k]=nx;na[k+1]=ny;na[k+2]=nz;
-      }
-    }
-    m.geometry.attributes.position.needsUpdate=true;m.geometry.attributes.normal.needsUpdate=true;
-  }
-  function staticCurve(parent,mat,points,r=.012,segments=22){const curve=new T.CatmullRomCurve3(points.map(a=>V(...a)));const m=new T.Mesh(trackGeo(new T.TubeGeometry(curve,segments,r,7,false)),mat);parent.add(m);return m;}
-
-  function studio(){
-    lab.add(new T.HemisphereLight(0xfff2e4,0x9395a1,.92));
-    const key=new T.DirectionalLight(0xffefdc,1.7);key.position.set(-3,5,6);lab.add(key);
-    const fill=new T.DirectionalLight(0xe4eaff,.7);fill.position.set(4,1,2);lab.add(fill);
-    const edge=new T.DirectionalLight(0xffe6d6,.8);edge.position.set(1,4,-3);lab.add(edge);
-    const roomScene=new T.Scene();roomScene.background=color('#6b6461');
-    const card=(x,y,z,w,h,c,intensity)=>{const a=new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshBasicMaterial({color:new T.Color(c).multiplyScalar(intensity),side:T.DoubleSide}));a.position.set(x,y,z);a.lookAt(0,0,0);roomScene.add(a);};
-    card(-3,4,3,2,5,0xffeedc,3);card(3,2,2,1.4,4,0xe7edff,2.1);card(0,5,-2,4,1,0xffffff,2.5);
-    if(!renderer.isSoftwareQA){const pmrem=new T.PMREMGenerator(renderer);envTarget=pmrem.fromScene(roomScene,.02,.1,30);lab.environment=envTarget.texture;pmrem.dispose();}
-    roomScene.traverse(o=>{o.geometry?.dispose();o.material?.dispose();});
-    const g=document.createElement('canvas');g.width=g.height=256;const c=g.getContext('2d');const grad=c.createRadialGradient(128,128,15,128,128,120);grad.addColorStop(0,'rgba(75,59,62,.29)');grad.addColorStop(.45,'rgba(75,59,62,.15)');grad.addColorStop(1,'rgba(75,59,62,0)');c.fillStyle=grad;c.fillRect(0,0,256,256);
-    shadowTex=trackTex(new T.CanvasTexture(g));shadow=new T.Mesh(trackGeo(new T.PlaneGeometry(4,3)),trackMat(new T.MeshBasicMaterial({map:shadowTex,transparent:true,depthWrite:false})));shadow.rotation.x=-PI/2;shadow.position.set(0,-1.52,0);lab.add(shadow);
-    const floorMat=trackMat(new T.MeshStandardMaterial({color:color('#e6e6dc'),roughness:1}));stageFloor=new T.Mesh(trackGeo(new T.PlaneGeometry(200,200)),floorMat);stageFloor.rotation.x=-PI/2;stageFloor.position.y=-1.55;lab.add(stageFloor);
-    // A low dipping bowl. It is also a real pointer target.
-    pot=new T.Group();lab.add(pot);pot.position.set(0,-1.46,.1);pot.scale.setScalar(.77);
-    const ceramic=material('#f9f3e5',{roughness:.28});
-    const pts=[new T.Vector2(.77,0),new T.Vector2(.85,.07),new T.Vector2(.89,.23),new T.Vector2(.91,.31),new T.Vector2(.87,.34),new T.Vector2(.83,.29),new T.Vector2(.80,.09),new T.Vector2(.72,.05)];
-    const bowl=new T.Mesh(trackGeo(new T.LatheGeometry(pts,60)),ceramic);pot.add(bowl);
-    potWax=new T.Mesh(trackGeo(new T.CircleGeometry(.83,60)),material(palette[0],{roughness:.25}));potWax.rotation.x=-PI/2;potWax.position.y=.255;pot.add(potWax);pot.visible=false;
-  }
-
-  function textureNoise(){const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d'),im=g.createImageData(128,128);for(let i=0;i<im.data.length;i+=4){const v=126+Math.floor(random()*7);im.data[i]=im.data[i+1]=im.data[i+2]=v;im.data[i+3]=255;}g.putImageData(im,0,0);const t=trackTex(new T.CanvasTexture(c));t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set(5,5);return t;}
-  function makeIris(hex){
-    const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');g.clearRect(0,0,256,256);
-    const grad=g.createRadialGradient(128,128,28,128,128,120);grad.addColorStop(0,'#655344');grad.addColorStop(.5,hex||'#392c25');grad.addColorStop(1,'#17141b');g.fillStyle=grad;g.beginPath();g.arc(128,128,123,0,TAU);g.fill();
-    for(let i=0;i<130;i++){const a=i/130*TAU;g.strokeStyle=i%3?'#c8a17544':'#08061377';g.lineWidth=1+random()*2;g.beginPath();g.moveTo(128+Math.cos(a)*36,128+Math.sin(a)*36);g.lineTo(128+Math.cos(a+.025)*115,128+Math.sin(a+.025)*115);g.stroke();}
-    g.fillStyle='#0a080e';g.beginPath();g.arc(128,128,49,0,TAU);g.fill();
-    const t=trackTex(new T.CanvasTexture(c));t.encoding=T.sRGBEncoding;return t;
-  }
-  function buildToy(L){
-    look={...L};state.lookKey=JSON.stringify(L);skinColor=L.skin||'#efb990';
-    // Rebuild only on an explicit appearance change; no source game meshes are moved.
-    const previous=actor.children.slice(),disposeG=new Set(),disposeM=new Set(),disposeT=new Set();
-    previous.forEach(o=>{o.traverse(n=>{if(n.geometry&&n.geometry!==sphere)disposeG.add(n.geometry);if(n.material)for(const m of Array.isArray(n.material)?n.material:[n.material]){disposeM.add(m);for(const key of ['map','bumpMap','normalMap'])if(m[key])disposeT.add(m[key]);}});actor.remove(o);});
-    for(const g of disposeG){g.dispose();ownedGeos.delete(g);}for(const m of disposeM){m.dispose();ownedMats.delete(m);}for(const t of disposeT){t.dispose();ownedTextures.delete(t);}
-    const oldWax=waxMesh;if(oldWax){lab.remove(oldWax);oldWax.geometry.dispose();ownedGeos.delete(oldWax.geometry);}
-    eyeList=[];ears=[];brows=[];noseDots=[];cheekDetails=[];
-    skinMat=material(skinColor,{roughness:.30,clearcoat:.65,clearcoatRoughness:.24,bumpMap:textureNoise(),bumpScale:.018,envMapIntensity:.72});
-    softSkin=material(skinColor,{roughness:.34,clearcoat:.45,envMapIntensity:.6});
-    skinMat.onBeforeCompile=shader=>{
-      shader.uniforms.mlPressure={value:0};shader.uniforms.mlSkin={value:color(skinColor)};
-      shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nattribute vec3 mlRest; varying vec3 vMlRest;');
-      shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvMlRest=mlRest;');
-      shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vMlRest; uniform float mlPressure;');
-      shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
-        float faceFront=smoothstep(.15,.65,vMlRest.z);
-        float blush=exp(-pow((abs(vMlRest.x)-.55)*4.9,2.)-pow((vMlRest.y+.02)*6.,2.))*faceFront;
-        diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.72,.245,.22),blush*(.14+.20*mlPressure));
-        float lipWarm=exp(-pow(vMlRest.x*5.,2.)-pow((vMlRest.y+.40)*7.,2.))*faceFront;
-        diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.64,.28,.24),lipWarm*.10);
-      `);bodyShader=shader;
-    };
-    const geo=trackGeo(new T.SphereGeometry(1,76,52));bodyRest=new Float32Array(geo.attributes.position.array);geo.setAttribute('mlRest',new T.BufferAttribute(new Float32Array(bodyRest),3));geo.attributes.position.setUsage(T.DynamicDrawUsage);
-    body=new T.Mesh(geo,skinMat);actor.add(body);body.frustumCulled=false;
-    const rose=material('#cc7b79',{roughness:.30,clearcoat:.5}),inner=material('#55303c',{roughness:.55}),white=material('#fff5da',{roughness:.22,clearcoat:.7,envMapIntensity:.9});
-    const eyeWhite=material('#fff7e9',{roughness:.17,clearcoat:1,clearcoatRoughness:.08,envMapIntensity:.8});
-    const irisMap=makeIris(L.eyeColor);
-    const irisMaterial=trackMat(new T.MeshPhysicalMaterial({map:irisMap,transparent:true,roughness:.2,clearcoat:1,clearcoatRoughness:.1,metalness:0,depthWrite:false}));
-    const veinMat=material('#bc727d',{roughness:.35,envMapIntensity:.4});
-    const socketMat=material('#bd7b78',{roughness:.42});
-    const eyeGap=Math.max(.30,Math.min(.49,L.eyeGap||.37)),eyeY=.27+((L.eyeY||.1)-.1)*.5;
-    for(const side of [-1,1]){
-      const root=new T.Group();actor.add(root);
-      const globe=new T.Group();root.add(globe);
-      const size=.218*Math.max(.85,Math.min(1.13,L.eyeSize||1));
-      const ball=ellipsoid(globe,eyeWhite,0,0,0,size,size,size);
-      const iris=new T.Mesh(trackGeo(new T.CircleGeometry(size*.55,36)),irisMaterial);iris.position.z=size*.978;globe.add(iris);
-      const shine=ellipsoid(globe,trackMat(new T.MeshBasicMaterial({color:0xffffff})),size*.22,size*.30,size*.91,size*.10,size*.13,size*.025);
-      // Sparse branching veins are attached to the eyeball, not the screen.
-      for(let j=0;j<7;j++){
-        const a=j/7*TAU+.3,points=[];for(let k=0;k<5;k++){const d=mix(.84,.52,k/4),az=a+Math.sin(k*2+j)*.1;points.push([Math.cos(az)*size*d,Math.sin(az)*size*d,Math.sqrt(1-d*d)*size+.001]);}
-        staticCurve(globe,veinMat,points,.0017,10);
-      }
-      const upper=new T.Mesh(trackGeo(new T.SphereGeometry(size*1.027,28,16,0,TAU,0,.99)),softSkin);globe.add(upper);
-      const lower=new T.Mesh(trackGeo(new T.SphereGeometry(size*1.022,28,12,0,TAU,2.50,.65)),softSkin);globe.add(lower);
-      const socket=new T.Mesh(trackGeo(new T.TorusGeometry(size*.92,.055,9,36)),socketMat);actor.add(socket);
-      const cavity=ellipsoid(actor,inner,0,0,0,size*.89,size*.93,.035);
-      const rim=new T.Mesh(trackGeo(new T.TorusGeometry(size*1.02,.032,8,36)),softSkin);actor.add(rim);
-      const stalk=tube(actor,rose,20,9),stalkVein=tube(actor,veinMat,20,5);
-      eyeList.push({side,root,globe,ball,iris,upper,lower,socket,cavity,rim,stalk,stalkVein,shine,size,
-        x:side*eyeGap,y:eyeY,z:Math.sqrt(1-eyeGap*eyeGap-eyeY*eyeY),e:0,ev:0,out:false,
-        sway:0,sv:0,drop:0,dv:0,retractAt:0,anchor:V(),end:V()});
-      const ear=ellipsoid(actor,softSkin,0,0,0,.13,.215,.115),earInset=ellipsoid(ear,rose,side*.22,.05,.54,.53,.65,.35);ears.push({m:ear,side});
-      const brow=tube(actor,material(L.browColor||L.hair||'#33222a',{roughness:.6,clearcoat:.05}),16,7);brows.push({m:brow,side,x:side*eyeGap,y:eyeY+.28});
-    }
-    nose=ellipsoid(actor,softSkin,0,0,0,.14*(L.nose||1),.13,.16);
-    for(const s of [-1,1])noseDots.push(ellipsoid(nose,inner,s*.44,-.38,.67,.16,.13,.05));
-    mouthHole=ellipsoid(actor,inner,0,-.38,.75,.19,.024,.048);
-    lips=new T.Mesh(trackGeo(new T.TorusGeometry(.16,.028,10,42)),rose);actor.add(lips);
-    tongue=ellipsoid(actor,material('#c87983',{roughness:.24}),0,-.4,.82,.10,.015,.065);
-    const teethGroup=new T.Group();mouthHole.add(teethGroup);teethGroup.scale.set(1/.19,1/.024,1/.048);
-    // Small paired teeth are visible only when the mouth stretches open.
-    teethGroup.userData.teeth=[];
-    for(const s of [-1,1]){const tooth=ellipsoid(actor,white,s*.047,-.34,.83,.035,.047,.024);teethGroup.userData.teeth.push(tooth);}mouthHole.userData.teeth=teethGroup.userData.teeth;
-    gutMesh=tube(actor,material('#bd7084',{roughness:.24,clearcoat:1,clearcoatRoughness:.12,envMapIntensity:.85}),112,10);
-    gutVein=tube(actor,material('#835979',{roughness:.35,clearcoat:.4}),100,5);
-    gutMesh.visible=gutVein.visible=false;
-    makeHair(L);
-    if(L.glassesStyle&&L.glassesStyle!=='none'){
-      glasses=new T.Group();actor.add(glasses);const frameMat=material(L.frame||'#28212e',{roughness:.38});
-      for(const side of [-1,1]){const ring=new T.Mesh(trackGeo(new T.TorusGeometry(.262,.018,7,36)),frameMat);ring.position.set(side*eyeGap,eyeY,.98);glasses.add(ring);}
-      staticCurve(glasses,frameMat,[[-.12,eyeY+.04,.99],[0,eyeY+.09,1],[.12,eyeY+.04,.99]],.015,10);
-    }else glasses=null;
-    if(L.mole){const mole=ellipsoid(actor,material('#634238',{roughness:.8}),0,0,0,.018*(L.moleSize||1),.018*(L.moleSize||1),.006);cheekDetails.push({m:mole,x:L.moleX||.35,y:L.moleY||-.22});}
-    if(L.stacheStyle&&L.stacheStyle!=='none'){
-      const mat=material(L.hair||'#32242e',{roughness:.7});for(let s of [-1,1]){const m=tube(actor,mat,14,7);cheekDetails.push({m,stache:true,side:s});}
-    }
-    createWax(true);
-  }
-
-  function makeHair(L){
-    hairGroup=new T.Group();actor.add(hairGroup);hairGroup.userData.parts=[];
-    if(L.style==='bald')return;
-    const mat=material(L.hair||'#2a2130',{roughness:.4,clearcoat:.25,envMapIntensity:.5});
-    const capGeo=trackGeo(new T.SphereGeometry(1.018,48,20,0,TAU,0,.67));
-    const cap=new T.Mesh(capGeo,mat);cap.userData.rest=new Float32Array(capGeo.attributes.position.array);hairGroup.add(cap);hairGroup.userData.cap=cap;
-    const count=L.style==='spiky'?8:L.style==='bowl'?9:7;
-    for(let i=0;i<count;i++){
-      const m=tube(hairGroup,mat,20,8);m.userData.hairIndex=i;hairGroup.userData.parts.push(m);
-    }
-  }
-
-  /* The shell is one dynamic batch: intact wax and detached shards share it. */
-  function createWax(initial=false){
-    if(waxMesh){lab.remove(waxMesh);waxMesh.geometry.dispose();ownedGeos.delete(waxMesh.geometry);waxMesh.material.dispose();ownedMats.delete(waxMesh.material);}
-    const ico=new T.IcosahedronGeometry(1,5),raw=ico.index?ico.toNonIndexed():ico;
-    const a=raw.attributes.position.array;waxFaces=[];const n=a.length/9;
-    for(let i=0;i<n;i++){
-      const vertices=[V(...a.slice(i*9,i*9+3)),V(...a.slice(i*9+3,i*9+6)),V(...a.slice(i*9+6,i*9+9))];
-      const center=vertices[0].clone().add(vertices[1]).add(vertices[2]).multiplyScalar(1/3);
-      waxFaces.push({v:vertices,c:center,alive:true,crack:0,age:0,p:V(),velocity:V(),angular:V(),q:new T.Quaternion(),landQ:new T.Quaternion(),local:vertices.map(()=>V()),world:Array.from({length:6},()=>V()),rand:random(),landed:false});
-    }
-    raw.dispose();if(raw!==ico)ico.dispose();
-    waxGeo=trackGeo(new T.BufferGeometry());waxGeo.setAttribute('position',new T.BufferAttribute(new Float32Array(n*24*3),3).setUsage(T.DynamicDrawUsage));waxGeo.setAttribute('normal',new T.BufferAttribute(new Float32Array(n*24*3),3).setUsage(T.DynamicDrawUsage));waxGeo.setAttribute('color',new T.BufferAttribute(new Float32Array(n*24*3),3));
-    const mat=material(palette[state.waxColor],{roughness:.84,clearcoat:0,vertexColors:true,side:T.DoubleSide,envMapIntensity:.15});
-    const ca=waxGeo.attributes.color.array;for(let i=0;i<n;i++){const v=.94+waxFaces[i].rand*.06;for(let j=0;j<72;j++)ca[i*72+j]=v;}
-    waxMesh=new T.Mesh(waxGeo,mat);waxMesh.frustumCulled=false;lab.add(waxMesh);state.waxLeft=1;state.cracked=0;state.metrics.dips+=initial?0:1;
-  }
-  const waxA=V(),waxB=V(),waxC=V(),waxN=V(),waxCenter=V();
-  function waxSurface(p,out){
-    shape(p.x,p.y,p.z,out,state.p*.55,.065);
-    // A moulded coating conceals the eyes and the nose before the first cracks.
-    if(p.z>.15){const d1=(p.x-.37)**2+(p.y-.27)**2,d2=(p.x+.37)**2+(p.y-.27)**2;
-      out.z+=.28*(Math.exp(-d1*27)+Math.exp(-d2*27))+.24*Math.exp(-(p.x*p.x*75+(p.y+.04)**2*90));}
-    return out;
-  }
-  function breakShard(f,force=1){
-    if(!f.alive)return;
-    f.alive=false;f.age=0;f.landed=false;
-    for(let j=0;j<3;j++)waxSurface(f.v[j],f.local[j]).applyMatrix4(actor.matrixWorld);
-    f.p.copy(f.local[0]).add(f.local[1]).add(f.local[2]).multiplyScalar(1/3);f.local.forEach(p=>p.sub(f.p));
-    const normal=V().subVectors(f.local[1],f.local[0]).cross(V().subVectors(f.local[2],f.local[0])).normalize();f.landQ.setFromUnitVectors(normal,V(0,1,0));
-    f.velocity.copy(f.c).multiplyScalar(rand(.2,.65)*force);f.velocity.y+=rand(-.10,.35);f.velocity.z+=.10;
-    f.angular.set(rand(-5,5),rand(-5,5),rand(-5,5));f.q.identity();state.cracked++;
-    state.lastShard=state.time;
-  }
-  function advanceWax(dt){
-    actor.updateMatrixWorld(true);
-    if(state.waxLeft===0&&state.time-state.lastShard>9){waxMesh.visible=false;return;}
-    waxMesh.visible=true;
-    const pressure=state.holding?Math.max(0,state.p):0;
-    let newly=0;
-    if(pressure>.13&&state.dip<0){
-      const fx=state.focusX*.65,fy=state.focusY*.65;
-      for(const f of waxFaces){if(!f.alive)continue;const dist=Math.hypot(f.c.x-fx,f.c.y-fy);
-        const force=pressure*1.5-(f.c.z<0?.20:0)-dist*.16;
-        f.crack=Math.max(f.crack,sat((force-.18)*2));
-        const threshold=.28+f.rand*.52+(f.c.z<0?.12:0);
-        if(force>threshold){breakShard(f,pressure> .58?1.4:.6);newly++;}
-      }
-    }
-    if(newly&&state.time-state.lastCrunch>.11){audio.crunch(Math.min(1,.25+newly*.06));state.lastCrunch=state.time;state.metrics.cracks+=newly;}
-    state.waxLeft=1-state.cracked/waxFaces.length;
-    const pa=waxGeo.attributes.position.array,na=waxGeo.attributes.normal.array;
-    const tri=[0,1,2,3,5,4,0,3,4,0,4,1,1,4,5,1,5,2,2,5,3,2,3,0];
-    for(let i=0;i<waxFaces.length;i++){
-      const f=waxFaces[i];
-      if(f.alive){
-        waxSurface(f.c,waxCenter);
-        for(let j=0;j<3;j++){waxSurface(f.v[j],f.local[j]);f.local[j].lerp(waxCenter,f.crack*.045);f.local[j].addScaledVector(f.c,f.crack*.018);f.local[j].applyMatrix4(actor.matrixWorld);}
-      }else{
-        f.age+=dt;
-        if(!f.landed){f.velocity.y-=3.8*dt;f.p.addScaledVector(f.velocity,dt);qTmp.setFromEuler(new T.Euler(f.angular.x*dt,f.angular.y*dt,f.angular.z*dt));f.q.multiply(qTmp);
-          if(f.p.y<-1.51){f.p.y=-1.51;f.velocity.y=Math.abs(f.velocity.y)*.24;f.velocity.x*=.62;f.velocity.z*=.62;f.angular.multiplyScalar(.45);if(f.velocity.length()<.22||f.age>3){f.landed=true;f.velocity.set(0,0,0);f.q.copy(f.landQ);f.p.y=-1.525;}}
-        }
-      }
-      const fade=f.alive?1:1-smooth((f.age-6)/3),base=i*72;
-      if(fade<=0){for(let k=0;k<72;k++)pa[base+k]=0;continue;}
-      const vertices=f.world;
-      for(let j=0;j<3;j++){
-        vertices[j].copy(f.local[j]);if(!f.alive)vertices[j].multiplyScalar(fade).applyQuaternion(f.q).add(f.p);
-      }
-      waxN.subVectors(vertices[1],vertices[0]).cross(waxA.subVectors(vertices[2],vertices[0])).normalize();
-      for(let j=0;j<3;j++)vertices[j+3].copy(vertices[j]).addScaledVector(waxN,-.017*fade);
-      for(let t=0;t<8;t++){
-        waxA.copy(vertices[tri[t*3]]);waxB.copy(vertices[tri[t*3+1]]);waxC.copy(vertices[tri[t*3+2]]);
-        waxN.subVectors(waxB,waxA).cross(tmp.subVectors(waxC,waxA)).normalize();
-        for(let j=0;j<3;j++){const v=vertices[tri[t*3+j]],k=base+t*9+j*3;pa[k]=v.x;pa[k+1]=v.y;pa[k+2]=v.z;if(f.alive&&t===0){tmp2.copy(f.v[j]).applyQuaternion(actor.quaternion).normalize();na[k]=tmp2.x;na[k+1]=tmp2.y;na[k+2]=tmp2.z;}else{na[k]=waxN.x;na[k+1]=waxN.y;na[k+2]=waxN.z;}}
-      }
-    }
-    waxGeo.attributes.position.needsUpdate=true;waxGeo.attributes.normal.needsUpdate=true;
-  }
-
-  /* Hands are sculpted around the contact patches, leaving the face unobstructed. */
-  const handRoots=[],handMat=material('#d9ae8b',{roughness:.46,clearcoat:.16,envMapIntensity:.45}),nailMat=material('#e5c3aa',{roughness:.30,clearcoat:.4}),creaseMat=material('#b9856e',{roughness:.8,clearcoat:0});
-  function makeHands(){
-    const cuffMat=material('#6e9085',{roughness:.87,clearcoat:0});
-    for(const side of [-1,1]){
-      const root=new T.Group();lab.add(root);
-      const palm=ellipsoid(root,handMat,0,0,0,.265,.35,.16);
-      const forearm=tube(root,handMat,12,12),cuff=tube(root,cuffMat,8,12);
-      const fingers=[];
-      for(let i=0;i<4;i++){const m=tube(root,handMat,18,9),cap=ellipsoid(root,handMat,0,0,0,.075,.075,.075),tip=ellipsoid(root,nailMat,0,0,0,.06,.10,.012);fingers.push({m,tip,cap,i});}
-      const thumb=tube(root,handMat,22,12),thumbCap=ellipsoid(root,handMat,0,0,0,.106,.106,.106),nail=ellipsoid(root,nailMat,0,0,0,.075,.10,.017);
-      const folds=[];for(let i=0;i<3;i++)folds.push(tube(root,creaseMat,9,5));
-      handRoots.push({root,palm,forearm,cuff,fingers,thumb,thumbCap,nail,side,folds});
-    }
-  }
-  function bezier(a,b,c,d,t,out){const u=1-t;out.set(u*u*u*a.x+3*u*u*t*b.x+3*u*t*t*c.x+t*t*t*d.x,u*u*u*a.y+3*u*u*t*b.y+3*u*t*t*c.y+t*t*t*d.y,u*u*u*a.z+3*u*u*t*b.z+3*u*t*t*c.z+t*t*t*d.z);return out;}
-  function poseHands(){
-    const g=state.grip,fy=state.focusY*.40;
-    for(const h of handRoots){
-      h.root.visible=state.hands&&state.dip<0;
-      if(!h.root.visible)continue;
-      const s=h.side,p=state.p;
-      const contact=anchor(s*.79,fy,Math.sqrt(Math.max(.05,1-.79*.79-fy*fy)));
-      contact.z+=.10;contact.x+=s*.02;
-      contact.applyMatrix4(actor.matrixWorld);
-      const idle=anchor(s*.81,-.31,Math.sqrt(1-.81*.81-.31*.31));idle.z+=.10;idle.x+=s*.015;
-      contact.lerp(idle,1-g);
-      const palm=V(s*(1.23-.16*g),-.58+fy*.38,.04);palm.x+=actor.position.x*.7;
-      h.palm.position.copy(palm);h.palm.rotation.z=-s*.38;
-      const armStart=V(s*2.35,-1.85,.22),armB=V(s*1.90,-1.31,.12),armC=V(s*1.36,-.98,.01);
-      updateTube(h.forearm,(t,o)=>bezier(armStart,armB,armC,palm,t,o),t=>mix(.20,.22,t));
-      updateTube(h.cuff,(t,o)=>bezier(armStart,armB,armC,palm,t*.30,o),t=>.215+t*.012);
-      for(const f of h.fingers){
-        const i=f.i,y=fy+.34-i*.16;
-        const tip=anchor(s*(.87-i*.025),y,-.29);tip.x+=s*(.04+(1-g)*.06);tip.y+=(1-g)*-.11;tip.z+=.09;
-        tip.applyMatrix4(actor.matrixWorld);
-        const a=V(palm.x+s*.02,palm.y+.14-i*.11,palm.z-.01),b=V(s*(1.43-.08*g),y-.15,-.03),c=V(s*(1.19-.13*g),y+.10,-.24);
-        updateTube(f.m,(t,o)=>bezier(a,b,c,tip,t,o),t=>(.088-i*.004)*(1-.18*t));
-        f.cap.position.copy(tip);f.cap.scale.setScalar(.073-i*.003);
-        f.tip.position.copy(tip);f.tip.position.z+=.055;f.tip.scale.set(.053-i*.002,.073-i*.003,.012);f.tip.rotation.z=-s*.25;
-      }
-      const a=V(palm.x-s*.08,palm.y-.03,palm.z+.12),b=V(s*(1.14-.11*g),fy-.26,.64),c=V(contact.x+s*.10,contact.y-.10,contact.z+.03);
-      updateTube(h.thumb,(t,o)=>bezier(a,b,c,contact,t,o),t=>mix(.135,.105,t));
-      h.thumbCap.position.copy(contact);
-      h.nail.position.copy(contact);h.nail.position.z+=.095;h.nail.position.y-=.015;h.nail.rotation.z=-s*.45;
-      for(let i=0;i<3;i++){const fold=h.folds[i];updateTube(fold,(t,o)=>{
-        const tt=.50+i*.12,mid=bezier(a,b,c,contact,tt,tmp4);o.copy(mid);o.x+=(t-.5)*.13;o.y+=.025*Math.sin(t*PI);o.z+=.108;},.0022);}
-    }
-  }
-
-  function updateFace(dt){
-    state.breath=Math.sin(state.time*2.2)*(1-state.p*.72);
-    const pa=body.geometry.attributes.position.array;
-    for(let i=0;i<bodyRest.length;i+=3){shape(bodyRest[i],bodyRest[i+1],bodyRest[i+2],tmp);pa[i]=tmp.x;pa[i+1]=tmp.y;pa[i+2]=tmp.z;}
-    body.geometry.attributes.position.needsUpdate=true;body.geometry.computeVertexNormals();if(bodyShader)bodyShader.uniforms.mlPressure.value=state.p;
-    for(const ear of ears){anchor(ear.side*.96,look.earY||.02,.14,ear.m.position);ear.m.rotation.z=-ear.side*.14-state.p*ear.side*.2;ear.m.scale.set(.13*(look.earSize||1),.215*(look.earSize||1),.115);}
-    const blink=state.blink>0?Math.sin(PI*state.blink/.18):0;
-    for(const e of eyeList){
-      e.root.visible=e.socket.visible=e.rim.visible=e.cavity.visible=state.waxLeft<.84;
-      anchor(e.x,e.y,e.z,e.anchor);e.anchor.z+=.035;
-      e.socket.position.copy(e.anchor);e.rim.position.copy(e.anchor);e.rim.position.z+=.015;
-      e.cavity.position.copy(e.anchor);e.cavity.position.z+=.012;
-      e.socket.scale.set(1+e.e*.15,1+e.e*.2,1);e.rim.scale.set(1+e.e*.07,1+e.e*.08,1);
-      e.end.copy(e.anchor);e.end.x+=e.side*.11*e.e+e.sway;e.end.y-=.19*e.e*e.e+e.drop;e.end.z+=.02+.74*e.e;
-      e.root.position.copy(e.end);e.globe.rotation.set(e.e*.20+e.drop*.4,e.sway*.9,-e.sway*1.1);
-      const form=EYE_FORMS[look.eyeStyle]||EYE_FORMS.round,extent=sat(e.e);
-      e.globe.scale.set(mix(form[0],1,extent)*(1+e.e*.07),mix(form[1],1,extent)*(1+e.e*.07),1+e.e*.07);
-      e.iris.position.x=state.hoverX*.025+e.side*.01;e.iris.position.y=state.hoverY*.018-state.p*.012;e.iris.position.z=e.size*.99;
-      const eyelid=blink*(1-e.e*.8);
-      e.upper.rotation.x=-.14+eyelid*1.25+state.p*.14*(1-e.e);e.upper.scale.set(1,1+eyelid*.25,1);
-      e.lower.rotation.x=eyelid*-.75;e.upper.visible=e.e<.65;e.lower.visible=e.e<.65;
-      const stalkPoint=(t,o)=>{o.lerpVectors(e.anchor,e.end,t);o.y-=Math.sin(PI*t)*.075*e.e;o.x+=Math.sin(t*PI)*e.sway*.35;};
-      e.stalk.visible=e.stalkVein.visible=e.e>.04;
-      if(e.e>.04){updateTube(e.stalk,stalkPoint,t=>mix(.09,.065,t)*(1+Math.sin(t*45)*.035));updateTube(e.stalkVein,(t,o)=>{stalkPoint(t,o);o.z+=.075;o.x+=Math.sin(t*19)*.018;},.0045);}
-    }
-    for(const b of brows){const w=.17*(look.browWidth||1);updateTube(b.m,(t,o)=>{
-      const x=b.x+(t-.5)*w*2,y=b.y+((look.browY||.35)-.35)*.6+Math.sin(t*PI)*(look.browStyle==='arched'?.065:.025)+b.side*(t-.5)*(look.browTilt||0)*.25+state.p*.06;
-      anchor(x,y,Math.sqrt(Math.max(.05,1-x*x-y*y)),o);o.z+=.025;},t=>.019*(look.brow||1)*(.55+.45*Math.sin(t*PI)));}
-    const nf=NOSE_FORMS[look.noseStyle]||NOSE_FORMS.button;
-    anchor(0,-.04+((look.noseY??-.1)+.1)*.6,.998,nose.position);nose.position.z+=.035;nose.scale.set(.14*(look.nose||1)*(1+state.p*.23)*nf[0],.13*(1-state.p*.13)*nf[1],.16*nf[2]);
-    nose.visible=state.waxLeft<.83;
-    const open=Math.max(state.gut*.31,Math.max(0,state.p-.35)*.22);
-    anchor(0,-.38,.925,tmp);mouthHole.position.copy(tmp);mouthHole.position.z+=.012;mouthHole.scale.set(.185*(look.mouthWidth||1)*(1-state.p*.10),.027+open,.045);
-    lips.position.copy(tmp);lips.position.z+=.041;lips.scale.set(1.18*(look.mouthWidth||1),.17+open*6.4,1);
-    mouthHole.visible=lips.visible=state.waxLeft<.80;
-    tongue.position.copy(tmp);tongue.position.y-=open*.55;tongue.position.z+=.052;tongue.scale.set(.095,.016+open*.12,.045);tongue.visible=state.gut<.3&&state.waxLeft<.8;
-    for(let i=0;i<2;i++){const tooth=mouthHole.userData.teeth[i];tooth.visible=open>.035;tooth.position.set(tmp.x+(i?1:-1)*.047,tmp.y+open*.72,tmp.z+.055);}
-    gutMesh.visible=gutVein.visible=state.gut>.015;
-    if(state.gut>.015){
-      const origin=tmp.clone();origin.z+=.10;const length=state.gut;
-      const gutPoint=(t,o)=>{
-        const u=t*length,loop=Math.sin(u*TAU*2.55),grow=smooth(u*5);
-        o.set(origin.x+Math.sin(u*TAU*2.45)*.30*grow+state.dragX*.07*u,
-          origin.y-u*1.02+Math.sin(u*TAU*2.45)*.105,
-          origin.z+Math.sin(Math.min(1,u*2)*PI/2)*.25+Math.cos(u*TAU*2.45)*.14*grow);
-        o.x+=Math.sin(state.time*3.6-u*6)*.025*u;o.y+=Math.sin(state.time*4-u*4)*.018*u;
-      };
-      updateTube(gutMesh,gutPoint,t=>{const u=t*length;return .075*(.86+.10*Math.sin(u*140))*(1-.32*Math.pow(t,18));});
-      updateTube(gutVein,(t,o)=>{gutPoint(t,o);o.z+=.065;o.x+=Math.sin(t*length*35)*.018;},.0037);
-    }
-    if(hairGroup.userData.cap){
-      const cap=hairGroup.userData.cap,rest=cap.userData.rest,a=cap.geometry.attributes.position.array;
-      for(let i=0;i<a.length;i+=3){shape(rest[i],rest[i+1],rest[i+2],tmp,state.p,.015);a[i]=tmp.x;a[i+1]=tmp.y;a[i+2]=tmp.z;}
-      cap.geometry.attributes.position.needsUpdate=true;cap.geometry.computeVertexNormals();
-      const parts=hairGroup.userData.parts;
-      parts.forEach((m,i)=>{updateTube(m,(t,o)=>{
-        const theta=mix(.13,.83,t),a=mix(-1.25,1.25,i/Math.max(1,parts.length-1));
-        let x=Math.sin(a)*Math.sin(theta),z=Math.cos(a)*Math.sin(theta),y=Math.cos(theta);
-        if(look.style==='part'||look.style==='slick'){x+=Math.sin(t*PI)*.17*(look.hairFlip?-1:1);y+=.025*Math.sin(t*PI);}
-        if(look.style==='spiky'){y+=Math.sin(t*PI)*.14;}
-        anchor(x,y,z,o);o.z+=.018;
-      },t=>(look.style==='spiky'?.065:.075)*Math.pow(1-t*.9,.7)+.007);});
-      hairGroup.visible=state.waxLeft<.7;
-    }
-    if(glasses){glasses.visible=state.waxLeft<.45;glasses.position.y=-state.p*.035;glasses.position.z=state.p*.22;glasses.rotation.z=state.dragX*.07;}
-    for(const d of cheekDetails){if(d.stache){updateTube(d.m,(t,o)=>{const x=d.side*(.02+t*.18),y=-.20-Math.sin(t*PI)*.015;anchor(x,y,Math.sqrt(1-x*x-y*y),o);o.z+=.025;},t=>.023*(1-t*.6));}else {const z=Math.sqrt(Math.max(.1,1-d.x*d.x-d.y*d.y));anchor(d.x,d.y,z,d.m.position);d.m.position.z+=.017;}}
-  }
-
-  function releaseAll(cancelled=false){
-    pointers.clear();if(!state.holding)return;
-    state.holding=false;state.held=0;state.release=0;state.target=0;state.eyeOrder=Math.random()<.5?0:1;
-    state.gutOut=false;
-    if(state.gut>.15&&!cancelled)audio.slurp(true);
-    eyeList.forEach((e,i)=>{e.retractAt=(state.gut>.2?.32:.12)+(i===state.eyeOrder?0:rand(.18,.30));});
-    state.squeezes++;audio.hush();
-  }
-  function stepToy(dt,draw=true,visualDt=dt){
-    state.time+=dt;state.release+=dt;
-    if(state.holding)state.held+=dt;
-    if(state.dip>=0){
-      state.dip+=dt;
-      if(state.dip>1.02&&state.dip-dt<=1.02){createWax(false);audio.noise(.22,.25,460);audio.tone('sine',110,65,.24,.25);}
-      if(state.dip>=2.2){state.dip=-1;pot.visible=false;dipButton.disabled=false;}
-    }
-    const pressing=state.holding&&state.dip<0;
-    let target=pressing?Math.min(1,.11+smooth(state.held/2.8)*.84+Math.hypot(state.dragX,state.dragY)*.28):0;
-    if(pointers.size>1){const list=[...pointers.values()],dist=Math.hypot(list[0].x-list[1].x,list[0].y-list[1].y)*state.screenR;target=Math.max(target,sat((state.pinchStart-dist)/state.screenR)*1.1+.15);}
-    if(!pressing&&state.release<.63)target=Math.min(Math.max(0,state.p),.23)*(1-state.release/.63);
-    state.target=target;
-    spring(state,'p','pv',target,pressing?100:76,pressing?15:8,dt);state.p=Math.max(-.055,Math.min(1.1,state.p));
-    state.grip=decay(state.grip,pressing?1:0,pressing?22:10,dt);
-    if(!pressing){state.dragX=decay(state.dragX,0,7,dt);state.dragY=decay(state.dragY,0,7,dt);}
-    const before=state.gut;
-    for(let i=0;i<eyeList.length;i++){
-      const e=eyeList[i],sideBias=state.focusX*e.side;
-      const threshold=.51+(i===0?0:.10)-sideBias*.12+Math.max(0,-state.focusY)*.08;
-      if(pressing&&!e.out&&state.p>threshold){e.out=true;e.ev+=4.4;e.sv+=e.side*1.1;audio.pop(e.side,false);state.metrics.pops++;state.burst=.035;}
-      if(!pressing&&e.out&&state.release>e.retractAt){e.out=false;audio.pop(e.side,true);state.metrics.retractions++;e.ev-=1.8;}
-      spring(e,'e','ev',e.out?1:0,115,10.3,dt);e.e=Math.max(-.025,e.e);
-      const wobble=pressing?state.dragVX*.008:0;
-      e.sv+=wobble*dt;spring(e,'sway','sv',e.out?Math.sin(state.time*7+e.side)*.012:0,43,3.8,dt);
-      spring(e,'drop','dv',e.out?Math.max(0,state.pv)*.015:0,51,4,dt);
-    }
-    if(pressing&&!state.gutOut&&state.p>.80+Math.max(0,state.focusY)*.12-Math.max(0,-state.focusY)*.13){state.gutOut=true;state.gutV+=1.5;audio.slurp(false);}
-    spring(state,'gut','gutV',state.gutOut?1:0,state.gutOut?45:26,state.gutOut?10:7.5,dt);state.gut=Math.max(0,state.gut);
-    if(!pressing&&before>.03&&state.gut<=.03)audio.tone('sine',250,80,.10,.12);
-    if(state.time>state.nextBlink&&state.blink<=0){state.blink=.18;state.nextBlink=state.time+rand(3,6);}
-    if(state.blink>0)state.blink=Math.max(0,state.blink-dt);
-    state.dragVX*=Math.exp(-12*dt);state.dragVY*=Math.exp(-12*dt);state.burst*=Math.exp(-14*dt);
-    actor.position.set(state.dragX*.06,Math.sin(state.time*2.2)*.008,0);
-    actor.rotation.set(state.dragY*.055,state.dragX*.10,-state.dragX*.06);
-    actor.scale.setScalar(1);
-    if(state.dip>=0){const d=state.dip,down=smooth(d/.78)*(1-smooth((d-1.18)/.85));actor.position.y-=down*1.43;actor.scale.setScalar(1-down*.32);actor.rotation.y=Math.sin(d*PI)*.07;pot.visible=true;}
-    if(!reduced)actor.position.x+=Math.sin(state.time*80)*state.burst;
-    if(draw){updateFace(visualDt);advanceWax(visualDt);poseHands();
-      shadow.scale.set(1+state.p*.08,1,1);shadow.material.opacity=state.dip>=0?.65:1;
-      audio.pressure(state.p,Math.abs(state.dragVX)+Math.abs(state.dragVY));}
-  }
-
-  function fitToy(){
-    if(G.editing)return;
-    const w=innerWidth,h=innerHeight;if(state.width===w&&state.height===h)return;
-    state.width=w;state.height=h;renderer.setSize(w,h,false);renderer.setPixelRatio(Math.min(devicePixelRatio||1,w<600?1.6:1.75));
-    cam.aspect=w/h;
-    const usable=Math.max(220,h-210),scale=Math.min(w*.82,usable*.67),r=scale/2;
-    const depth=1/(r/h*2*Math.tan(cam.fov*PI/360));
-    cam.position.set(0,.55,Math.max(5.6,depth+.6));cam.lookAt(0,-.10,0);cam.updateProjectionMatrix();cam.updateMatrixWorld();
-    const center=V(0,0,.6).project(cam),edge=V(1,0,.6).project(cam);
-    state.screenX=(center.x*.5+.5)*w;state.screenY=(-center.y*.5+.5)*h;state.screenR=Math.abs(edge.x-center.x)*w*.5;
-    const hint=document.getElementById('mlHint');hint.style.bottom=(document.querySelector('.dock').getBoundingClientRect().height+22)+'px';
-  }
-  function locate(e){return {x:(e.clientX-state.screenX)/state.screenR,y:-(e.clientY-state.screenY)/state.screenR,clientX:e.clientX,clientY:e.clientY};}
-  function down(e){
-    if(!state.active||G.editing||G.ngIntro||document.querySelector('.modal:not([hidden])')||e.target!==canvas)return;
-    e.preventDefault();e.stopImmediatePropagation();
-    if(e.button>0||state.dip>=0)return;
-    const p=locate(e);
-    if(Math.hypot(p.x/1.32,p.y/1.26)>1)return;
-    audio.unlock();try{canvas.setPointerCapture(e.pointerId);}catch(_){}
-    pointers.set(e.pointerId,p);
-    if(!state.holding){state.holding=true;state.held=0;state.release=99;state.focusX=Math.max(-.85,Math.min(.85,p.x));state.focusY=Math.max(-.85,Math.min(.85,p.y));state.initialX=p.x;state.initialY=p.y;state.dragX=state.dragY=0;state.p=Math.max(.055,state.p);audio.tone('sine',130,75,.08,.08);}
-    if(pointers.size===2){const p2=[...pointers.values()];state.pinchStart=Math.hypot(p2[0].x-p2[1].x,p2[0].y-p2[1].y)*state.screenR;}
-    if(!state.firstTouch){state.firstTouch=true;document.getElementById('mlHint').classList.remove('show');}
-  }
-  function move(e){
-    if(!state.active||G.editing||e.target!==canvas)return;
-    const p=locate(e);state.hoverX=Math.max(-1,Math.min(1,p.x));state.hoverY=Math.max(-1,Math.min(1,p.y));
-    if(!pointers.has(e.pointerId))return;e.preventDefault();e.stopImmediatePropagation();
-    const old=pointers.get(e.pointerId);pointers.set(e.pointerId,p);
-    state.dragVX=(p.x-old.x)*35;state.dragVY=(p.y-old.y)*35;state.dragX=Math.max(-.8,Math.min(.8,p.x-state.initialX));state.dragY=Math.max(-.8,Math.min(.8,p.y-state.initialY));
-    state.lastMotion=state.time;
-  }
-  function up(e){if(!state.active||!pointers.has(e.pointerId))return;e.preventDefault();e.stopImmediatePropagation();pointers.delete(e.pointerId);if(!pointers.size)releaseAll(e.type!=='pointerup');}
-  canvas.addEventListener('pointerdown',down,{capture:true,passive:false});canvas.addEventListener('pointermove',move,{capture:true,passive:false});
-  for(const type of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(type,up,{capture:true,passive:false});
-  canvas.addEventListener('contextmenu',e=>{if(state.active)e.preventDefault();});
-  function stop(){releaseAll(true);audio.stop();}
-  addEventListener('blur',stop);document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();});
-  canvas.addEventListener('webglcontextlost',stop);
-
-  /* This switch exists solely in the copied preview. Original index.html is untouched. */
-  const modes=document.querySelector('.modes');
-  const mode=document.createElement('button');mode.className='mode';mode.dataset.mode='malangi';mode.setAttribute('aria-pressed','false');mode.textContent='나 말랑이';modes.append(mode);
-  for(const b of modes.children)if(b.textContent.startsWith('나 '))b.innerHTML='나<br>'+b.textContent.slice(2);
-  const controls=document.createElement('div');controls.id='malangiTools';
-  controls.innerHTML='<div class="ml-colors" role="group" aria-label="왁스 색">'+palette.map((h,i)=>`<button class="ml-color" style="--wax:${h}" data-wax="${i}" aria-label="${['보라','민트','분홍','노랑'][i]} 왁스" aria-pressed="${i===0}"></button>`).join('')+'</div><div class="ml-right"><button class="ml-small" id="mlDip">왁스 입히기</button><button class="ml-small" id="mlHands" aria-pressed="true">손 표시</button><button class="ml-small" id="mlVolume" aria-label="소리 켜짐"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m4 9 4 0 5-4v14l-5-4H4zM17 8q4 4 0 8M20 5q7 7 0 14"/></svg></button></div>';
-  document.querySelector('.panel').append(controls);
-  const heading=document.createElement('div');heading.id='mlHeading';heading.innerHTML='<small>시험판</small><strong>나 말랑이</strong>';document.body.append(heading);
-  const hint=document.createElement('div');hint.id='mlHint';hint.textContent='꾹 누르고 · 끌어보고 · 놓아봐';document.body.append(hint);
-  const dipButton=document.getElementById('mlDip');
-  controls.addEventListener('click',e=>{
-    const b=e.target.closest('button');if(!b)return;audio.unlock();
-    if(b.dataset.wax!==undefined){state.waxColor=+b.dataset.wax;controls.querySelectorAll('[data-wax]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));if(potWax)potWax.material.color.copy(color(palette[state.waxColor]));}
-    if(b.id==='mlHands'){state.hands=!state.hands;b.setAttribute('aria-pressed',String(state.hands));}
-    if(b.id==='mlDip'&&state.dip<0){releaseAll(true);eyeList.forEach(x=>{x.e=x.ev=0;x.out=false;});state.gut=state.gutV=0;state.gutOut=false;state.p=state.pv=0;state.dip=0;b.disabled=true;audio.tone('sine',180,80,.15,.12);}
-    if(b.id==='mlVolume'){PREF.sound=!PREF.sound;SFX.setOn(PREF.sound);if(!PREF.sound)audio.stop();b.setAttribute('aria-label',PREF.sound?'소리 켜짐':'소리 꺼짐');b.style.opacity=PREF.sound?'1':'.4';}
-  });
-  function activate(){
-    if(!G.v)return;
-    window.__SC_AUTO_MODE_V1?.stop?.('malangi');cancelPointer();endHug();stopSocial();clearAttacks();window.__NG2?.cancelAux?.();CareVoice.stop();
-    G.mode='malangi';G.ngIntro=false;document.body.classList.remove('ng-intro');document.getElementById('ngIntro').hidden=true;
-    state.active=true;document.body.classList.add('malangi-active');state.width=0;state.lastFrame=performance.now();
-    if(!body){studio();buildToy(G.v.look);makeHands();}
-    if(!state.firstTouch)hint.classList.add('show');
-    document.getElementById('bubble').classList.remove('show');document.getElementById('careCaption').hidden=true;
-    for(const b of modes.children){const on=b===mode;b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on));}
-    fitToy();
-  }
-  mode.addEventListener('click',activate);
-  document.addEventListener('click',e=>{
-    const b=e.target.closest?.('.mode');if(!b)return;
-    if(b!==mode){state.active=false;stop();restoreLighting();document.body.classList.remove('malangi-active');hint.classList.remove('show');renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));fit();}
-    else document.body.classList.add('malangi-active');
-  });
-  const appearance=document.getElementById('appearanceBtn');document.querySelector('.top-buttons').prepend(appearance);appearance.addEventListener('pointerdown',()=>{if(state.active)stop();},{capture:true});
-  appearance.addEventListener('click',()=>{if(state.active)document.getElementById('look-tab-face')?.click();});
-  addEventListener('resize',()=>{state.width=0;});
-  window.__MALANGI={
-    start:activate,
-    editorLighting:restoreLighting,
-    active:()=>state.active&&G.mode==='malangi',
-    frame(dt){
-      const started=performance.now();fitToy();
-      renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.03;
-      if(state.lookKey!==JSON.stringify(G.v.look))buildToy(G.v.look);
-      if(document.querySelector('.modal:not([hidden])')){stop();renderer.render(lab,cam);return;}
-      const elapsed=Math.min(.15,Math.max(.001,(started-state.lastFrame)/1000));state.lastFrame=started;
-      const substeps=Math.ceil(elapsed/.016);for(let i=0;i<substeps;i++)stepToy(elapsed/substeps,i===substeps-1,elapsed);
-      renderer.render(lab,cam);
-      const elapsedMs=performance.now()-started;state.metrics.frames++;state.metrics.totalMs+=elapsedMs;state.metrics.maxMs=Math.max(state.metrics.maxMs,elapsedMs);
-    },
-    inspect:()=>({active:state.active,mode:G.mode,actorState:G.v?.state,editing:G.editing,intro:G.ngIntro,pressure:state.p,target:state.target,holding:state.holding,pointers:pointers.size,
-      eyes:eyeList.map(e=>({out:e.out,extension:e.e})),gut:state.gut,waxLeft:state.waxLeft,dipping:state.dip,hands:state.hands,
-      screen:{x:state.screenX,y:state.screenY,r:state.screenR},metrics:{...state.metrics,meanMs:state.metrics.totalMs/Math.max(1,state.metrics.frames)},
-      audio:audio.inspect(),drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles}),
-    stop
+/* ---- ml-10-deform.js ---- */
+/* ===== 말랑 변형 =====
+ * 캐릭터에 달린 모든 메시를, 정점 셰이더에서 같은 변형 함수로 한 번 더 민다.
+ * 뼈대(팔다리 버둥거림·표정)는 본편 리그가 그대로 움직이고, 그 위에 찌그러짐을 얹는 구조다.
+ * 같은 식을 JS(deformLocal)에도 두어 손·내장·눈물이 찌그러진 표면을 따라가게 한다. */
+const U = {
+  mlOn: { value: 0 },
+  mlInv: { value: new T.Matrix4() },            // 월드 → 캐릭터 루트
+  mlFwd: { value: new T.Matrix4() },            // 캐릭터 루트 → 월드
+  mlSq: { value: new T.Vector4(1, .2, 0, 0) },  // 쥔 높이, 띠 반높이, 세기
+  mlK: { value: new T.Vector4(.6, .22, .5, .34) },   // 띠 안 좌우 눌림, 띠 안 앞뒤 불룩, 띠 밖 부풂, 위아래 밀림
+  mlPull: { value: new T.Vector4(0, 1, 0, .3) }, mlPullD: { value: new T.Vector3() },   // 잡아당김: 중심·반경, 이동
+  mlPoke: { value: new T.Vector4(0, 1, .3, .12) }, mlPokeD: { value: new T.Vector3() }, // 손가락 자국
+  mlJelly: { value: new T.Vector4(0, 0, 0, 0) }, // 착지 찌부, 출렁임 진폭, 출렁임 위상
+  // 팔(왼·오른): 어깨 원래 자리, 어깨 옮겨 간 자리 + 배율, 돌림(사원수). updateLimbs()가 매 프레임 채운다.
+  mlArmP: { value: [new T.Vector4(), new T.Vector4()] },
+  mlArmT: { value: [new T.Vector4(0, 0, 0, 1), new T.Vector4(0, 0, 0, 1)] },
+  mlArmQ: { value: [new T.Vector4(0, 0, 0, 1), new T.Vector4(0, 0, 0, 1)] }
+};
+const ML_PARS = /* glsl */`
+uniform float mlOn; uniform mat4 mlInv; uniform mat4 mlFwd;
+uniform vec4 mlSq; uniform vec4 mlK; uniform vec4 mlPull; uniform vec3 mlPullD; uniform vec4 mlPoke; uniform vec3 mlPokeD; uniform vec4 mlJelly;
+attribute float mlLimb; uniform vec4 mlArmP[2]; uniform vec4 mlArmT[2]; uniform vec4 mlArmQ[2];
+vec3 mlLocal(vec3 q){
+  vec3 dp = q - mlPull.xyz; float kp = exp(-dot(dp, dp) / (mlPull.w * mlPull.w));
+  vec3 dk = q - mlPoke.xyz; float kk = exp(-dot(dk, dk) / (mlPoke.w * mlPoke.w));
+  float s = mlSq.z, t = (q.y - mlSq.x) / mlSq.y, g = exp(-t * t);
+  float e = (abs(t) - 2.2) / 1.9, lobes = exp(-e * e) * (1.0 - g);
+  q.x *= 1.0 - s * mlK.x * g + s * mlK.z * lobes;
+  q.z *= 1.0 + s * mlK.y * g + s * mlK.z * lobes;
+  q.y += s * mlK.w * mlSq.y * t / sqrt(1.0 + t * t);
+  float j = mlJelly.x;
+  q.y *= 1.0 + j; q.x *= 1.0 - j * 0.5; q.z *= 1.0 - j * 0.5;
+  q.x += mlJelly.y * sin(q.y * 4.5 + mlJelly.z);
+  return q + mlPullD * kp + mlPokeD * kk;
+}
+vec3 mlDeform(vec3 w){
+  vec3 q = (mlInv * vec4(w, 1.0)).xyz;
+  if (mlLimb > 0.5) {   // 팔은 찌그러뜨리지 않고, 어깨·손목이 옮겨 간 자리에 맞춰 통째로 옮기고 돌리고 키운다
+    vec4 P = mlArmP[0], M = mlArmT[0], Q = mlArmQ[0];
+    if (mlLimb > 1.5) { P = mlArmP[1]; M = mlArmT[1]; Q = mlArmQ[1]; }
+    vec3 r = (q - P.xyz) * M.w;
+    q = M.xyz + r + 2.0 * cross(Q.xyz, cross(Q.xyz, r) + Q.w * r);
+  } else q = mlLocal(q);
+  return (mlFwd * vec4(q, 1.0)).xyz;
+}
+`;
+const ML_PROJECT_LIT = /* glsl */`
+vec4 mlW = modelMatrix * vec4( transformed, 1.0 );
+if (mlOn > 0.5) {
+  vec3 mlN = normalize((vec4(transformedNormal, 0.0) * viewMatrix).xyz);
+  vec3 mlT1 = normalize(cross(mlN, abs(mlN.y) < 0.9 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0)));
+  vec3 mlT2 = cross(mlN, mlT1);
+  vec3 mlA = mlDeform(mlW.xyz), mlB = mlDeform(mlW.xyz + mlT1 * 0.004), mlC = mlDeform(mlW.xyz + mlT2 * 0.004);
+  mlW.xyz = mlA;
+  #ifndef FLAT_SHADED
+    vNormal = normalize((viewMatrix * vec4(normalize(cross(mlB - mlA, mlC - mlA)), 0.0)).xyz);
+  #endif
+}
+vec4 mvPosition = viewMatrix * mlW;
+gl_Position = projectionMatrix * mvPosition;
+`;
+const ML_PROJECT_FLAT = /* glsl */`
+vec4 mlW = modelMatrix * vec4( transformed, 1.0 );
+if (mlOn > 0.5) mlW.xyz = mlDeform(mlW.xyz);
+vec4 mvPosition = viewMatrix * mlW;
+gl_Position = projectionMatrix * mvPosition;
+`;
+const ML_WORLDPOS = /* glsl */`
+#if defined( USE_ENVMAP ) || defined( DISTANCE ) || defined ( USE_SHADOWMAP )
+  vec4 worldPosition = mlW;
+#endif
+`;
+const patchedMaterials = new WeakSet();
+function patchMaterial(m) {
+  if (!m || patchedMaterials.has(m) || m.isShaderMaterial) return;
+  patchedMaterials.add(m);
+  const lit = !!(m.isMeshStandardMaterial || m.isMeshPhongMaterial || m.isMeshLambertMaterial || m.isMeshToonMaterial);
+  const before = Object.prototype.hasOwnProperty.call(m, 'onBeforeCompile') ? m.onBeforeCompile : null;
+  m.onBeforeCompile = function (shader, r) {
+    if (before) before.call(this, shader, r);
+    Object.assign(shader.uniforms, U);
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\n' + ML_PARS)
+      .replace('#include <project_vertex>', lit ? ML_PROJECT_LIT : ML_PROJECT_FLAT)
+      .replace('#include <worldpos_vertex>', ML_WORLDPOS);
   };
-  if(window.MALANGI_QA){
-    const stats=document.createElement('output');stats.id='mlStats';stats.hidden=true;document.body.append(stats);
-    const hold=document.createElement('button');hold.id='qaHold';hold.textContent='QA: 꾹 / 놓기';hold.style.cssText='position:fixed;right:20px;top:65px;z-index:999;padding:10px';document.body.append(hold);
-    hold.onclick=()=>{if(state.holding)releaseAll();else{audio.unlock();state.holding=true;state.held=0;state.release=99;state.focusX=state.focusY=state.dragX=state.dragY=0;}};
-    setInterval(()=>stats.textContent=JSON.stringify(window.__MALANGI.inspect()),250);
+  m.customProgramCacheKey = function () { return 'ml3' + (lit ? 'L' : 'F') + (before ? before.toString() : ''); };
+  m.needsUpdate = true;
+}
+const mlDepthMaterial = new T.MeshDepthMaterial({ depthPacking: T.RGBADepthPacking });
+patchMaterial(mlDepthMaterial);
+/* 캐릭터 아래 모든 메시의 재질에 변형을 심고, 그림자도 같은 모양으로 지게 한다. 새로 생긴 메시(머리 모양 바꾸기 등)도 다시 부르면 잡힌다. */
+function patchCharacter(v) {
+  v.root.traverse(o => {
+    if (!o.isMesh || o.userData.mlPlain) return;
+    for (const m of Array.isArray(o.material) ? o.material : [o.material]) patchMaterial(m);
+    if (o.castShadow) o.customDepthMaterial = mlDepthMaterial;
+  });
+}
+/* 팔에 달린 메시는 정점마다 「어느 팔인지」(1 왼팔, 2 오른팔)를, 나머지는 0을 적어 둔다.
+ * 팔까지 몸통과 같은 식으로 찌그러뜨리면 쥔 자리 옆에서 팔이 납작한 날개처럼 펴져 버린다. */
+function tagLimbs(v) {
+  const limbOf = new Map(), users = new Map();
+  v.armRig.forEach((a, i) => a.sh.traverse(o => { if (o.isMesh) limbOf.set(o, i + 1); }));
+  v.root.traverse(o => { if (!o.isMesh) return; const k = limbOf.get(o) || 0; if (!users.has(o.geometry)) users.set(o.geometry, new Set()); users.get(o.geometry).add(k); });
+  v.root.traverse(o => {
+    if (!o.isMesh || !o.geometry || !o.geometry.attributes.position) return;
+    const k = limbOf.get(o) || 0;
+    o.userData.mlLimb = k;
+    if (k && users.get(o.geometry).size > 1) o.geometry = o.geometry.clone();   // 다른 부위와 같이 쓰는 모양이면 팔 것만 따로 뜬다
+    const n = o.geometry.attributes.position.count, at = o.geometry.attributes.mlLimb;
+    if (at && at.count === n && at.array[0] === k) return;
+    o.geometry.setAttribute('mlLimb', new T.BufferAttribute(new Float32Array(n).fill(k), 1));
+  });
+}
+function unpatchShadows(v) { v.root.traverse(o => { if (o.isMesh && o.customDepthMaterial === mlDepthMaterial) delete o.customDepthMaterial; }); }
+
+/* 셰이더와 같은 식. q는 루트 기준 좌표이고 제자리에서 바꾼다. */
+function deformLocal(q) {
+  const sq = U.mlSq.value, K = U.mlK.value, pl = U.mlPull.value, pd = U.mlPullD.value, pk = U.mlPoke.value, kd = U.mlPokeD.value, J = U.mlJelly.value;
+  const dpx = q.x - pl.x, dpy = q.y - pl.y, dpz = q.z - pl.z, kp = Math.exp(-(dpx * dpx + dpy * dpy + dpz * dpz) / (pl.w * pl.w));
+  const dkx = q.x - pk.x, dky = q.y - pk.y, dkz = q.z - pk.z, kk = Math.exp(-(dkx * dkx + dky * dky + dkz * dkz) / (pk.w * pk.w));
+  const s = sq.z, t = (q.y - sq.x) / sq.y, g = Math.exp(-t * t), e = (Math.abs(t) - 2.2) / 1.9, lobes = Math.exp(-e * e) * (1 - g);
+  q.x *= 1 - s * K.x * g + s * K.z * lobes;
+  q.z *= 1 + s * K.y * g + s * K.z * lobes;
+  q.y += s * K.w * sq.y * t / Math.sqrt(1 + t * t);
+  const j = J.x;
+  q.y *= 1 + j; q.x *= 1 - j * .5; q.z *= 1 - j * .5;
+  q.x += J.y * Math.sin(q.y * 4.5 + J.z);
+  q.x += pd.x * kp + kd.x * kk; q.y += pd.y * kp + kd.y * kk; q.z += pd.z * kp + kd.z * kk;
+  return q;
+}
+function deformWorld(w) { return deformLocal(w.applyMatrix4(U.mlInv.value)).applyMatrix4(U.mlFwd.value); }
+/* 팔: 어깨와 손목 두 점이 변형으로 어디로 가는지만 보고, 팔 전체를 그에 맞춰 옮김·돌림·배율로 따라가게 한다. applyRig 다음에 부른다. */
+const _lp = new T.Vector3(), _lh = new T.Vector3(), _lp2 = new T.Vector3(), _lh2 = new T.Vector3(), _lq = new T.Quaternion();
+const limbScale = [1, 1];
+function updateLimbs(dt) {
+  const inv = U.mlInv.value;
+  ML.v.armRig.forEach((a, i) => {
+    a.sh.getWorldPosition(_lp).applyMatrix4(inv); a.hand.getWorldPosition(_lh).applyMatrix4(inv);
+    deformLocal(_lp2.copy(_lp)); deformLocal(_lh2.copy(_lh));
+    _lh.sub(_lp); _lh2.sub(_lp2);
+    const l0 = _lh.length(), l1 = _lh2.length(), ok = l0 > 1e-4 && l1 > 1e-4;
+    if (ok) _lq.setFromUnitVectors(_lh.divideScalar(l0), _lh2.divideScalar(l1)); else _lq.set(0, 0, 0, 1);
+    // 밀려난 살이 팔로 몰려 통통해지는 정도. 휘젓는 동안 크기가 펄떡거리지 않게 천천히 따라간다.
+    limbScale[i] = damp(limbScale[i], ok ? clamp(l1 / l0, .88, 1.3) : 1, 9, dt);
+    U.mlArmP.value[i].set(_lp.x, _lp.y, _lp.z, 0);
+    U.mlArmT.value[i].set(_lp2.x, _lp2.y, _lp2.z, limbScale[i]);
+    U.mlArmQ.value[i].set(_lq.x, _lq.y, _lq.z, _lq.w);
+  });
+}
+/* deformWorld와 같되, 팔(limb 1·2)에 붙은 점은 팔과 같은 식으로 옮긴다. */
+function deformWorldOf(w, limb) {
+  if (!limb) return deformWorld(w);
+  const P = U.mlArmP.value[limb - 1], M = U.mlArmT.value[limb - 1], Q = U.mlArmQ.value[limb - 1];
+  w.applyMatrix4(U.mlInv.value);
+  w.set(w.x - P.x, w.y - P.y, w.z - P.z).multiplyScalar(M.w).applyQuaternion(_lq.set(Q.x, Q.y, Q.z, Q.w));
+  w.x += M.x; w.y += M.y; w.z += M.z;
+  return w.applyMatrix4(U.mlFwd.value);
+}
+
+/* ---- ml-20-life.js ---- */
+/* ===== 살아 있는 반응: 버둥거림 =====
+ * 본편 updateVillain 대신 이 모드가 팔다리·머리·표정을 직접 움직인다.
+ * 관절 각도는 전부 스프링이라, 힘을 주면 팽팽하게 떨고 힘이 빠지면 덜렁거린다. */
+const LIMB = { arms: [], legs: [], head: { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0 }, root: { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0 } };
+function resetLimbs() {
+  LIMB.arms = [0, 1].map(() => ({ sx: -.05, sz: .1, ex: -.15, ez: .05, vsx: 0, vsz: 0, vex: 0, vez: 0 }));
+  LIMB.legs = [0, 1].map(() => ({ x: 0, z: 0, vx: 0, vz: 0 }));
+  Object.assign(LIMB.head, { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0 });
+  Object.assign(LIMB.root, { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0 });
+  limbScale[0] = limbScale[1] = 1;
+}
+resetLimbs();
+const POSE_LIMP = { sx: .04, sz: .12, ex: -.12, ez: .02 }, POSE_REST = { sx: -.05, sz: .1, ex: -.15, ez: .05 }, POSE_GUARD = { sx: -1.25, sz: .2, ex: -1.5, ez: .35 };
+
+/* 한 걸음 분량의 관절 스프링. simulate()가 잘게 쪼갠 dt로 부른다. */
+function stepLimbs(dt) {
+  const v = ML.v, T0 = ML.time, f = ML.flail, p = Math.max(0, ML.p), pressing = ML.holding && ML.dip < 0, part = ML.gPart;
+  const spasm = ML.spasm, limp = Math.max(!pressing && ML.sinceRelease < 1.1 ? 1 - ML.sinceRelease / 1.1 : 0, ML.faint);
+  const tense = pressing ? 1 - ML.faint : 0;
+  // 힘줄 때는 빳빳하게(k 큼), 놓으면 덜렁덜렁(k·감쇠 작음)
+  const kA = mix(mix(95, 55, limp), 260, tense), cA = mix(mix(13, 4.5, limp), 22, tense);
+  const kL = mix(mix(110, 50, limp), 300, tense), cL = mix(mix(14, 4, limp), 24, tense);
+  LIMB.arms.forEach((a, i) => {
+    const s = i ? 1 : -1;
+    let P = ML.fear > .45 && !pressing && ML.faint < .2 ? POSE_GUARD : (limp || ML.pant > .3) ? POSE_LIMP : POSE_REST;
+    let sx = P.sx, sz = P.sz, ex = P.ex, ez = P.ez;
+    if (pressing || f > .03) {
+      if (part === 'head') {            // 제 머리를 쥔 손을 떼어내려고 위로 뻗어 허우적
+        sx = mix(sx, -2.72 + Math.sin(T0 * 17 + s * 1.3) * .32, sat(f * 1.4));
+        sz = mix(sz, .42 + Math.sin(T0 * 13 + s * 2) * .26, sat(f * 1.4));
+        ex = mix(ex, -1.05 + Math.sin(T0 * 21 + s) * .55, sat(f * 1.4)); ez = mix(ez, .25, f);
+      } else if (part === 'torso') {    // 몸통을 잡혔으면 만세 자세로 버둥버둥
+        sx = mix(sx, -2.45 + Math.sin(T0 * 19 + s) * .75, sat(f * 1.4));
+        sz = mix(sz, .72 + Math.sin(T0 * 15 + s * 2) * .42, sat(f * 1.4));
+        ex = mix(ex, -.62 + Math.sin(T0 * 23 + s) * .55, sat(f * 1.4)); ez = mix(ez, 0, f);
+      } else {                          // 다리를 잡혔으면 두 팔로 허공을 휘젓는다
+        sx = mix(sx, -1.55 + Math.sin(T0 * 14 + s * 1.6) * 1.25, sat(f * 1.4));
+        sz = mix(sz, .95 + Math.sin(T0 * 11 + s * 2) * .3, sat(f * 1.4));
+        ex = mix(ex, -.5 + Math.sin(T0 * 19 + s) * .45, sat(f * 1.4)); ez = mix(ez, 0, f);
+      }
+    }
+    if (spasm > .01) {                  // 한계: 사지가 쭉 뻗어 부들부들
+      const tr = Math.sin(T0 * 61 + s * 2) * .07;
+      sx = mix(sx, -1.72 + tr, spasm); sz = mix(sz, .62 + tr, spasm); ex = mix(ex, -.08 + tr, spasm); ez = mix(ez, 0, spasm);
+    }
+    spring(a, 'sx', 'vsx', sx, kA, cA, dt); spring(a, 'sz', 'vsz', sz, kA, cA, dt);
+    spring(a, 'ex', 'vex', ex, kA, cA, dt); spring(a, 'ez', 'vez', ez, kA, cA, dt);
+  });
+  LIMB.legs.forEach((l, i) => {
+    const s = i ? 1 : -1, held = part === 'legs' ? .28 : 1;
+    let x = 0, z = 0;
+    if (f > .02) { x = Math.sin(T0 * 20 + i * PI) * .85 * f * held; z = s * (.1 + Math.sin(T0 * 13 + i * 2.1) * .2) * f * held; }
+    if (!pressing && ML.fear > .3) z += -s * .05 * ML.fear + Math.sin(T0 * 43 + i) * .02 * ML.fear;   // 겁먹으면 무릎이 떨린다
+    if (spasm > .01) { const tr = Math.sin(T0 * 57 + i * 3) * .06; x = mix(x, -.42 + tr, spasm); z = mix(z, s * (.4 + tr), spasm); }
+    spring(l, 'x', 'vx', x, kL, cL, dt); spring(l, 'z', 'vz', z, kL, cL, dt);
+  });
+  // 머리: 도리질, 뒤로 젖힘. 머리를 쥐였으면 거의 못 움직인다.
+  const hk = part === 'head' ? .22 : 1, H = LIMB.head;
+  let hx = 0, hy = 0, hz = 0;
+  if (pressing || f > .03) {
+    hx = (-.2 * p + Math.sin(T0 * 11.3) * .07 * f) * hk;
+    hy = Math.sin(T0 * 9.1) * .42 * f * hk;
+    hz = Math.sin(T0 * 6.1 + 1) * .16 * f * hk;
+  } else {
+    const look = sat((3.5 - (ML.time - ML.hover.t)) / 1.5);         // 포인터가 근처에 있으면 그쪽을 본다
+    hy = ML.gaze.x * .3 * look + Math.sin(T0 * .7) * .06 * (1 - look);
+    hx = -ML.gaze.y * .16 * look + ML.pant * .22 + ML.daze * .12 + Math.sin(T0 * 1.3) * .012;
+    hz = ML.daze * Math.sin(T0 * 2.2) * .12;
   }
+  if (spasm > .01) { hx = mix(hx, -.42 * hk, spasm); hy = mix(hy, Math.sin(T0 * 50) * .04, spasm); }
+  if (ML.faint > .01) { hx = mix(hx, .5 * hk, ML.faint); hy = mix(hy, 0, ML.faint); hz = mix(hz, .22 * hk, ML.faint); }   // 기절: 고개가 툭 떨어진다
+  spring(H, 'x', 'vx', hx, 150, 15, dt); spring(H, 'y', 'vy', hy, 150, 14, dt); spring(H, 'z', 'vz', hz, 150, 14, dt);
+  // 몸 전체가 손아귀 안에서 뒤틀린다. 쥔 자리는 그대로 두고 그 위아래가 흔들린다.
+  const R = LIMB.root, sw = part === 'torso' ? .13 : .23;
+  let rx = 0, ry = 0, rz = 0;
+  if (f > .02) { rz = Math.sin(T0 * 6.3 + .7) * sw * f; ry = Math.sin(T0 * 5.1) * .3 * f; rx = Math.sin(T0 * 7.7) * .07 * f; }
+  if (ML.waxLeft > .5 && pressing) {    // 왁스에 갇혀 있을 때는 통째로 부르르
+    const k = (ML.waxLeft - .5) * 2 * sat(p * 3);
+    rz += Math.sin(T0 * 38) * .022 * k; ry += Math.sin(T0 * 31) * .03 * k;
+  }
+  if (ML.stir > 0) { const k = Math.sin(Math.min(1, ML.stir / .5) * PI) ; rz += Math.sin(T0 * 34) * .03 * k; ry += Math.sin(T0 * 27 + 1) * .05 * k; }
+  rz += clamp(-ML.pull.x * .32, -.28, .28);          // 잡아당기는 쪽으로 쏠린다
+  rx += clamp(ML.pull.y * .05, -.06, .06);
+  spring(R, 'x', 'vx', rx, 160, 15, dt); spring(R, 'y', 'vy', ry, 160, 15, dt); spring(R, 'z', 'vz', rz, 160, 13, dt);
+}
+
+/* 스프링 값을 실제 뼈대에 넣는다. 한 프레임에 한 번. */
+function applyRig(dt) {
+  const v = ML.v, T0 = ML.time;
+  v.armRig.forEach((a, i) => {
+    const c = LIMB.arms[i];
+    a.sh.rotation.set(c.sx, 0, a.s * c.sz); a.el.rotation.set(c.ex, 0, -a.s * c.ez);
+    a.hand.rotation.set(0, a.s * 1.4, 0);
+    Object.assign(a.cur, { sx: c.sx, sz: c.sz, ex: c.ex, ez: c.ez, hy: a.s * 1.4 });   // 본편으로 돌아갈 때 이어지도록
+  });
+  v.legs.forEach((l, i) => { l.rotation.x = LIMB.legs[i].x; l.rotation.z = LIMB.legs[i].z; });
+  v.headPivot.rotation.set(LIMB.head.x, LIMB.head.y, LIMB.head.z);
+  v.head.scale.set(1, 1, 1);
+  // 숨: 평소엔 잔잔하게, 놓여난 직후엔 어깨가 들썩일 만큼 헐떡인다.
+  const breathe = Math.sin(T0 * 2.1) * .012 * (1 - ML.pant) + Math.sin(T0 * 10.5) * .034 * ML.pant;
+  v.torso.scale.set(1 + breathe * .4, 1 + breathe, 1 + breathe * .4);
+  v.torso.position.y = .5;
+  v.body.rotation.set(ML.pant * .07 + ML.daze * .05, 0, 0);
+  v.body.position.set(0, 0, 0);
+  // 루트: 쥔 높이(gy)를 축으로 돌리고, 손에 들린 만큼 띄운다.
+  const R = v.root, g = sat(Math.max(ML.p, ML.flail) * 3);
+  R.rotation.set(LIMB.root.x, LIMB.root.y, LIMB.root.z);
+  _a.set(0, ML.gy, 0).applyEuler(R.rotation);
+  const sway = ML.pull.x * .1;
+  R.position.set((-_a.x) * g + sway, ML.lift + (ML.gy - _a.y) * g + ML.dipY, (-_a.z) * g);
+  R.scale.setScalar(1);
+  if (ML.shake > .001 && !reducedMotion) R.position.x += Math.sin(T0 * 90) * ML.shake * .012;
+  R.updateMatrixWorld(true);
+  U.mlFwd.value.copy(R.matrixWorld); U.mlInv.value.copy(R.matrixWorld).invert();
+}
+
+/* ===== 살아 있는 반응: 표정 ===== */
+const FACE = { open: .9, pup: 1, px: 0, py: 0, browR: 0, browY: 0, tint: 0 };
+function driveFace(dt) {
+  const v = ML.v, T0 = ML.time, L = v.look, p = Math.max(0, ML.p), pressing = ML.holding && ML.dip < 0;
+  const popped = ML.eyes[0].e > .5 || ML.eyes[1].e > .5;
+  // 눈 깜빡임
+  ML.blinkIn -= dt; if (ML.blinkIn < -.13) ML.blinkIn = rand(1.6, 4.2);
+  const blinking = ML.blinkIn < 0 && !pressing ? 1 : 0;
+  let open = .88, pup = 1, px = ML.gaze.x * .014, py = ML.gaze.y * .01, browR = 0, browY = 0;
+  const M = v.mouth, TG = M.target;
+  let mouth = { open: 0, smile: -.35, smirk: 0, wide: .85 }, shape = 'flat';
+  if (pressing) {
+    if (p < .42) {                       // 처음엔 이 악물고 버틴다
+      const k = smooth(p / .42);
+      open = mix(.95, .16, k); pup = mix(.8, .62, k); browR = .48 * k; browY = -.018 * k;
+      mouth = { open: .22, smile: -.8, smirk: 0, wide: 1.02 }; shape = 'grit';
+    } else {                             // 그다음엔 눈이 뒤집히고 입이 찢어지게 비명
+      const k = smooth((p - .42) / .4), cry = Math.sin(T0 * 3.1) > .55;
+      open = cry ? .1 : 1; pup = mix(.6, .42, k); browR = cry ? .5 : -.52; browY = cry ? -.02 : .03;
+      px += Math.sin(T0 * 47) * .008 * k; py += Math.cos(T0 * 41) * .008 * k + .012 * k;
+      mouth = { open: mix(.7, 1, k) + Math.sin(T0 * 19) * .05, smile: -.9, smirk: 0, wide: mix(.9, 1.25, k) }; shape = 'wail';
+    }
+    if (ML.gut > .1) { mouth = { open: 1, smile: -.6, smirk: 0, wide: 1.05 }; shape = 'o'; }
+    if (ML.faint > .3) { open = mix(open, .28, ML.faint); pup = .8; px = 0; py = .02 * ML.faint; browR = -.3; browY = 0; if (ML.gut < .1) { mouth = { open: .5, smile: -.5, smirk: 0, wide: .8 }; shape = 'o'; } }
+    if (ML.waxHead > .6) { open = mix(open, .5, .6); }
+  } else if (ML.daze > .05 || ML.pant > .05) {   // 놓여난 직후: 넋이 나가 헐떡인다
+    const d = Math.max(ML.daze, ML.pant);
+    open = mix(.88, ML.sinceRelease < .35 ? .05 : .46, sat(d * 1.5)); pup = .9; browR = -.5 * sat(d * 2); browY = .012;
+    if (ML.daze > .2) { px = Math.cos(T0 * 8) * .02 * ML.daze; py = Math.sin(T0 * 8) * .02 * ML.daze; }
+    mouth = { open: (.3 + .28 * Math.sin(T0 * 10.5)) * sat(ML.pant * 1.6) + .1, smile: -.7, smirk: 0, wide: .78 }; shape = 'o';
+    if (ML.pain > .55 && ML.pant < .35) { mouth = { open: .5 + Math.sin(T0 * 9) * .1, smile: -.9, smirk: 0, wide: 1.2 }; shape = 'wail'; }
+  } else if (ML.fear > .25) {            // 또 올까 봐 눈치를 본다
+    open = 1; pup = .72; browR = -.34; browY = .022; px += Math.sin(T0 * 13) * .006;
+    mouth = { open: .14, smile: -.6, smirk: 0, wide: .8 }; shape = 'frown';
+  } else if (ML.pain > .3) {
+    open = .62; browR = -.45; browY = .01; mouth = { open: .12, smile: -.75, smirk: 0, wide: .85 }; shape = 'frown';
+  }
+  open *= 1 - blinking;
+  if (popped) { const awake = 1 - ML.faint; open = 1; pup = mix(.62, .46, awake); px = Math.sin(T0 * 33) * .012 * awake; py = Math.cos(T0 * 29) * .012 * awake + .016 * ML.faint; }
+  const k = 1 - Math.exp(-22 * dt);
+  FACE.open += (open - FACE.open) * k; FACE.pup += (pup - FACE.pup) * k; FACE.px += (px - FACE.px) * k; FACE.py += (py - FACE.py) * k;
+  FACE.browR += (browR - FACE.browR) * k; FACE.browY += (browY - FACE.browY) * k;
+  v.eyes.forEach((e, i) => {
+    const ext = ML.eyes[i].e, o = Math.min(1, FACE.open + ext);
+    e.lidU.rotation.x = lerp(1.62, -1.25, o); e.lidL.rotation.x = lerp(-1.62, 1.4, Math.min(1, o * .6 + .4));
+    const lid = Math.max(.001, 1 - sat(ext * 2.2));
+    e.lidU.scale.set(lid, 1.08 * lid, .6 * lid); e.lidL.scale.set(lid, 1.08 * lid, .58 * lid);
+    e.pupilG.position.set(FACE.px, FACE.py, 0); e.pupilG.scale.set(FACE.pup, FACE.pup, 1);
+    const bi = e.brow.userData.inner;
+    bi.rotation.z = PI / 2 - e.s * FACE.browR - e.s * L.browTilt; bi.position.y = FACE.browY;
+  });
+  // 입
+  Object.assign(TG, mouth); M.shape = shape; M.talk = 0;
+  const before = M.open + M.smile * 3 + M.smirk * 7 + M.wide * 11;
+  M.open = damp(M.open, TG.open, 22, dt); M.smile = damp(M.smile, TG.smile, 12, dt); M.smirk = damp(M.smirk, 0, 12, dt); M.wide = damp(M.wide, TG.wide, 12, dt);
+  const after = M.open + M.smile * 3 + M.smirk * 7 + M.wide * 11;
+  const teethKey = v.upper.join('') + v.lower.join('') + (v.lipBlood > .15 ? 1 : 0);
+  if (Math.abs(after - before) > .002 || teethKey !== v.teethKey || M.shape !== v.mouthDrawShape) { v.teethKey = teethKey; v.mouthDrawShape = M.shape; v.paintMouth(); }
+  // 얼굴이 벌게진다: 볼터치(얼굴 그림) + 살색 자체
+  const tintWant = pressing ? sat(Math.pow(p, 1.3) * .95) : ML.pain * .35;
+  FACE.tint = damp(FACE.tint, tintWant, pressing ? 6 : 1.6, dt);
+  applyTint(FACE.tint, ML.gut);
+  const blush = sat(FACE.tint * 1.2);
+  if (Math.abs(blush - v.blush) > .04) { v.blush = blush; v.faceDirty = true; }
+  // 눈물
+  const tearWant = ML.pain > .62 ? .9 : ML.pain > .36 ? .45 : 0;
+  v.tear = damp(v.tear, tearWant, tearWant > v.tear ? 1.6 : .35, dt);
+  if (Math.abs(v.tear - (v._tearPainted ?? -1)) > .012) { v._tearPainted = v.tear; v.faceDirty = true; }
+  if (v.tear > .3 && ML.waxHead < .5) {
+    ML.tearAcc = Math.min(4, ML.tearAcc + dt * (9 + 16 * v.tear));
+    while (ML.tearAcc >= 1) {
+      ML.tearAcc -= 1; const i = ML.tearEye; ML.tearEye = 1 - i;
+      const at = deformWorld(v.eyes[i].g.localToWorld(_a.set(0, -.04, .045)).clone());
+      spawnDrop(at, V3(rnd(-.25, .25), rnd(-.2, .5), rnd(.1, .3)), 'tear', rnd(.01, .016));
+    }
+  }
+  // 식은땀: 버둥거릴수록 사방으로 튄다
+  if (ML.flail > .35 && ML.waxHead < .5) {
+    ML.sweatAcc += dt * (4 + 14 * ML.flail);
+    while (ML.sweatAcc >= 1) {
+      ML.sweatAcc -= 1; const a = rand(0, TAU);
+      const at = deformWorld(v.headMesh.localToWorld(v.surfacePoint(dirN(Math.cos(a) * .9, rand(.1, .8), Math.sin(a) * .5 + .4), .02)));
+      spawnDrop(at, V3(Math.cos(a) * rnd(.5, 1.3), rnd(.6, 1.7), rnd(.1, .8)), 'sweat', rnd(.008, .014));
+    }
+  }
+  v.dizzy = 0; v.stars.visible = ML.daze > .25;
+  if (v.stars.visible) v.stars.children.forEach(s => { const a = s.userData.a + T0 * 4; s.position.set(Math.cos(a) * .28, Math.sin(a * 2) * .03, Math.sin(a) * .28); s.rotation.z = T0 * 5; });
+  if (v.headDirty) v.applyDeform();
+  ML.faceT -= dt;
+  if (v.faceDirty && ML.faceT <= 0) { v.paintFace(); ML.faceT = .08; }
+}
+/* 눌릴수록 살이 벌게지고, 내장까지 나오면 보랏빛이 돈다. */
+const TINT = { white: col('#ffffff'), red: col('#ff7d74'), purple: col('#d77bb0'), skin: new T.Color(), a: new T.Color(), on: false };
+function applyTint(k, gut) {
+  const v = ML.v;
+  if (k < .004 && gut < .01) { if (TINT.on) clearTint(); return; }
+  TINT.on = true;
+  TINT.a.copy(TINT.red).lerp(TINT.purple, sat(gut));
+  v.headMat.color.copy(TINT.white).lerp(TINT.a, k * .62);
+  TINT.skin.copy(col(v.look.skin));
+  v.skinMat.color.copy(TINT.skin).lerp(TINT.a, k * .5);
+  v.noseMat.color.copy(TINT.skin).lerp(TINT.a, k * .6);
+  for (const e of v.eyes) e.lidMat.color.copy(TINT.skin).lerp(TINT.a, k * .55);
+  v.earMats.forEach(m => m.color.copy(TINT.skin).multiplyScalar(.72).lerp(TINT.a, k * .5));
+}
+function clearTint() {
+  const v = ML.v; if (!v) return;
+  TINT.on = false; FACE.tint = 0;
+  v.headMat.color.copy(TINT.white); TINT.skin.copy(col(v.look.skin));
+  v.skinMat.color.copy(TINT.skin); v.noseMat.color.copy(TINT.skin);
+  for (const e of v.eyes) e.lidMat.color.copy(TINT.skin);
+  v.earMats.forEach(m => m.color.copy(TINT.skin).multiplyScalar(.72));
+}
+
+/* ---- ml-30-extras.js ---- */
+/* ===== 튀어나오는 것들: 눈알과 내장 ===== */
+/* 매 프레임 모양이 바뀌는 관. 배열을 재사용하므로 주무르는 동안 새 지오메트리를 만들지 않는다. */
+function makeTube(parent, material, rings, radial) {
+  const g = new T.BufferGeometry(), n = (rings + 1) * (radial + 1);
+  const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), uv = new Float32Array(n * 2), idx = [];
+  for (let i = 0; i <= rings; i++) for (let j = 0; j <= radial; j++) {
+    const a = i * (radial + 1) + j; uv[a * 2] = j / radial; uv[a * 2 + 1] = i / rings;
+    if (i < rings && j < radial) { const b = a + radial + 1; idx.push(a, a + 1, b, b, a + 1, b + 1); }
+  }
+  g.setAttribute('position', new T.BufferAttribute(pos, 3).setUsage(T.DynamicDrawUsage));
+  g.setAttribute('normal', new T.BufferAttribute(nor, 3).setUsage(T.DynamicDrawUsage));
+  g.setAttribute('uv', new T.BufferAttribute(uv, 2)); g.setIndex(idx);
+  const m = new T.Mesh(g, material); m.frustumCulled = false; m.castShadow = true; m.receiveShadow = false;
+  m.userData.tube = { rings, radial, pts: Array.from({ length: rings + 1 }, () => V3()) };
+  if (parent) parent.add(m);
+  return m;
+}
+const _tT = V3(), _tN = V3(), _tB = V3(), _tP = V3();
+function updateTube(m, pointAt, radiusAt) {
+  const d = m.userData.tube, pa = m.geometry.attributes.position.array, na = m.geometry.attributes.normal.array;
+  for (let i = 0; i <= d.rings; i++) pointAt(i / d.rings, d.pts[i]);
+  for (let i = 0; i <= d.rings; i++) {
+    _tT.subVectors(d.pts[Math.min(d.rings, i + 1)], d.pts[Math.max(0, i - 1)]);
+    if (_tT.lengthSq() < 1e-10) _tT.set(0, 0, 1); _tT.normalize();
+    if (i === 0) { _tN.set(0, 1, 0); if (Math.abs(_tT.y) > .9) _tN.set(1, 0, 0); }
+    _tN.addScaledVector(_tT, -_tN.dot(_tT));           // 앞 고리의 방향을 이어받아 비틀림 없이
+    if (_tN.lengthSq() < 1e-8) _tN.set(_tT.y, -_tT.x, 0);
+    _tN.normalize(); _tB.crossVectors(_tT, _tN);
+    const r = radiusAt(i / d.rings), p = d.pts[i];
+    for (let j = 0; j <= d.radial; j++) {
+      const a = j / d.radial * TAU, c = Math.cos(a), s = Math.sin(a), k = (i * (d.radial + 1) + j) * 3;
+      const nx = _tN.x * c + _tB.x * s, ny = _tN.y * c + _tB.y * s, nz = _tN.z * c + _tB.z * s;
+      pa[k] = p.x + nx * r; pa[k + 1] = p.y + ny * r; pa[k + 2] = p.z + nz * r; na[k] = nx; na[k + 1] = ny; na[k + 2] = nz;
+    }
+  }
+  m.geometry.attributes.position.needsUpdate = true; m.geometry.attributes.normal.needsUpdate = true;
+}
+
+const EX = { v: null, sockets: [], stalks: [], socketMat: null, stalkMat: null };
+function buildEyeExtras(v) {
+  removeEyeExtras();
+  EX.v = v;
+  EX.socketMat = EX.socketMat || mat('#5e1c2c', { roughness: .6 });
+  EX.stalkMat = EX.stalkMat || mat('#f08b97', { roughness: .3 });
+  for (const e of v.eyes) {
+    const sock = mesh(new T.SphereGeometry(.055, 18, 12), EX.socketMat, v.headMesh, false);
+    sock.scale.set(1, 1.05, .3); sock.visible = false; sock.userData.mlExtra = true; orient(sock, e.d, V3(0, 1, 0));
+    const stalk = makeTube(v.headMesh, EX.stalkMat, 10, 8); stalk.visible = false; stalk.castShadow = false; stalk.userData.mlExtra = true;
+    EX.sockets.push(sock); EX.stalks.push(stalk);
+  }
+}
+function removeEyeExtras() {
+  for (const o of [...EX.sockets, ...EX.stalks]) { detach(o); o.geometry.dispose(); }
+  EX.sockets = []; EX.stalks = [];
+  const v = EX.v; EX.v = null;
+  if (!v || !v.eyes) return;
+  // 눈을 본편 상태로 되돌린다. 위치는 applyDeform이 다시 잡는다.
+  const L = v.look, form = EYE_FORMS[L.eyeStyle];
+  for (const e of v.eyes) {
+    e.g.scale.set(form[0] * L.eyeSize, form[1] * L.eyeSize, 1);
+    e.white.scale.set(1, 1.08, .55); e.white.visible = L.eyeStyle !== 'dot';
+    e.lidU.scale.set(1, 1.08, .6); e.lidL.scale.set(1, 1.08, .58);
+    e.pupilG.position.set(0, 0, 0); e.pupilG.scale.set(1, 1, 1);
+  }
+  v.headDirty = true;
+}
+/* 눈알: 눌리면 먼저 서서히 불거지고, 고비를 넘으면 뿅 하고 줄기째 튀어나온다. */
+function applyEyes(dt) {
+  const v = ML.v, L = v.look, form = EYE_FORMS[L.eyeStyle], T0 = ML.time;
+  const pre = smoothstep(.2, .5, Math.max(0, ML.p)) * (1 - ML.waxHead);
+  v.eyes.forEach((e, i) => {
+    const st = ML.eyes[i], ext = Math.max(0, st.e), sock = EX.sockets[i], stalk = EX.stalks[i];
+    v.offsetAt(e.d, _b);
+    const base = v.surfacePoint(e.d, -.018).add(_b);
+    const sc = L.eyeSize * (1 + pre * .24 + ext * .26);
+    e.g.position.copy(base).addScaledVector(e.d, pre * .026 + ext * .18);
+    e.g.position.x += st.sx + e.s * ext * .075; e.g.position.y += st.sy - ext * ext * .05;
+    e.g.scale.set(mix(form[0], 1, sat(ext * 1.5)) * sc, mix(form[1], 1, sat(ext * 1.5)) * sc, sc / L.eyeSize);
+    e.white.scale.set(1, mix(1.08, 1, sat(ext * 1.5)), mix(.55, 1, sat(pre * .5 + ext * 1.4)));
+    e.white.visible = L.eyeStyle !== 'dot' || ext > .12;
+    e.pupilG.position.z = mix(0, .034, sat(pre * .5 + ext * 1.4));    // 흰자가 공이 되는 만큼 눈동자도 앞으로
+    if (!sock) return;
+    sock.visible = ext > .05;
+    stalk.visible = ext > .08;
+    if (sock.visible) { sock.position.copy(base).addScaledVector(e.d, -.006); const k = 1 + ext * .25; sock.scale.set(k, 1.05 * k, .3); }
+    if (stalk.visible) {
+      const A = _c.copy(base).addScaledVector(e.d, -.012), B = _d.copy(e.g.position).addScaledVector(e.d, -.05 * sc);
+      updateTube(stalk, (t, o) => { o.lerpVectors(A, B, t); o.y -= Math.sin(PI * t) * .03 * ext; o.x += Math.sin(PI * t) * st.sx * .6; },
+        t => mix(.021, .014, t) * (1 + Math.sin(t * 40 + T0 * 9) * .05));
+    }
+  });
+}
+
+/* 내장: 입에서 쭉 밀려 나와 턱 밑에서 덜렁거리는 사슬. 놓으면 도로 빨려 들어간다. */
+const GUT = { n: 15, len: .66, pos: [], prev: [], mesh: null, mat: null, live: false, anchor: V3(), fwd: V3(0, 0, 1) };
+function buildGut() {
+  if (GUT.mesh) return;
+  const c = document.createElement('canvas'); c.width = 8; c.height = 64; const g = c.getContext('2d');
+  for (let y = 0; y < 64; y++) { const k = .5 + .5 * Math.sin(y / 64 * TAU * 4); g.fillStyle = `rgb(${Math.round(250 - 26 * k)},${Math.round(128 - 34 * k)},${Math.round(146 - 26 * k)})`; g.fillRect(0, y, 8, 1); }
+  const tex = new T.CanvasTexture(c); tex.encoding = T.sRGBEncoding; tex.wrapT = T.RepeatWrapping; tex.repeat.set(1, 5);
+  GUT.mat = new T.MeshStandardMaterial({ map: tex, roughness: .22, metalness: 0 });
+  GUT.mesh = makeTube(scene, GUT.mat, 46, 9); GUT.mesh.visible = false; GUT.mesh.renderOrder = 1;
+  for (let i = 0; i < GUT.n; i++) { GUT.pos.push(V3()); GUT.prev.push(V3()); }
+}
+function resetGut() { GUT.live = false; if (GUT.mesh) GUT.mesh.visible = false; }
+const _gA = V3(), _gB = V3(), _gH = V3();
+function stepGut(dt) {
+  const v = ML.v, g = sat(ML.gut);
+  if (g < .015) { if (GUT.live) resetGut(); return; }
+  // 입 자리(찌그러진 뒤의 실제 위치)와 얼굴이 향한 쪽
+  v.headMesh.getWorldDirection(GUT.fwd);
+  deformWorld(GUT.anchor.copy(v.mouthWorld()));
+  GUT.anchor.addScaledVector(GUT.fwd, -.03);
+  const P = GUT.pos, Q = GUT.prev, n = GUT.n, seg = GUT.len * g / (n - 1);
+  if (!GUT.live) { GUT.live = true; for (let i = 0; i < n; i++) { P[i].copy(GUT.anchor).addScaledVector(GUT.fwd, i * .004); Q[i].copy(P[i]).addScaledVector(GUT.fwd, -.02 * i / n); } }
+  const h = Math.min(dt, 1 / 40), drag = Math.exp(-2.2 * h);
+  P[0].copy(GUT.anchor);
+  for (let i = 1; i < n; i++) {
+    _gA.subVectors(P[i], Q[i]).multiplyScalar(drag); Q[i].copy(P[i]);
+    P[i].add(_gA); P[i].y -= 5.2 * h * h;
+  }
+  // 머리·몸통 속으로 파고들지 않게: 머리는 공, 몸통은 세운 캡슐로 본다
+  deformWorld(_gH.set(0, ML.dim.headC, 0).applyMatrix4(U.mlFwd.value));
+  const hr = (ML.dim.headRy + .02) * (1 + Math.max(0, ML.p) * .2);
+  for (let it = 0; it < 5; it++) {
+    for (let i = 1; i < n; i++) {
+      _gA.subVectors(P[i], P[i - 1]); const d = _gA.length() || 1e-6, k = (d - seg) / d;
+      if (i === 1) P[i].addScaledVector(_gA, -k); else { P[i].addScaledVector(_gA, -k * .5); P[i - 1].addScaledVector(_gA, k * .5); }
+    }
+    // 입에서 나오는 첫 마디들은 얼굴 앞으로 뻗게 잡아 준다
+    _gA.copy(GUT.anchor).addScaledVector(GUT.fwd, seg); P[1].lerp(_gA, .7);
+    if (n > 2) { _gA.copy(GUT.anchor).addScaledVector(GUT.fwd, seg * 1.9); _gA.y -= seg * .35; P[2].lerp(_gA, .35); }
+    for (let i = 2; i < n; i++) {
+      _gA.subVectors(P[i], _gH); const d = _gA.length();
+      if (d < hr) P[i].addScaledVector(_gA, (hr - d) / (d || 1e-6));
+      _gB.copy(P[i]).applyMatrix4(U.mlInv.value);
+      if (_gB.y < ML.dim.neck + .04 && _gB.y > .2) { const need = .2 * ML.v.look.bodyW + .05 - _gB.z; if (need > 0 && Math.abs(_gB.x) < .3) P[i].addScaledVector(GUT.fwd, need * .6); }
+      if (P[i].y < .03) P[i].y = .03;
+    }
+    P[0].copy(GUT.anchor);
+  }
+  GUT.mesh.visible = true;
+  const last = n - 1;
+  updateTube(GUT.mesh, (t, o) => {      // 마디 사이를 부드럽게 잇는다(캣멀롬)
+    const f = t * last, i = Math.min(last - 1, Math.floor(f)), u = f - i;
+    const p0 = P[Math.max(0, i - 1)], p1 = P[i], p2 = P[i + 1], p3 = P[Math.min(last, i + 2)], u2 = u * u, u3 = u2 * u;
+    o.set(
+      .5 * (2 * p1.x + (p2.x - p0.x) * u + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * u2 + (3 * p1.x - p0.x - 3 * p2.x + p3.x) * u3),
+      .5 * (2 * p1.y + (p2.y - p0.y) * u + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * u2 + (3 * p1.y - p0.y - 3 * p2.y + p3.y) * u3),
+      .5 * (2 * p1.z + (p2.z - p0.z) * u + (2 * p0.z - 5 * p1.z + 4 * p2.z - p3.z) * u2 + (3 * p1.z - p0.z - 3 * p2.z + p3.z) * u3));
+  }, t => {
+    const neck = mix(.62, 1, smooth(t / .12)), tip = Math.sqrt(Math.max(0, 1 - Math.pow(Math.max(0, (t - .93) / .07), 2)));
+    return .034 * (1 + .1 * Math.sin(t * g * 46 + ML.time * 5)) * neck * Math.max(.05, tip) * mix(.75, 1, g);
+  });
+}
+
+/* ---- ml-40-hands.js ---- */
+/* ===== 내 두 손 =====
+ * 본편과 같은 살색·빨간 소매. 양옆에서 다가와 쥔 자리를 감싸고, 누르는 만큼 조여 든다.
+ * 손 좌표: +X 쥐는 쪽(손바닥이 보는 방향), +Y 위, +Z 카메라 쪽(엄지). 화면 오른쪽 손은 x를 뒤집어 쓴다. */
+const HAND_SCALE = 1.5;
+const HANDS = [];
+function buildHands() {
+  if (HANDS.length) return;
+  const nail = mat('#ffe6da', { roughness: .32 });
+  const seg = (parent, len, r) => { const m = mesh(capsuleGeo(r, len, 12, 5), mySkin, parent); m.rotation.x = -PI / 2; m.position.z = -len / 2; return m; };
+  for (const side of [-1, 1]) {
+    const root = new T.Group(); root.visible = false; scene.add(root);    // 본편 손 묶음(handsRoot)과 섞이지 않게 따로 둔다
+    const g = new T.Group(); g.scale.set(-side, 1, 1); root.add(g);
+    const palm = mesh(new T.SphereGeometry(.1, 20, 14), mySkin, g); palm.scale.set(.44, 1.12, .98); palm.position.set(-.04, 0, 0);
+    const heel = mesh(new T.SphereGeometry(.06, 14, 10), mySkin, g); heel.scale.set(.55, .95, 1.05); heel.position.set(-.032, -.07, .035);
+    const fingers = [];
+    for (let i = 0; i < 4; i++) {       // 본편 손처럼 짧고 통통한 손가락. 세 마디가 감아 쥔다.
+      const L = [.072, .054, .044].map(x => x * (i === 0 ? .92 : i === 3 ? .8 : 1)), r = i === 3 ? .026 : .0295;
+      const j1 = new T.Group(); j1.position.set(-.024, .1 - i * .067, -.072); g.add(j1); seg(j1, L[0], r);
+      const j2 = new T.Group(); j2.position.z = -L[0]; j1.add(j2); seg(j2, L[1], r * .95);
+      const j3 = new T.Group(); j3.position.z = -L[1]; j2.add(j3); seg(j3, L[2], r * .9);
+      const n = mesh(new T.SphereGeometry(.021, 10, 8), nail, j3, false); n.scale.set(.35, .95, 1.1); n.position.set(-r * .82, 0, -L[2] * .6);
+      fingers.push([j1, j2, j3]);
+    }
+    const t1 = new T.Group(); t1.position.set(-.014, -.03, .072); t1.rotation.x = -.3; g.add(t1);
+    const tm = mesh(capsuleGeo(.035, .066, 12, 5), mySkin, t1); tm.rotation.x = PI / 2; tm.position.z = .033;
+    const t2 = new T.Group(); t2.position.z = .066; t1.add(t2);
+    const tm2 = mesh(capsuleGeo(.032, .05, 12, 5), mySkin, t2); tm2.rotation.x = PI / 2; tm2.position.z = .025;
+    const tn = mesh(new T.SphereGeometry(.023, 10, 8), nail, t2, false); tn.scale.set(.35, .95, 1.1); tn.position.set(-.028, 0, .034);
+    // 손목은 손바닥의 카메라 쪽 끝. 팔은 매 프레임 화면 밖(내 쪽)을 향하게 돌린다.
+    const arm = new T.Group(); arm.position.set(-.045, -.02, .075); g.add(arm);
+    const sleeve = buildSleeve(arm, V3(-.4, -.2, 1), 6);
+    root.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = false; } });
+    HANDS.push({ root, g, side, fingers, thumb: [t1, t2], sleeve, k: 0, tremble: 0 });
+  }
+}
+function hideHands() { for (const h of HANDS) h.root.visible = false; }
+function depthRadius(y) {   // 쥔 자리의 앞뒤 두께(반지름)
+  const M = ML.dim, W = ML.v.look.bodyW, a = smoothstep(M.hip - .08, M.hip + .08, y), b = smoothstep(M.neck - .02, M.neck + .16, y);
+  return mix(mix(.1 * W, .21 * W, a), HEAD_R * .95, b);
+}
+function poseHands(dt) {
+  const v = ML.v, T0 = ML.time, pressing = ML.holding && ML.dip < 0, p = Math.max(0, ML.p), K = U.mlK.value;
+  const show = ML.showHands && ML.dip < 0;
+  // 쥐는 자리(월드). 손은 내 손이니 캐릭터가 뒤틀려도 같이 돌지 않는다.
+  const half = halfWidth(ML.gy), rz = depthRadius(ML.gy);
+  const C = _a.set(0, ML.gy, 0).applyMatrix4(U.mlFwd.value);
+  const squeezed = half * (1 - p * K.x * .93) * (1 - ML.jelly * .5);
+  for (const h of HANDS) {
+    h.root.visible = show;
+    if (!show) continue;
+    const want = pressing || ML.sinceRelease < .22 ? 1 : 0;
+    h.k = damp(h.k, want, want ? 24 : 7, dt);
+    const k = smooth(h.k), s = h.side;
+    // 쉬는 자리: 캐릭터 양옆에서 손바닥을 마주 보게 벌리고 대기. 쥘 때: 쥔 높이의 눌린 표면에 손바닥을 붙인다.
+    const edge = G.viewH * camera.aspect / 2;      // 화면 반폭(월드). 좁은 화면에서는 손이 화면 안에 들어오게 당긴다
+    const idleX = clamp(edge - .3, ML.dim.torsoHalf + .26, ML.dim.headHalf + .3) + Math.sin(T0 * 1.7 + s) * .012, idleY = ML.dim.hip + .4 + Math.sin(T0 * 1.3 + s * 2) * .016;
+    const x = mix(s * idleX, C.x + s * (squeezed + .014) + ML.pull.x * .8, k);
+    const y = mix(idleY, C.y + ML.pull.y * .45 - .03, k);
+    const z = mix(.1, C.z + .015, k);
+    h.tremble = damp(h.tremble, pressing ? smoothstep(.55, 1, p) : 0, 10, dt);
+    const tr = h.tremble * (reducedMotion ? 0 : 1);
+    h.root.position.set(x + Math.sin(T0 * 53 + s) * .004 * tr, y + Math.sin(T0 * 47 + s * 2) * .004 * tr, z);
+    h.root.rotation.set(mix(-.12, 0, k), mix(s * .5, 0, k), mix(-s * .16, 0, k));
+    h.root.scale.setScalar(HAND_SCALE);
+    // 팔: 양옆 화면 밖에서 들어온다. 몸을 가리지 않게 거의 수평으로, 높이 쥘수록 살짝 아래로 처지게(낮게 쥘 땐 바닥에 안 닿게 수평).
+    _b.set(s, -clamp((y - .5) * .26, 0, .3), .2).normalize().applyQuaternion(_q.copy(h.root.quaternion).invert());
+    _b.x *= -s;
+    h.sleeve.quaternion.setFromUnitVectors(_c.set(0, 1, 0), _b);
+    // 손가락: 쥔 것이 가늘수록 더 감아 든다
+    const reach = .17 * HAND_SCALE, wrap = clamp(reach / Math.max(.07, rz * (1 - p * .15)), .5, 2.5);
+    const breathe = Math.sin(T0 * 2.3 + s) * .06 * (1 - k);          // 쉴 때는 손가락을 꼼지락거리며 벼른다
+    const curl = mix(.95 + breathe, wrap, k) + p * .22 * k;
+    h.fingers.forEach((f, i) => {
+      const w = 1 + (i - 1.5) * mix(.16, .04, k) + Math.sin(T0 * 3.1 + i * 1.3 + s) * .05 * (1 - k);
+      f[0].rotation.y = -curl * .36 * w; f[1].rotation.y = -curl * .36 * w; f[2].rotation.y = -curl * .28 * w;
+      f[0].rotation.x = (i - 1.5) * mix(.2, .05, k);
+    });
+    const tc = mix(.5, clamp(.14 * HAND_SCALE / Math.max(.07, rz), .5, 1.9), k) + p * .18 * k;
+    h.thumb[0].rotation.y = tc * .62; h.thumb[1].rotation.y = tc * .5;
+  }
+}
+
+/* ---- ml-50-wax.js ---- */
+/* ===== 왁스 껍질 =====
+ * 캐릭터 메시마다 살짝 부풀린 쌍둥이를 하나씩 씌워 온몸을 왁스로 덮는다.
+ * 껍질은 「쉬는 자세 기준 좌표」에서 불규칙한 칸으로 나뉘고, 눌린 자리 근처 칸부터 통째로 떨어져 나간다.
+ * 어느 칸이 깨졌는지는 셰이더가 누른 기록(uEv*)만 보고 정하므로, 버둥거려도 깨진 자리가 몸을 따라다닌다. */
+const WAX_EVENTS = 16, WAX_THICK = .021, WAX_CELL = .085;
+const WAX = {
+  mat: null, twins: [], samples: [], used: 0, cur: -1, base: 0, floor: 0, done: false, total: 0, headTotal: 0,
+  chips: null, chip: [], chipNext: 0, tub: null, tubWax: null, color: new T.Color(), checkT: 0, pendingCrack: 0
+};
+function waxMaterial() {
+  if (WAX.mat) return WAX.mat;
+  const uniforms = Object.assign({
+    uRest: { value: new T.Matrix4() }, uThick: { value: WAX_THICK }, uColor: { value: col(WAX_COLORS[0]) }, uBase: { value: 0 }, uCell: { value: WAX_CELL },
+    uEvC: { value: Array.from({ length: WAX_EVENTS }, () => new T.Vector4(0, -9, 0, 0)) },
+    uEvR: { value: Array.from({ length: WAX_EVENTS }, () => new T.Vector2(.5, .2)) }
+  }, U);
+  WAX.mat = new T.ShaderMaterial({
+    uniforms, defines: { NEV: WAX_EVENTS },
+    vertexShader: /* glsl */`
+      uniform mat4 uRest; uniform float uThick;
+      varying vec3 vRest; varying vec3 vNw; varying vec3 vWp;
+      ${ML_PARS}
+      void main(){
+        vec3 nW = normalize((vec4(normalMatrix * normal, 0.0) * viewMatrix).xyz);
+        vec3 w = (modelMatrix * vec4(position, 1.0)).xyz + nW * uThick;
+        vRest = (uRest * vec4(position, 1.0)).xyz;
+        vec3 t1 = normalize(cross(nW, abs(nW.y) < 0.9 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0)));
+        vec3 t2 = cross(nW, t1);
+        vec3 A = mlDeform(w), B = mlDeform(w + t1 * 0.004), C = mlDeform(w + t2 * 0.004);
+        vNw = normalize(cross(B - A, C - A)); vWp = A;
+        gl_Position = projectionMatrix * viewMatrix * vec4(A, 1.0);
+      }`,
+    fragmentShader: /* glsl */`
+      uniform vec3 uColor; uniform float uBase; uniform float uCell;
+      uniform vec4 uEvC[NEV]; uniform vec2 uEvR[NEV];
+      varying vec3 vRest; varying vec3 vNw; varying vec3 vWp;
+      float h13(vec3 p){ p = fract(p * .1031); p += dot(p, p.zyx + 31.32); return fract((p.x + p.y) * p.z); }
+      vec3 h33(vec3 p){ p = fract(p * vec3(.1031, .1030, .0973)); p += dot(p, p.yxz + 33.33); return fract((p.xxy + p.yxx) * p.zyx); }
+      float stress(vec3 s){
+        float S = uBase;
+        for (int i = 0; i < NEV; i++) { vec3 d = s - uEvC[i].xyz; S += uEvC[i].w * exp(-(d.x * d.x + d.z * d.z) / (uEvR[i].x * uEvR[i].x) - d.y * d.y / (uEvR[i].y * uEvR[i].y)); }
+        return S;
+      }
+      void main(){
+        vec3 p = vRest / uCell, b = floor(p - .5);
+        float d1 = 1e9, d2 = 1e9; vec3 s1 = vec3(0.0), s2 = vec3(0.0);
+        for (int k = 0; k < 8; k++) {
+          float fk = float(k);
+          vec3 c = b + vec3(mod(fk, 2.0), mod(floor(fk / 2.0), 2.0), floor(fk / 4.0));
+          vec3 seed = c + .5 + (h33(c) - .5) * .5;
+          float d = distance(p, seed);
+          if (d < d1) { d2 = d1; s2 = s1; d1 = d; s1 = seed; } else if (d < d2) { d2 = d; s2 = seed; }
+        }
+        float th1 = .34 + .66 * h13(floor(s1) + 7.3), S1 = stress(s1 * uCell);
+        if (S1 >= th1) discard;
+        float th2 = .34 + .66 * h13(floor(s2) + 7.3), S2 = stress(s2 * uCell);
+        float edge = d2 - d1;
+        vec3 N = normalize(vNw); if (!gl_FrontFacing) N = -N;
+        vec3 V = normalize(cameraPosition - vWp);
+        vec3 base = uColor * (.955 + .075 * h13(floor(s1) + 1.7));
+        vec3 L1 = normalize(vec3(2.4, 4.2, 3.6)), L2 = normalize(vec3(-3.0, 1.8, 2.5)), L3 = normalize(vec3(-1.5, 3.0, -3.0));
+        float w1 = max(0.0, (dot(N, L1) + .2) / 1.2), w2 = max(0.0, dot(N, L2)), w3 = max(0.0, dot(N, L3));
+        vec3 hemi = mix(vec3(.72, .42, .30), vec3(1.0), N.y * .5 + .5) * .46;
+        vec3 c = base * (hemi + vec3(1.0, .88, .72) * 1.12 * w1 + vec3(.62, .81, 1.0) * .40 * w2 + vec3(.5) * w3);
+        vec3 H = normalize(L1 + V);
+        float nh = max(0.0, dot(N, H));
+        c += vec3(pow(nh, 60.0) * .42 + pow(nh, 9.0) * .07) + pow(1.0 - max(0.0, dot(N, V)), 3.0) * .09;
+        float crack = smoothstep(.45, .97, S1 / th1);              // 깨지기 직전: 칸 경계에 실금
+        c *= 1.0 - (1.0 - smoothstep(0.0, .018 + .05 * crack, edge)) * crack * .55;
+        if (S2 >= th2) c = mix(c, c * .7 + vec3(.14), 1.0 - smoothstep(0.0, .075, edge));   // 구멍 가장자리: 왁스 두께가 보인다
+        gl_FragColor = linearToOutputTexel(vec4(c, 1.0));
+      }`
+  });
+  return WAX.mat;
+}
+function setTwinRest() { WAX.mat.uniforms.uRest.value = this.userData.rest; WAX.mat.uniformsNeedUpdate = true; }
+function attachedAndVisible(o, root) { for (let a = o; a; a = a.parent) { if (!a.visible) return false; if (a === root) return true; } return false; }
+/* 쉬는 자세(차렷)로 잠깐 세워 놓고 각 메시의 기준 좌표를 뜬다. 그다음 프레임에 리그가 다시 제 자세로 덮어쓴다. */
+function canonicalPose(v) {
+  v.root.position.set(0, 0, 0); v.root.rotation.set(0, 0, 0); v.root.scale.setScalar(1);
+  v.body.rotation.set(0, 0, 0); v.body.position.set(0, 0, 0); v.torso.scale.set(1, 1, 1); v.torso.position.y = .5; v.torso.rotation.set(0, 0, 0);
+  v.headPivot.rotation.set(0, 0, 0); v.head.scale.set(1, 1, 1);
+  v.legs.forEach(l => l.rotation.set(0, 0, 0));
+  v.armRig.forEach(a => { a.sh.rotation.set(-.05, 0, a.s * .1); a.el.rotation.set(-.15, 0, -a.s * .05); });
+  v.root.updateMatrixWorld(true);
+}
+function buildWax(v) {
+  removeWax();
+  const material = waxMaterial();
+  canonicalPose(v);
+  const inv = new T.Matrix4().copy(v.root.matrixWorld).invert(), skip = new Set([v.snot, v.mouthMesh, v.cap]);   // 머리 덮개는 머리 껍질과 겹치므로 뺀다
+  for (const e of v.eyes) { skip.add(e.lidU); skip.add(e.lidL); skip.add(e.pupil); skip.add(e.shine); }
+  const list = [], scale = V3();
+  v.root.traverse(o => {
+    if (!o.isMesh || o.userData.mlTwin || o.userData.mlExtra || skip.has(o) || Array.isArray(o.material)) return;
+    const m = o.material;
+    if (m.isMeshBasicMaterial || (m.transparent && !(m.alphaTest > 0)) || !attachedAndVisible(o, v.root)) return;
+    if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
+    o.getWorldScale(scale);
+    const r = o.geometry.boundingSphere.radius * Math.max(Math.abs(scale.x), Math.abs(scale.y), Math.abs(scale.z));
+    if (r < .009) return;
+    list.push([o, r]);
+  });
+  WAX.samples = [];
+  const P = V3(), N = V3();
+  for (const [o, r] of list) {
+    const tw = new T.Mesh(o.geometry, material);
+    tw.userData.mlTwin = true; tw.userData.rest = new T.Matrix4().multiplyMatrices(inv, o.matrixWorld);
+    tw.castShadow = false; tw.receiveShadow = false; tw.frustumCulled = false; tw.onBeforeRender = setTwinRest;
+    o.add(tw); WAX.twins.push(tw);
+    // 조각이 날아갈 자리 표본. 큰 덩어리일수록 많이 뽑고, 머리 덮개(머리와 겹침)·목(머리 속)은 뺀다.
+    if (o === v.neck || r < .02) continue;
+    const isHair = v.hair.includes(o.parent);
+    const k = isHair ? 1 : clamp(Math.round(r * r * 460), 1, 40), pos = o.geometry.attributes.position, nor = o.geometry.attributes.normal;
+    for (let i = 0; i < k; i++) {
+      const j = (Math.random() * pos.count) | 0;
+      P.fromBufferAttribute(pos, j);
+      const local = P.clone(), rest = P.clone().applyMatrix4(tw.userData.rest);
+      if (nor) N.fromBufferAttribute(nor, j); else N.set(0, 1, 0);
+      WAX.samples.push({ tw, local, nLocal: N.clone(), rest, limb: o.userData.mlLimb || 0, th: .34 + .66 * Math.random(), broken: false, head: rest.y > ML.dim.neck + .02 });
+    }
+  }
+  WAX.total = WAX.samples.length; WAX.headTotal = WAX.samples.filter(s => s.head).length || 1;
+  WAX.eyeRest = v.eyes.map(e => e.g.getWorldPosition(V3()).applyMatrix4(inv));
+  WAX.mouthRest = v.mouthWorld().applyMatrix4(inv);
+  resetWax();
+}
+function removeWax() {
+  for (const tw of WAX.twins) detach(tw);
+  WAX.twins = []; WAX.samples = [];
+}
+/* 새로 입힌 상태로: 기록을 지우고 껍질을 다시 다 보이게 한다. */
+function resetWax(colorIndex = ML.waxColor) {
+  const u = WAX.mat.uniforms;
+  for (let i = 0; i < WAX_EVENTS; i++) { u.uEvC.value[i].set(0, -9, 0, 0); u.uEvR.value[i].set(.5, .2); }
+  WAX.used = 0; WAX.cur = -1; WAX.base = 0; WAX.floor = 0; WAX.done = false; u.uBase.value = 0;
+  WAX.color.copy(col(WAX_COLORS[colorIndex])); u.uColor.value.copy(WAX.color);
+  for (const s of WAX.samples) { s.broken = false; s.th = .34 + .66 * Math.random(); }
+  for (const tw of WAX.twins) tw.visible = true;
+  ML.waxLeft = 1; ML.waxHead = 1;
+}
+function stripWax() { WAX.done = true; WAX.base = 9; if (WAX.mat) WAX.mat.uniforms.uBase.value = 9; for (const tw of WAX.twins) tw.visible = false; for (const s of WAX.samples) s.broken = true; ML.waxLeft = 0; ML.waxHead = 0; }
+/* 새로 쥘 때마다 기록 한 칸을 잡는다. y는 쥔 높이(쉬는 자세 좌표). */
+function beginWaxPress(y, h) {
+  if (WAX.done) return;
+  if (WAX.used >= WAX_EVENTS) { WAX.cur = -1; return; }
+  WAX.cur = WAX.used++;
+  WAX.mat.uniforms.uEvC.value[WAX.cur].set(0, y, 0, 0);
+  WAX.mat.uniforms.uEvR.value[WAX.cur].set(.62, h * 1.3);
+}
+/* 눈알·내장이 튀어나오는 자리의 왁스는 그 순간 터져 나간다. at은 쉬는 자세 좌표. */
+function burstWax(at, radius) {
+  if (WAX.done || !at || WAX.used >= WAX_EVENTS) return;
+  const i = WAX.used++;
+  WAX.mat.uniforms.uEvC.value[i].set(at.x, at.y, at.z, 3);
+  WAX.mat.uniforms.uEvR.value[i].set(radius, radius);
+  WAX.checkT = 0;
+}
+function endWaxPress() { WAX.cur = -1; WAX.floor = Math.min(1.2, WAX.floor + .14 * sat(ML.peak * 1.2)); }
+function stressAt(s) {
+  const u = WAX.mat.uniforms; let S = WAX.base;
+  for (let i = 0; i < WAX.used; i++) {
+    const c = u.uEvC.value[i], r = u.uEvR.value[i], dx = s.x - c.x, dy = s.y - c.y, dz = s.z - c.z;
+    S += c.w * Math.exp(-(dx * dx + dz * dz) / (r.x * r.x) - dy * dy / (r.y * r.y));
+  }
+  return S;
+}
+/* 누르는 세기에 맞춰 기록을 키우고, 새로 깨진 자리에서 조각을 날린다. */
+function updateWax(dt) {
+  if (WAX.done || !WAX.twins.length) return;
+  const u = WAX.mat.uniforms, p = Math.max(0, ML.p), pressing = ML.holding && ML.dip < 0;
+  if (pressing) {
+    const drag = Math.hypot(ML.pull.x, ML.pull.y);
+    // 쥔 채로 위아래로 훑으면 지나온 자리의 기록은 그대로 두고 새 칸을 잡는다(옮기면 깨진 자리에 왁스가 도로 붙어 버린다).
+    if (WAX.cur >= 0 && Math.abs(ML.gy - u.uEvC.value[WAX.cur].y) > u.uEvR.value[WAX.cur].y * .55) beginWaxPress(ML.gy, ML.gh);
+    if (WAX.cur >= 0) { const c = u.uEvC.value[WAX.cur]; c.w = Math.max(c.w, 2.3 * p + drag * .9); }
+    // 세게 쥐면 쥔 자리가 아니어도 껍질 곳곳이 견디지 못한다. 쥘 때마다 조금씩 더 약해진다.
+    WAX.base = Math.max(WAX.base, WAX.floor + .6 * smoothstep(.55, 1.05, p), WAX.cur < 0 ? p * .9 : 0);
+    u.uBase.value = WAX.base;
+  }
+  WAX.checkT -= dt;
+  if (WAX.checkT > 0) return;
+  WAX.checkT = .03;
+  let alive = 0, head = 0, broke = 0;
+  for (const s of WAX.samples) {
+    if (!s.broken && stressAt(s.rest) >= s.th) {
+      s.broken = true; broke++;
+      const at = deformWorldOf(s.tw.localToWorld(_a.copy(s.local)), s.limb);
+      const n = _b.copy(s.nLocal).transformDirection(s.tw.matrixWorld);
+      spawnChip(at, n);
+    }
+    if (!s.broken) { alive++; if (s.head) head++; }
+  }
+  ML.waxLeft = alive / Math.max(1, WAX.total); ML.waxHead = head / WAX.headTotal;
+  if (broke) { WAX.pendingCrack += broke; ML.stats.cracks += broke; }
+  if (alive === 0 || (ML.waxLeft < .05 && !pressing)) stripWax();
+}
+
+/* 떨어져 나간 왁스 조각. 인스턴스 한 묶음으로 그리고, 바닥에 눕는다. */
+const CHIP_MAX = 300;
+function buildChips() {
+  if (WAX.chips) return;
+  const sh = new T.Shape();
+  [[-.5, -.22], [-.12, -.5], [.46, -.3], [.5, .2], [.02, .5], [-.44, .28]].forEach(([x, y], i) => i ? sh.lineTo(x, y) : sh.moveTo(x, y));
+  const geo = new T.ExtrudeGeometry(sh, { depth: .22, bevelEnabled: false }); geo.translate(0, 0, -.11); geo.rotateX(PI / 2);
+  const m = new T.MeshStandardMaterial({ color: 0xffffff, roughness: .55 });
+  const chips = WAX.chips = new T.InstancedMesh(geo, m, CHIP_MAX);
+  chips.castShadow = false; chips.receiveShadow = true; chips.frustumCulled = false; chips.visible = false;
+  const zero = new T.Matrix4().makeScale(0, 0, 0), c = col(WAX_COLORS[0]);
+  for (let i = 0; i < CHIP_MAX; i++) { chips.setMatrixAt(i, zero); chips.setColorAt(i, c); WAX.chip.push({ on: false, rest: true, p: V3(), v: V3(), q: new T.Quaternion(), w: V3(), s: V3(), age: 0, die: 0, y0: 0 }); }
+  scene.add(chips);
+}
+const _cm = new T.Matrix4(), _cs = V3(), _cq = new T.Quaternion(), _flat = new T.Quaternion(), _cc = new T.Color();
+function spawnChip(at, normal) {
+  const chips = WAX.chips; if (!chips) return;
+  const i = WAX.chipNext; WAX.chipNext = (i + 1) % CHIP_MAX;
+  const c = WAX.chip[i];
+  c.on = true; c.rest = false; c.age = 0; c.die = 0;
+  c.p.copy(at).addScaledVector(normal, .02);
+  c.v.copy(normal).multiplyScalar(rand(.5, 1.7)); c.v.x += rand(-.5, .5); c.v.y += rand(.4, 1.5); c.v.z += rand(.1, .9);
+  c.w.set(rand(-9, 9), rand(-9, 9), rand(-9, 9));
+  c.q.setFromEuler(_e.set(rand(0, TAU), rand(0, TAU), rand(0, TAU)));
+  const k = rand(.036, .092); c.s.set(k * rand(.65, 1.25), rand(.04, .065), k * rand(.65, 1.25));
+  c.y0 = .006 + (i % 23) * .0007;
+  _cc.copy(WAX.color).multiplyScalar(rand(.9, 1.06));
+  chips.setColorAt(i, _cc); chips.instanceColor.needsUpdate = true; chips.visible = true;
+}
+function updateChips(dt) {
+  const chips = WAX.chips; if (!chips || !chips.visible) return 0;
+  let dirty = false, any = false, landed = 0;
+  for (let i = 0; i < CHIP_MAX; i++) {
+    const c = WAX.chip[i]; if (!c.on) continue;
+    any = true; c.age += dt;
+    let changed = false, k = 1;
+    if (!c.rest) {
+      changed = true;
+      c.v.y -= 6.5 * dt; c.p.addScaledVector(c.v, dt);
+      _cq.setFromEuler(_e.set(c.w.x * dt, c.w.y * dt, c.w.z * dt)); c.q.multiply(_cq);
+      if (c.p.z < -1.6) { c.p.z = -1.6; c.v.z *= -.3; }
+      if (c.p.y < c.y0) {
+        c.p.y = c.y0; landed++;
+        if (Math.abs(c.v.y) < .9) {                   // 납작하게 눕는다
+          c.rest = true;
+          _a.set(0, 1, 0).applyQuaternion(c.q); _b.set(0, _a.y < 0 ? -1 : 1, 0);
+          _flat.setFromUnitVectors(_a, _b); c.q.premultiply(_flat);
+        } else { c.v.y = -c.v.y * .28; c.v.x *= .6; c.v.z *= .6; c.w.multiplyScalar(.5); }
+      }
+    }
+    if (c.die > 0) { c.die -= dt; k = Math.max(0, c.die / .35); changed = true; if (c.die <= 0) { c.on = false; k = 0; } }
+    else if (c.age > 26) c.die = .35;
+    if (changed) { _cs.copy(c.s).multiplyScalar(k); _cm.compose(c.p, c.q, _cs); chips.setMatrixAt(i, _cm); dirty = true; }
+  }
+  if (dirty) chips.instanceMatrix.needsUpdate = true;
+  if (!any) chips.visible = false;
+  return landed;
+}
+function sweepChips() { for (const c of WAX.chip) if (c.on && c.die <= 0) c.die = rand(.2, .5); }
+function clearChips() {
+  if (!WAX.chips) return;
+  const zero = new T.Matrix4().makeScale(0, 0, 0);
+  WAX.chip.forEach((c, i) => { c.on = false; WAX.chips.setMatrixAt(i, zero); });
+  WAX.chips.instanceMatrix.needsUpdate = true; WAX.chips.visible = false;
+}
+
+/* 왁스 통. 「왁스 입히기」를 누르면 발밑에서 올라와 통째로 담갔다 꺼낸다. */
+function buildTub() {
+  if (WAX.tub) return;
+  const tub = WAX.tub = new T.Group(); tub.visible = false; scene.add(tub);
+  const prof = [[.5, 0], [.56, .02], [.6, .3], [.625, .7], [.64, .76], [.61, .775], [.585, .74], [.56, .32], [.5, .08], [.001, .08]].map(([x, y]) => new T.Vector2(x, y));
+  mesh(new T.LatheGeometry(prof, 48), mat('#fff6e0', { roughness: .32 }), tub);
+  const band = mesh(new T.CylinderGeometry(.632, .615, .06, 48, 1, true), mat('#2f9bff', { roughness: .4 }), tub); band.position.y = .6;
+  // 통에 가득 찬 왁스: 테두리 위로 볼록하게 올라와 있고, 바깥으로 몇 줄 흘러내린다. 고른 색이 그대로 보인다.
+  const wm = WAX.tubWax = mat(WAX_COLORS[0], { roughness: .2 });
+  const dome = mesh(new T.SphereGeometry(.6, 40, 12, 0, TAU, 0, PI / 2), wm, tub, false); dome.scale.set(1, .2, 1); dome.position.y = .735; dome.receiveShadow = true;
+  for (const [a, len, w] of [[.35, .3, .05], [1.1, .16, .04], [1.9, .38, .055], [2.75, .2, .045], [-.5, .24, .05], [-1.3, .12, .04]]) {
+    const d = mesh(capsuleGeo(w, len, 10, 5), wm, tub, false);
+    d.position.set(Math.sin(a) * .635, .76 - len / 2, Math.cos(a) * .635); d.scale.z = .5; d.rotation.y = a;
+    const blob = mesh(new T.SphereGeometry(w * 1.25, 10, 8), wm, tub, false); blob.position.set(Math.sin(a) * .64, .76 - len - w * .4, Math.cos(a) * .64); blob.scale.z = .6; blob.rotation.y = a;
+  }
+}
+
+/* ---- ml-60-audio.js ---- */
+/* ===== 소리 =====
+ * 본편 효과음 모듈의 출력단(압축·리버브·소리 끄기)을 그대로 쓴다. 외부 음원 파일 없음.
+ * 목소리는 본편 캐릭터 목소리와 같은 방식(톱니파 + 모음 포먼트)으로, 눌리는 세기에 따라 이어서 낸다. */
+const AU = { v: null, phraseT: 0, phraseDur: 0, gapT: 0, vowel: [300, 870], level: 0, crack: 0, pantT: 0, sobLeft: 0, sobT: 0, squishAcc: 0, squishT: 0, creakT: 0, chipT: 0, lastP: 0 };
+const VOW = { eu: [300, 870], eo: [570, 840], a: [730, 1090], ae: [660, 1700], e: [530, 1840], o: [440, 1020] };
+function auK() { const K = SFX.__ml; return K && K.ctx && K.ctx.state === 'running' && PREF.sound ? K : null; }
+const AU_OUT = new Map();
+function auOut(K, wet) {    // 자주 나는 소리는 출력 노드를 돌려 쓴다
+  const key = K.ctx, slot = AU_OUT.get(key) || (AU_OUT.clear(), AU_OUT.set(key, new Map()), AU_OUT.get(key));
+  if (!slot.has(wet)) slot.set(wet, K.out(0, wet));
+  return slot.get(wet);
+}
+function auPitch() { return clamp(ML.v?.look.pitch || 155, 90, 240); }
+
+function auVoiceNodes() {
+  const K = auK(); if (!K) return null;
+  const ctx = K.ctx;
+  if (AU.v && AU.v.ctx === ctx) return AU.v;
+  const o = K.out(0, .1, true);
+  const src = ctx.createOscillator(), sub = ctx.createOscillator(); src.type = 'sawtooth'; sub.type = 'triangle';
+  const vib = ctx.createOscillator(), vg = ctx.createGain(); vib.frequency.value = 6; vg.gain.value = 3; vib.connect(vg); vg.connect(src.frequency); vg.connect(sub.frequency);
+  const pre = ctx.createGain(), amp = ctx.createGain(); amp.gain.value = 0; src.connect(pre);
+  const formants = [[730, 6, 1], [1090, 8, .55], [2600, 5, .18]].map(([f, q, a]) => {
+    const bp = ctx.createBiquadFilter(), g = ctx.createGain(); bp.type = 'bandpass'; bp.frequency.value = f; bp.Q.value = q; g.gain.value = a * 3.2;
+    pre.connect(bp); bp.connect(g); g.connect(amp); return bp;
+  });
+  const sg = ctx.createGain(); sg.gain.value = .35; sub.connect(sg); sg.connect(amp);
+  const trem = ctx.createOscillator(), tg = ctx.createGain(); trem.frequency.value = 17; tg.gain.value = 0; trem.connect(tg); tg.connect(amp.gain);
+  const nz = ctx.createBufferSource(), nf = ctx.createBiquadFilter(), ng = ctx.createGain(); nz.buffer = K.noise; nz.loop = true; nf.type = 'bandpass'; nf.frequency.value = 1700; nf.Q.value = .8; ng.gain.value = 0;
+  nz.connect(nf); nf.connect(ng);
+  const muffle = ctx.createBiquadFilter(); muffle.type = 'lowpass'; muffle.frequency.value = 9000; muffle.Q.value = .4;
+  amp.connect(muffle); ng.connect(muffle); muffle.connect(o);
+  const nodes = [src, sub, vib, trem, nz]; nodes.forEach(n => n.start());
+  AU.v = { ctx, o, src, sub, vib, vg, amp, formants, trem, tg, nf, ng, muffle, nodes, all: [o, pre, amp, sg, vg, tg, nf, ng, muffle, ...formants] };
+  return AU.v;
+}
+function auDisposeVoice() {
+  const V = AU.v; AU.v = null; if (!V) return;
+  try { const t = V.ctx.currentTime; V.amp.gain.cancelScheduledValues(t); V.amp.gain.setValueAtTime(0, t); V.ng.gain.setValueAtTime(0, t); V.nodes.forEach(n => { try { n.stop(t + .03); } catch (_) { } }); setTimeout(() => V.all.forEach(n => { try { n.disconnect(); } catch (_) { } }), 120); } catch (_) { }
+}
+function auHush() {
+  const V = AU.v; if (!V) return;
+  try { const t = V.ctx.currentTime; V.amp.gain.cancelScheduledValues(t); V.amp.gain.setTargetAtTime(0, t, .012); V.ng.gain.cancelScheduledValues(t); V.ng.gain.setTargetAtTime(0, t, .012); V.tg.gain.setTargetAtTime(0, t, .012); } catch (_) { }
+  AU.level = 0; AU.phraseT = 0; AU.gapT = 0;
+}
+/* 매 프레임: 지금 얼마나 괴로운지에 맞춰 목소리를 민다. 한 호흡씩 끊어 내고 사이사이 숨을 들이쉰다. */
+function auVoice(dt) {
+  const pressing = ML.holding && ML.dip < 0, p = Math.max(0, ML.p);
+  const V = auVoiceNodes();
+  if (!V) return;
+  const t = V.ctx.currentTime, base = auPitch();
+  let effort = pressing ? sat((p - .05) * 1.25) * (1 - .8 * ML.faint) : 0;      // 기절하면 신음만 가늘게 샌다
+  const waxed = sat(ML.waxHead * 1.3), gut = sat(ML.gut * 1.6);
+  let level = 0, noise = 0;
+  if (effort > .03) {
+    if (AU.gapT > 0) {                       // 숨 들이쉬는 틈
+      AU.gapT -= dt; noise = .035 + .05 * effort;
+      V.nf.frequency.setTargetAtTime(2300, t, .03);
+    } else {
+      if (AU.phraseT <= 0) {                 // 새 호흡: 모음과 길이를 고른다
+        AU.phraseDur = AU.phraseT = rand(.42, 1.0) * (1.15 - .4 * effort);
+        AU.vowel = gut > .3 ? VOW.o : effort < .38 ? (Math.random() < .7 ? VOW.eu : VOW.eo) : effort < .78 ? (Math.random() < .6 ? VOW.a : VOW.eo) : (Math.random() < .5 ? VOW.a : VOW.ae);
+        AU.crack = Math.random() < effort * .5 ? rand(.15, .6) : -1;
+      }
+      AU.phraseT -= dt;
+      const u = 1 - AU.phraseT / AU.phraseDur;           // 호흡 안에서의 진행(0→1)
+      const shape = Math.max(0, Math.min(1, u / .08) * Math.min(1, (1 - u) / .14));
+      level = (.085 + .2 * effort) * shape;
+      let f = base * (1.28 + 1.05 * effort) * (.86 + .2 * Math.min(1, u / .25) - .1 * smooth((u - .7) / .3));
+      if (AU.crack > 0 && u > AU.crack && u < AU.crack + .16) f *= 1.3;   // 목소리가 뒤집힌다
+      if (gut > .3) f *= .72;
+      const rough = .28 + .5 * effort + .3 * gut;
+      V.src.frequency.setTargetAtTime(f, t, .018); V.sub.frequency.setTargetAtTime(f, t, .018);
+      V.vib.frequency.setTargetAtTime(5 + rough * 20, t, .05); V.vg.gain.setTargetAtTime(f * (.015 + rough * .075), t, .05);
+      V.formants[0].frequency.setTargetAtTime(AU.vowel[0], t, .03); V.formants[1].frequency.setTargetAtTime(AU.vowel[1], t, .03);
+      noise = .012 + .05 * effort * effort;
+      V.nf.frequency.setTargetAtTime(1500 + 900 * effort, t, .05);
+      if (AU.phraseT <= 0) AU.gapT = rand(.09, .2) * (1.2 - .5 * effort);
+    }
+  } else { AU.phraseT = 0; AU.gapT = 0; }
+  level *= mix(1, .5, waxed) * mix(1, .8, gut);
+  AU.level = level;
+  V.amp.gain.setTargetAtTime(level, t, level > 0 ? .02 : .03);
+  V.ng.gain.setTargetAtTime(noise * mix(1, .35, waxed), t, .03);
+  V.tg.gain.setTargetAtTime(level * (.18 * effort + .4 * gut), t, .04);        // 떨림: 내장이 입을 막으면 그르렁거린다
+  V.trem.frequency.setTargetAtTime(mix(26, 13, gut) * (1 + .18 * Math.sin(ML.time * 5.3)), t, .08);
+  V.muffle.frequency.setTargetAtTime(Math.min(mix(9000, 430, waxed), mix(9000, 780, gut)), t, .05);
+  // 놓여난 뒤: 헐떡임, 그리고 많이 아팠으면 훌쩍임
+  if (!pressing && ML.pant > .14 && ML.dip < 0) {
+    AU.pantT -= dt;
+    if (AU.pantT <= 0) { auBreath(ML.pant); AU.pantT = mix(.6, .3, ML.pant); }
+  } else AU.pantT = .12;
+  if (!pressing && AU.sobLeft > 0 && ML.pant < .3 && ML.pain > .5 && ML.dip < 0) {
+    AU.sobT -= dt;
+    if (AU.sobT <= 0) { AU.sobLeft--; AU.sobT = rand(1.5, 2.4); if (ML.waxHead < .5) SFX.sob({ pitch: base }); }
+  }
+}
+function auBreath(k) {
+  const K = auK(); if (!K) return;
+  const t = K.ctx.currentTime, o = auOut(K, .06), q = sat(k);
+  K.burst(o, t, { dur: .2, peak: .05 + .07 * q, a: .03, type: 'bandpass', f: 1050, f1: 520, q: 1.1 });          // 하아
+  K.burst(o, t + .24, { dur: .13, peak: .03 + .04 * q, a: .03, type: 'bandpass', f: 1500, f1: 2700, q: 1.3 });   // 흡
+  if (ML.waxHead < .5) K.voice(t, { pitch: auPitch() * rand(1.02, 1.14), dur: .15, peak: .03 + .035 * q, vowel: VOW.a, bend: -.28, rough: .2, wet: .08 });
+}
+function auStir() {    // 왁스 속에서 새어 나오는 웅얼거림
+  const K = auK(); if (!K) return;
+  const t = K.ctx.currentTime, base = auPitch();
+  for (let i = 0; i < 3; i++) K.voice(t + i * .13, { pitch: base * rand(1.05, 1.3), dur: .09, peak: .05, vowel: VOW.eu, bend: rand(-.15, .15), rough: .45, wet: .04 });
+  const o = auOut(K, .035);
+  K.burst(o, t + .05, { dur: .008, peak: .2, type: 'bandpass', f: rand(2400, 4200), q: 3 });
+  K.burst(o, t + .21, { dur: .006, peak: .14, type: 'bandpass', f: rand(2400, 4200), q: 3 });
+}
+function auGrab() {
+  const K = auK(); if (!K) return;
+  const t = K.ctx.currentTime, o = auOut(K, .1);
+  K.tone(o, t, { f0: 150, f1: 62, dur: .11, peak: .34 });
+  K.burst(o, t, { dur: .07, peak: .2, type: 'lowpass', f: 700, f1: 180, q: .8 });
+  if (ML.waxHead < .5) SFX.yelp({ pitch: auPitch(), power: .5 });
+  else K.voice(t + .02, { pitch: auPitch() * 1.25, dur: .1, peak: .09, vowel: VOW.eu, bend: -.2, rough: .5, wet: .05 });
+}
+/* 주무를 때 나는 질척한 소리. 세기가 바뀐 만큼 쌓였다가 터진다. */
+function auSquish(dt) {
+  const p = ML.p, d = Math.abs(p - AU.lastP); AU.lastP = p;
+  AU.squishAcc += d; AU.squishT -= dt;
+  if (AU.squishAcc < .075 || AU.squishT > 0) return;
+  const K = auK(); AU.squishAcc = 0; AU.squishT = .075; if (!K) return;
+  const t = K.ctx.currentTime, o = auOut(K, .08), k = sat(Math.abs(p)), soft = mix(1, .45, ML.waxLeft);
+  K.burst(o, t, { dur: .085, peak: (.16 + .16 * k) * soft, a: .004, type: 'lowpass', f: 1100 - 500 * k, f1: 190, q: 2.2 });
+  K.tone(o, t, { f0: rand(250, 330) - 90 * k, f1: rand(95, 130), dur: .075, peak: (.1 + .1 * k) * soft, a: .004 });
+  K.burst(o, t + .012, { dur: .04, peak: .07 * soft, type: 'bandpass', f: rand(2100, 3200), f1: 1200, q: 1.6 });
+}
+/* 뽀도독: 왁스가 깨질 때. 아주 짧은 딸깍 소리 여러 개가 불규칙하게 몰려 나온다. */
+function auWaxCrack(n) {
+  const K = auK(); if (!K) return;
+  const t = K.ctx.currentTime, o = auOut(K, .035), m = clamp(Math.round(3 + n * 1.5), 3, 18), span = .03 + m * .011;
+  for (let i = 0; i < m; i++) {
+    const at = t + Math.pow(Math.random(), 1.4) * span, f = rand(1900, 6800);
+    K.burst(o, at, { dur: rand(.004, .014), peak: rand(.28, .62), type: 'bandpass', f, q: rand(2, 4.5) });
+    if (i % 3 === 0) K.tone(o, at, { type: 'triangle', f0: rand(800, 1900), f1: rand(380, 700), dur: .016, peak: .13 });
+  }
+  K.burst(o, t, { dur: .022, peak: .16 + Math.min(.2, n * .02), type: 'bandpass', f: rand(380, 560), q: 1.4 });
+  K.burst(o, t + .004, { dur: .05 + m * .004, peak: .06, type: 'highpass', f: 5200 });
+}
+function auPop(out, pan) {
+  const K = auK(); if (!K) return;
+  const t = K.ctx.currentTime, o = auOut(K, .16);
+  if (out) {
+    K.tone(o, t, { f0: 210, f1: 760, dur: .05, peak: .55, a: .003 });
+    K.tone(o, t + .004, { f0: 96, f1: 52, dur: .13, peak: .4 });
+    K.burst(o, t, { dur: .014, peak: .5, type: 'highpass', f: 2600 });
+    K.burst(o, t + .02, { dur: .06, peak: .14, type: 'bandpass', f: 900, f1: 350, q: 1.5 });
+  } else {
+    K.tone(o, t, { f0: 640, f1: 170, dur: .07, peak: .4, a: .003 });
+    K.burst(o, t + .03, { dur: .02, peak: .3, type: 'bandpass', f: 1400, q: 1.2 });
+  }
+}
+function auGut(out) {
+  const K = auK(); if (!K) return;
+  const t = K.ctx.currentTime, o = auOut(K, .07);
+  if (out) {
+    SFX.gag({ pitch: auPitch() });
+    K.burst(o, t + .03, { dur: .24, peak: .22, a: .01, type: 'bandpass', f: 480, f1: 1700, q: 2.3 });
+    for (let i = 0; i < 6; i++) K.tone(o, t + .04 + i * .042, { f0: rand(140, 200), f1: rand(60, 85), dur: .05, peak: .16, a: .004 });
+    K.burst(o, t + .26, { dur: .05, peak: .2, type: 'lowpass', f: 900, f1: 240, q: 1.5 });
+  } else {
+    K.burst(o, t, { dur: .26, peak: .2, a: .01, type: 'bandpass', f: 1700, f1: 430, q: 2.3 });
+    for (let i = 0; i < 5; i++) K.tone(o, t + i * .045, { f0: rand(90, 130), f1: rand(190, 300), dur: .05, peak: .12, a: .004 });
+    K.tone(o, t + .25, { f0: 1000, f1: 240, dur: .06, peak: .32 });
+  }
+}
+function auRelease(amount) {
+  const K = auK(); if (!K) return;
+  SFX.boing(0, clamp(amount * 1.1, .3, 1.2));
+  if (amount < .3) return;
+  const t = K.ctx.currentTime, o = auOut(K, .1);
+  K.burst(o, t + .02, { dur: .26, peak: .1 + .06 * amount, a: .05, type: 'bandpass', f: 900, f1: 2700, q: 1.2 });   // 허억
+  if (ML.waxHead < .5) K.voice(t + .03, { pitch: auPitch() * 1.75, dur: .2, peak: .1, vowel: VOW.e, bend: .22, rough: .25, wet: .12 });
+}
+function auStretch(dt, speed) {
+  AU.creakT -= dt;
+  if (speed > .35 && AU.creakT <= 0) { AU.creakT = rand(.09, .17); SFX.creak(clamp(ML.pull.x * 2, -1, 1)); }
+}
+function auLand() {
+  const K = auK(); if (!K) return;
+  const t = K.ctx.currentTime, o = auOut(K, .12);
+  K.tone(o, t, { f0: 120, f1: 48, dur: .13, peak: .34 });
+  K.burst(o, t, { dur: .07, peak: .16, type: 'lowpass', f: 420, f1: 120, q: .8 });
+}
+function auChips(n, dt) {
+  AU.chipT -= dt; if (!n || AU.chipT > 0) return;
+  const K = auK(); AU.chipT = .035; if (!K) return;
+  const t = K.ctx.currentTime, o = auOut(K, .04);
+  for (let i = 0; i < Math.min(3, n); i++) K.burst(o, t + i * .011, { dur: rand(.004, .009), peak: rand(.04, .09), type: 'bandpass', f: rand(2400, 5400), q: 3 });
+}
+function auDip(into) {
+  const K = auK(); if (!K) return;
+  const t = K.ctx.currentTime, o = auOut(K, .1);
+  if (into) {
+    K.burst(o, t, { dur: .5, peak: .3, a: .02, type: 'lowpass', f: 650, f1: 110, q: 1 });
+    K.tone(o, t, { f0: 150, f1: 58, dur: .3, peak: .3 });
+    for (let i = 0; i < 9; i++) K.tone(o, t + .08 + Math.random() * .7, { f0: rand(170, 300), f1: rand(380, 620), dur: rand(.035, .07), peak: rand(.06, .14), a: .004 });
+  } else {
+    K.burst(o, t, { dur: .34, peak: .2, a: .01, type: 'lowpass', f: 1000, f1: 230, q: 1.2 });
+    K.tone(o, t + .05, { f0: 300, f1: 760, dur: .08, peak: .22, a: .004 });
+    for (let i = 0; i < 4; i++) K.tone(o, t + .3 + i * .13, { f0: rand(700, 1100), f1: 420, dur: .04, peak: .07 });
+  }
+}
+
+/* ---- ml-90-main.js ---- */
+/* ===== 화면 요소 (시험판에 원래 있던 것 그대로: 왁스 색 4개 · 왁스 입히기 · 손 표시 · 소리) ===== */
+const modesEl = $('.modes');
+const modeBtn = document.createElement('button');
+modeBtn.className = 'mode'; modeBtn.dataset.mode = 'malangi'; modeBtn.setAttribute('aria-pressed', 'false'); modeBtn.textContent = '나 말랑이'; modesEl.append(modeBtn);
+for (const b of modesEl.children) if (b.textContent.startsWith('나 ')) b.innerHTML = '나<br>' + b.textContent.slice(2);
+const toolsEl = document.createElement('div'); toolsEl.id = 'malangiTools';
+toolsEl.innerHTML = '<div class="ml-colors" role="group" aria-label="왁스 색">' +
+  WAX_COLORS.map((h, i) => `<button class="ml-color" style="--wax:${h}" data-wax="${i}" aria-label="${WAX_NAMES[i]} 왁스" aria-pressed="${i === 0}"></button>`).join('') +
+  '</div><div class="ml-right"><button class="ml-small" id="mlDip">왁스 입히기</button><button class="ml-small" id="mlHands" aria-pressed="true">손 표시</button>' +
+  '<button class="ml-small" id="mlVolume" aria-label="소리 켜짐" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path class="ml-wave" d="M17 8.5q3 3.5 0 7M19.8 5.5q5.4 6.5 0 13"/></svg></button></div>';
+$('.panel').append(toolsEl);
+const headingEl = document.createElement('div'); headingEl.id = 'mlHeading'; headingEl.innerHTML = '<small>시험판</small><strong>나 말랑이</strong>'; document.body.append(headingEl);
+const hintEl = document.createElement('div'); hintEl.id = 'mlHint'; hintEl.textContent = '꾹 누르고 · 끌어보고 · 놓아봐'; document.body.append(hintEl);
+const dipBtn = $('#mlDip'), volBtn = $('#mlVolume'), handsBtn = $('#mlHands');
+const appearanceBtn = $('#appearanceBtn'), appearanceHome = { parent: appearanceBtn.parentNode, next: appearanceBtn.nextSibling };
+function placeAppearanceButton(top) {     // 말랑이에서는 설정 버튼 옆으로 꺼내 놓고, 다른 모드에서는 본편처럼 설정 창 안에 둔다
+  if (top) $('#settingsBtn').after(appearanceBtn);
+  else if (appearanceHome.parent) appearanceHome.parent.insertBefore(appearanceBtn, appearanceHome.next && appearanceHome.next.parentNode === appearanceHome.parent ? appearanceHome.next : null);
+}
+function syncVolumeButton() {
+  const on = !!PREF.sound;
+  if (volBtn.getAttribute('aria-pressed') === String(on)) return;
+  volBtn.setAttribute('aria-pressed', String(on)); volBtn.setAttribute('aria-label', on ? '소리 켜짐' : '소리 꺼짐');
+}
+toolsEl.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  SFX.unlock();
+  if (b.dataset.wax !== undefined) {
+    ML.waxColor = +b.dataset.wax;
+    toolsEl.querySelectorAll('[data-wax]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    if (WAX.tubWax) WAX.tubWax.color.copy(col(WAX_COLORS[ML.waxColor]));
+    SFX.pop(0);
+  }
+  if (b === handsBtn) { ML.showHands = !ML.showHands; b.setAttribute('aria-pressed', String(ML.showHands)); SFX.pop(0); }
+  if (b === dipBtn && ML.dip < 0 && ML.active) startDip();
+  if (b === volBtn) {
+    PREF.sound = !PREF.sound; SFX.setOn(PREF.sound); store.set('malangi-preview.badguy.prefs', PREF);
+    $('#swSound')?.setAttribute('aria-checked', PREF.sound);
+    if (!PREF.sound) auHush(); else SFX.pop(0);
+    syncVolumeButton();
+  }
+});
+
+/* ===== 입력 ===== */
+function worldDrag(dx, dy) { const k = G.viewH / innerHeight; return [dx * k, -dy * k]; }
+/* 누른 자리를 캐릭터 기준 좌표로. 몸에서 조금 빗나가도(다리 사이, 목 옆) 받아 준다. */
+function locate(cx, cy) {
+  const v = ML.v; if (!v) return null;
+  const info = pick3D(cx, cy);
+  const w = info ? hitWorld(info) : planePoint(cx, cy, v.root.position.z);
+  const local = w.clone().applyMatrix4(U.mlInv.value);
+  if (!info) {
+    const y = clamp(local.y, .1, ML.dim.top - .05);
+    if (Math.abs(local.x) > halfWidth(y) + .16 || local.y < -.06 || local.y > ML.dim.top + .1) return null;
+    local.z = depthRadius(y) * .8;
+  }
+  return local;
+}
+function beginHold(local) {
+  ML.holding = true; ML.held = 0; ML.sinceRelease = 99; ML.peak = 0;
+  const y = clamp(local.y, .14, ML.dim.top - .12);
+  ML.gyWant = y;
+  if (ML.p < .08) { ML.gy = y; ML.gh = beltHeight(y); }
+  ML.gPart = regionOf(y);
+  ML.press0.copy(local); ML.dragW.set(0, 0, 0); ML.pullWant.set(0, 0, 0);
+  ML.pullC.copy(local); ML.pokeC.copy(local);
+  ML.pullR = ML.gPart === 'head' ? .46 : ML.gPart === 'torso' ? .32 : .27;      // 머리는 통째로 딸려 오고 목이 늘어난다
+  ML.p = Math.max(ML.p, .05);
+  ML.eyeFirst = Math.random() < .5 ? 0 : 1;
+  ML.fear = Math.min(1, ML.fear + .3); ML.stats.squeezes++;
+  beginWaxPress(y, ML.gh); auGrab(); vib(12);
+  if (!ML.firstTouch) { ML.firstTouch = true; hintEl.classList.remove('show'); }
+}
+function releaseAll(cancelled) {
+  ML.ptrs.clear();
+  if (!ML.holding) return;
+  ML.holding = false; ML.held = 0; ML.sinceRelease = 0; ML.pinch = 0;
+  const stretch = Math.hypot(ML.pull.x, ML.pull.y), amount = Math.max(ML.peak, Math.min(1, stretch * 1.6));
+  endWaxPress();
+  ML.pullWant.set(0, 0, 0); ML.dragW.set(0, 0, 0);
+  ML.wobV += amount * 30 * (Math.random() < .5 ? -1 : 1);
+  ML.pant = Math.max(ML.pant, sat(amount * 1.25)); ML.daze = Math.max(ML.daze, amount > .78 ? 1 : 0, ML.faint > .4 ? 1.5 : 0);
+  ML.eyes.forEach((e, i) => { e.backAt = (ML.gut > .2 ? .36 : .12) + (i === ML.eyeFirst ? 0 : rand(.16, .3)); });
+  AU.sobLeft = amount > .72 ? 2 : amount > .5 ? 1 : 0; AU.sobT = 1.3;
+  if (cancelled) return;
+  auRelease(amount);
+  if (amount > .3 && ML.v) popText('뽀잉!', _a.set(0, ML.gy, .2).applyMatrix4(U.mlFwd.value), 'slap', 30 + amount * 26);
+}
+const usable = e => ML.active && !G.editing && !G.ngIntro && e.target === canvas;
+addEventListener('pointerdown', e => {
+  if (!usable(e)) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  if (e.button > 0 || ML.dip >= 0 || document.querySelector('.modal:not([hidden])')) return;
+  SFX.unlock();
+  const local = ML.holding ? null : locate(e.clientX, e.clientY);
+  if (!ML.holding && !local) return;
+  try { canvas.setPointerCapture(e.pointerId); } catch (_) { }
+  ML.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, first: !ML.holding });
+  if (!ML.holding) beginHold(local);
+  if (ML.ptrs.size === 2) { const [a, b] = [...ML.ptrs.values()]; ML.pinch0 = Math.hypot(a.x - b.x, a.y - b.y); ML.pinch = 0; }
+}, { capture: true, passive: false });
+addEventListener('pointermove', e => {
+  if (!ML.active || G.editing) return;
+  if (e.target === canvas) { ML.hover.x = e.clientX; ML.hover.y = e.clientY; ML.hover.t = ML.time; }
+  const P = ML.ptrs.get(e.pointerId); if (!P) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  P.x = e.clientX; P.y = e.clientY;
+  if (ML.ptrs.size >= 2) { const [a, b] = [...ML.ptrs.values()]; ML.pinch = sat((ML.pinch0 - Math.hypot(a.x - b.x, a.y - b.y)) / Math.max(60, ML.pinch0 * .7)); }
+  if (P.first) {
+    let [dx, dy] = worldDrag(P.x - P.x0, P.y - P.y0); const len = Math.hypot(dx, dy), max = .5;
+    if (len > max) { dx *= max / len; dy *= max / len; }
+    ML.dragW.set(dx, dy, 0);
+    ML.pullWant.set(dx * .92, dy * .92, Math.min(len, max) * .28);
+    ML.gyWant = clamp(ML.press0.y + dy * .5, .14, ML.dim.top - .12);
+  }
+}, { capture: true, passive: false });
+function pointerGone(e) {
+  if (!ML.ptrs.has(e.pointerId)) return;
+  if (e.target === canvas) { e.preventDefault(); e.stopImmediatePropagation(); }
+  const P = ML.ptrs.get(e.pointerId); ML.ptrs.delete(e.pointerId);
+  if (!ML.ptrs.size || P.first) releaseAll(e.type !== 'pointerup');
+  else ML.pinch = 0;
+}
+for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) addEventListener(type, pointerGone, { capture: true, passive: false });
+function quiet() { releaseAll(true); auHush(); }
+addEventListener('blur', () => { if (ML.active) quiet(); });
+document.addEventListener('visibilitychange', () => {
+  if (!ML.active) return;
+  const ctx = SFX.__ml && SFX.__ml.ctx;
+  if (document.hidden) { quiet(); try { ctx && ctx.suspend(); } catch (_) { } }
+  else { try { ctx && PREF.sound && ctx.resume(); } catch (_) { } ML.fitKey = ''; }
+});
+addEventListener('pagehide', () => { if (ML.active) { quiet(); auDisposeVoice(); } });
+canvas.addEventListener('webglcontextlost', () => { if (ML.active) quiet(); });
+addEventListener('resize', () => { ML.fitKey = ''; });
+
+/* ===== 진행: 물리(잘게 쪼갠 걸음) ===== */
+function resetDynamics() {
+  Object.assign(ML, { holding: false, held: 0, sinceRelease: 99, pinch: 0, p: 0, pv: 0, target: 0, peak: 0, poke: 0, pokeV: 0, jelly: 0, jellyV: 0, wob: 0, wobV: 0,
+    lift: 0, liftV: 0, landed: true, landFx: 0, pain: 0, fear: 0, tired: 0, flail: 0, spasm: 0, pant: 0, daze: 0, gut: 0, gutV: 0, gutOut: false, shake: 0, dip: -1, dipY: 0, stir: 0, stirIn: 2.2, maxT: 0, faint: 0 });
+  ML.ptrs.clear(); ML.pull.set(0, 0, 0); ML.pullV.set(0, 0, 0); ML.pullWant.set(0, 0, 0); ML.dragW.set(0, 0, 0); ML.events.length = 0;
+  ML.eyes.forEach(e => Object.assign(e, { out: false, e: 0, ev: 0, sx: 0, svx: 0, sy: 0, svy: 0 }));
+  resetLimbs(); resetGut();
+}
+function simulate(dt) {
+  ML.time += dt; ML.sinceRelease += dt;
+  const pressing = ML.holding && ML.dip < 0;
+  if (pressing) ML.held += dt;
+  let target = 0;
+  if (pressing) {
+    target = .26 + .74 * smooth(ML.held / 1.7) + Math.min(.22, Math.hypot(ML.dragW.x, ML.dragW.y) * .3);
+    if (ML.ptrs.size > 1) target = Math.max(target, .25 + ML.pinch * 1.05);
+    target = Math.min(1.06, target);
+  }
+  ML.target = target;
+  spring(ML, 'p', 'pv', target, pressing ? 120 : 64, pressing ? 17 : 8.6, dt);      // 놓으면 한 번 되튀었다가 가라앉는다
+  ML.p = clamp(ML.p, -.16, 1.12);
+  if (pressing) { ML.peak = Math.max(ML.peak, ML.p); ML.gy = damp(ML.gy, ML.gyWant, 16, dt); ML.gPart = regionOf(ML.gy); }
+  ML.gh = damp(ML.gh, beltHeight(ML.gy), 12, dt);
+  const kP = pressing ? 210 : 150, cP = pressing ? 25 : 6.5;
+  for (const ax of ['x', 'y', 'z']) { ML.pullV[ax] += ((ML.pullWant[ax] - ML.pull[ax]) * kP - ML.pullV[ax] * cP) * dt; ML.pull[ax] += ML.pullV[ax] * dt; }
+  spring(ML, 'poke', 'pokeV', pressing ? 1 : 0, pressing ? 300 : 170, pressing ? 30 : 9, dt);
+  // 손에 들려 올라갔다가, 놓으면 떨어져 착지하며 한 번 찌부러진다
+  spring(ML, 'lift', 'liftV', pressing ? .15 + .05 * sat(ML.p) : 0, pressing ? 75 : 55, pressing ? 13 : 7, dt);
+  if (ML.lift > .04) ML.landed = false;
+  if (!pressing && ML.lift <= 0) {
+    if (!ML.landed) { ML.landed = true; ML.jellyV += Math.max(-2.4, ML.liftV * 1.3); ML.landFx = Math.abs(ML.liftV); }
+    ML.lift = 0; ML.liftV = Math.max(0, -ML.liftV * .2);
+  }
+  spring(ML, 'jelly', 'jellyV', 0, 190, 9, dt); ML.jelly = clamp(ML.jelly, -.3, .22);
+  spring(ML, 'wob', 'wobV', 0, 150, 5.5, dt);
+  // 버둥거림: 한참 발버둥 치다 잠깐 숨 고르고 다시. 왁스에 갇혀 있으면 거의 못 움직인다.
+  ML.burstT -= dt;
+  if (ML.burstT <= 0) { ML.burstOn = !ML.burstOn; ML.burstT = ML.burstOn ? rand(.7, 1.5) : rand(.14, .3); }
+  const free = 1 - .86 * sat(ML.waxLeft * 1.15), dipping = ML.dip >= 0 && ML.dip < 1.25;
+  let want = pressing ? sat(.22 + ML.p * 1.3) * (ML.burstOn ? 1 : .22) * free * (1 - .35 * ML.tired) : 0;
+  if (dipping) want = .85 * smoothstep(.15, .5, ML.dip);
+  // 끝까지 쥔 채 몇 초를 버티면 힘이 다해 축 늘어진다. 놓으면 조금 있다가 정신이 든다.
+  ML.maxT = pressing && ML.p > .9 ? ML.maxT + dt : Math.max(0, ML.maxT - dt * 2.5);
+  ML.faint = damp(ML.faint, pressing ? smoothstep(3.2, 4.4, ML.maxT) : 0, pressing ? 3 : 1.1, dt);
+  want *= 1 - ML.faint;
+  ML.flail = damp(ML.flail, want, pressing || dipping ? 13 : 6, dt);
+  ML.spasm = damp(ML.spasm, pressing && ML.p > .93 ? 1 - ML.faint : 0, pressing ? 7 : 5, dt);
+  ML.pain = pressing ? Math.max(ML.pain, sat(ML.p * 1.05)) : Math.max(0, ML.pain - dt * .11);
+  if (!pressing) ML.fear = Math.max(0, ML.fear - dt * .09);
+  ML.tired = clamp(ML.tired + dt * (pressing ? .05 * ML.p : -.03), 0, 1);
+  ML.pant = Math.max(0, ML.pant - dt * (pressing ? 3 : .42));
+  ML.daze = Math.max(0, ML.daze - dt * (pressing ? 2 : .4));
+  ML.shake = Math.max(0, ML.shake - dt * 6);
+  // 왁스에 갇힌 채 가만히 두면, 안에서 가끔 움찔움찔 몸부림친다
+  if (!pressing && ML.dip < 0 && ML.waxLeft > .6) {
+    ML.stirIn -= dt;
+    if (ML.stirIn <= 0) { ML.stirIn = rand(2.6, 5.5); ML.stir = rand(.5, .9); ML.events.push(['stir', 0]); }
+  }
+  ML.stir = Math.max(0, ML.stir - dt);
+  // 눈알·내장: 얼굴 왁스가 벗겨진 뒤에만 튀어나온다
+  const canPop = ML.waxHead < .45;
+  ML.eyes.forEach((e, i) => {
+    if (pressing && !e.out && canPop && ML.p > .54 + (i === ML.eyeFirst ? 0 : .1)) { e.out = true; e.ev += 5; ML.events.push(['pop', i]); }
+    if (!pressing && e.out && ML.sinceRelease > e.backAt) { e.out = false; e.ev -= 2; ML.events.push(['unpop', i]); }
+    spring(e, 'e', 'ev', e.out ? 1 : 0, 130, 10.5, dt); e.e = Math.max(-.03, e.e);
+    spring(e, 'sx', 'svx', e.out ? Math.sin(ML.time * 7 + i * 2) * .012 - LIMB.head.vy * .004 : 0, 55, 4, dt);
+    spring(e, 'sy', 'svy', e.out ? Math.cos(ML.time * 6 + i) * .008 : 0, 55, 4, dt);
+  });
+  if (pressing && !ML.gutOut && canPop && ML.p > .84) { ML.gutOut = true; ML.gutV += 2; ML.events.push(['gut', 1]); }
+  if (!pressing && ML.gutOut && ML.sinceRelease > .1) { ML.gutOut = false; ML.events.push(['gut', 0]); }
+  spring(ML, 'gut', 'gutV', ML.gutOut ? 1 : 0, ML.gutOut ? 60 : 30, ML.gutOut ? 11 : 8, dt); ML.gut = clamp(ML.gut, 0, 1.15);
+  if (ML.dip >= 0) stepDip(dt);
+  stepLimbs(dt);
+}
+/* 왁스 입히기: 통이 발밑에서 올라오고, 통째로 잠겼다가 새 왁스를 뒤집어쓰고 올라온다. */
+function startDip() {
+  quiet();
+  ML.dip = 0; ML.gPart = 'torso'; ML.gyWant = ML.gy = ML.dim.hip + .3; dipBtn.disabled = true;
+  ML.eyes.forEach(e => { e.out = false; }); ML.gutOut = false; ML.fear = 1;
+  WAX.tubWax.color.copy(col(WAX_COLORS[ML.waxColor]));
+  sweepChips(); ML.stats.dips++;
+  SFX.pop(0); if (ML.waxHead < .5) SFX.yelp({ pitch: auPitch(), power: .8 });
+}
+function stepDip(dt) {
+  const before = ML.dip, d = (ML.dip += dt), tub = WAX.tub, top = ML.dim.top;
+  const sink = smoothstep(.45, 1.2, d) * (1 - smoothstep(1.65, 2.5, d));
+  ML.dipY = -(top - .5) * sink;
+  const k = smoothstep(0, .4, d) * (1 - smoothstep(2.5, 2.9, d));
+  tub.visible = k > .002; tub.position.set(0, 0, 0); tub.scale.set(mix(.7, 1, k), Math.max(.001, k), mix(.7, 1, k));
+  if (before < .5 && d >= .5) auDip(true);
+  if (before < 1.3 && d >= 1.3) { resetWax(ML.waxColor); ML.pain = 0; ML.pant = 0; ML.daze = 0; clearTint(); }
+  if (before < 1.65 && d >= 1.65) auDip(false);
+  if (d >= 2.9) { ML.dip = -1; ML.dipY = 0; tub.visible = false; dipBtn.disabled = false; ML.fear = .6; }
+}
+
+/* ===== 진행: 한 프레임 ===== */
+const CAM = { y: 1, dist: 6, zoom: 1 };
+function fitToy() {
+  const W = innerWidth, H = innerHeight, key = W + 'x' + H + ':' + ML.dim.top.toFixed(3);
+  if (key === ML.fitKey) return;
+  ML.fitKey = key;
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); renderer.setSize(W, H, false);
+  camera.aspect = W / H;
+  const topH = Math.max(headingEl.getBoundingClientRect().bottom, $('#settingsBtn').getBoundingClientRect().bottom) + 4;
+  const dockTop = $('.dock').getBoundingClientRect().top, botH = H - dockTop + 8;
+  const avail = Math.max(120, H - topH - botH), y0 = -.05, y1 = ML.dim.top + .4;      // 머리 위로 늘어나고 들릴 자리를 남긴다
+  const h = Math.max((y1 - y0) * H / avail, 1.5 / camera.aspect);
+  G.viewH = h; G.camDist = h / (2 * Math.tan(T.MathUtils.degToRad(camera.fov / 2)));
+  CAM.y = (y0 + y1) / 2 + (topH - botH) * h / (2 * H); CAM.dist = G.camDist;
+  camera.updateProjectionMatrix();
+  hintEl.style.bottom = (H - dockTop + 12) + 'px';
+}
+function setCamera(dt) {
+  CAM.zoom = damp(CAM.zoom, 1 - .05 * smooth(Math.max(0, ML.p)), 5, dt);
+  const sh = PREF.shake && !reducedMotion ? ML.shake * .014 : 0;
+  camera.position.set(rand(-sh, sh), CAM.y + .16 + rand(-sh, sh), CAM.dist * CAM.zoom);
+  camera.lookAt(0, CAM.y - .03, 0);
+  camera.updateMatrixWorld();
+}
+function animate(dt) {
+  const v = ML.v, pressing = ML.holding && ML.dip < 0;
+  // 왁스가 남아 있는 동안은 속이 덜 찌그러진다(딱딱한 껍질). 벗겨질수록 말랑해진다.
+  U.mlSq.value.set(ML.gy, ML.gh, ML.p * mix(1, .5, sat(ML.waxLeft * 1.2)), 0);
+  { const M = ML.dim, a = smoothstep(M.hip - .1, M.hip + .1, ML.gy), b = smoothstep(M.neck - .04, M.neck + .18, ML.gy); U.mlK.value.x = mix(mix(.52, .6, a), .46, b); }   // 머리는 덜 납작하게
+  U.mlPull.value.set(ML.pullC.x, ML.pullC.y, ML.pullC.z, ML.pullR);
+  U.mlPullD.value.copy(ML.pull);
+  U.mlPoke.value.set(ML.pokeC.x + ML.pull.x, ML.pokeC.y + ML.pull.y, ML.pokeC.z, .115);
+  U.mlPokeD.value.set(0, 0, -(.03 + .045 * sat(ML.p * 1.4)) * ML.poke);
+  U.mlJelly.value.set(ML.jelly, ML.wob * .05, ML.time * 9, 0);
+  applyRig(dt); updateLimbs(dt);
+  { // 시선: 포인터가 방금까지 움직였으면 그쪽을, 아니면 양옆의 손을 번갈아 힐끔거린다
+    let gx, gy;
+    if (ML.time - ML.hover.t < 3.5) {
+      const head = _a.set(0, ML.dim.headC, .3).applyMatrix4(U.mlFwd.value).project(camera);
+      gx = clamp(((ML.hover.x / innerWidth) * 2 - 1 - head.x) * 1.6, -1, 1); gy = clamp((-(ML.hover.y / innerHeight) * 2 + 1 - head.y) * 1.6, -1, 1);
+    } else { const s = Math.sin(ML.time * .9) > 0 ? 1 : -1, look = ML.fear > .15 || ML.pain > .2 ? 1 : .35; gx = s * .8 * look * smooth(Math.abs(Math.sin(ML.time * .9)) * 2.5); gy = -.45 * look; }
+    ML.gaze.x = damp(ML.gaze.x, gx, 7, dt); ML.gaze.y = damp(ML.gaze.y, gy, 7, dt);
+  }
+  driveFace(dt); applyEyes(dt); stepGut(dt); updateWax(dt); poseHands(dt);
+  for (const [type, a] of ML.events) {
+    if (type === 'pop') {
+      auPop(true, a ? .3 : -.3); ML.shake = 1; vib(18); ML.stats.pops++; burstWax(WAX.eyeRest && WAX.eyeRest[a], .13);
+      const at = deformWorld(v.eyes[a].g.getWorldPosition(V3()));
+      popText('뿅!', at, 'flick', 40);
+      for (let i = 0; i < 4; i++) spawnDrop(at, V3(rnd(-.8, .8), rnd(.4, 1.6), rnd(.3, 1.2)), 'tear', rnd(.009, .015));
+    } else if (type === 'unpop') auPop(false, a ? .3 : -.3);
+    else if (type === 'stir') auStir();
+    else if (type === 'gut') {
+      auGut(!!a);
+      if (a) { ML.shake = 1; vib([10, 30, 22]); ML.stats.guts++; burstWax(WAX.mouthRest, .15); const at = deformWorld(v.mouthWorld()); popText('꾸엑!', at, 'upper', 42); for (let i = 0; i < 6; i++) spawnDrop(at, V3(rnd(-.6, .6), rnd(.2, 1.2), rnd(.5, 1.5)), 'sweat', rnd(.008, .014)); }
+    }
+  }
+  ML.events.length = 0;
+  if (ML.landFx) { auLand(); if (ML.landFx > .45) puff(_a.set(v.root.position.x, .05, v.root.position.z).clone(), 5, .5); ML.landFx = 0; }
+  if (WAX.pendingCrack) {
+    const n = WAX.pendingCrack; WAX.pendingCrack = 0; auWaxCrack(n); vib(6);
+    if (n >= 5 && ML.time - ML.lastCrackPop > .7) { ML.lastCrackPop = ML.time; popText('뽀도독', _a.set(rand(-.2, .2), ML.gy + rand(-.1, .2), .3).applyMatrix4(U.mlFwd.value), 'tooth', 30); }
+  }
+  auChips(updateChips(dt), dt);
+  auSquish(dt); auVoice(dt);
+  if (pressing) auStretch(dt, Math.hypot(ML.pullV.x, ML.pullV.y));
+}
+function bind(v, fresh) {
+  const wasDone = WAX.done;
+  if (ML.v && ML.v !== v) { EX.v = null; EX.sockets = []; EX.stalks = []; WAX.twins = []; WAX.samples = []; }   // 이전 캐릭터는 본편이 이미 치웠다
+  ML.v = v; ML.lookRef = v._appliedLook;
+  // 본편에서 쓰러져 있거나 주저앉은 채로 넘어왔으면 먼저 똑바로 세운다.
+  window.__SC_LEGS?.squat?.(v, 0); window.__SC_FATIGUE_V1?.standUp?.(v);
+  v.root.visible = true; v.root.rotation.order = 'XYZ';
+  v.state = 'stand'; v.stateT = 0; v.phys = null;
+  measure(); resetDynamics();
+  buildEyeExtras(v); tagLimbs(v); buildWax(v);
+  if (!fresh && wasDone) stripWax();
+  patchCharacter(v);
+  ML.fitKey = ''; dipBtn.disabled = false;
+}
+function frame(dt) {
+  const started = performance.now(), v = G.v;
+  if (!v) return;
+  if (v !== ML.v || v._appliedLook !== ML.lookRef) bind(v, false);
+  fitToy(); syncVolumeButton();
+  if (document.querySelector('.modal:not([hidden])')) { quiet(); renderer.render(scene, camera); return; }
+  const h = clamp(dt, .001, .05), n = Math.max(1, Math.ceil(h * 100));
+  for (let i = 0; i < n; i++) simulate(h / n);
+  animate(h);
+  updateParticles(h, G); flushLateFX(); updateFlashes(h);
+  if (splatDirty && started - splatSent > 100) { splat.t.needsUpdate = true; splatDirty = false; splatSent = started; }
+  setCamera(h);
+  renderer.render(scene, camera);
+  const ms = performance.now() - started; ML.stats.frames++; ML.stats.ms += ms; ML.stats.maxMs = Math.max(ML.stats.maxMs, ms);
+}
+
+/* ===== 모드 드나들기 ===== */
+function activate() {
+  if (!G.v) return;
+  window.__SC_AUTO_MODE_V1?.stop?.('malangi'); cancelPointer(); endHug(); stopSocial(); clearAttacks(); window.__NG2?.cancelAux?.(); CareVoice.stop();
+  G.mode = 'malangi'; G.ngIntro = false; document.body.classList.remove('ng-intro'); $('#ngIntro').hidden = true;
+  for (const b of modesEl.children) { const on = b === modeBtn; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); }
+  document.body.classList.add('malangi-active'); placeAppearanceButton(true);
+  $('#bubble').classList.remove('show'); $('#careCaption').hidden = true;
+  if (ML.active) return;
+  ML.active = true;
+  handsRoot.children.forEach(o => { o.visible = false; });
+  buildHands(); buildGut(); buildChips(); buildTub();
+  bind(G.v, true);
+  U.mlOn.value = 1;
+  if (!ML.firstTouch) hintEl.classList.add('show');
+}
+function deactivate() {
+  if (!ML.active) return;
+  ML.active = false; quiet(); auDisposeVoice();
+  U.mlOn.value = 0;
+  document.body.classList.remove('malangi-active'); hintEl.classList.remove('show'); placeAppearanceButton(false);
+  const v = ML.v;
+  hideHands(); resetGut(); clearChips(); removeWax();
+  if (WAX.tub) WAX.tub.visible = false;
+  if (v && v === G.v && v.root.parent) {     // 캐릭터를 본편이 넘겨받을 수 있는 상태로 돌려놓는다
+    removeEyeExtras(); clearTint(); unpatchShadows(v); resetDynamics(); canonicalPose(v);
+    v.state = 'stand'; v.stateT = 0; v.blush = 0; v.tear = 0; v.stars.visible = false;
+    v.armRig.forEach(a => Object.assign(a.cur, { sx: -.05, sz: .1, ex: -.15, ez: .05 }));
+    v.headDirty = true; v.faceDirty = true; v.applyDeform(); v.paintFace();
+  } else { EX.v = null; EX.sockets = []; EX.stalks = []; }
+  ML.v = null; ML.lookRef = null; dipBtn.disabled = false;
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); lastT = performance.now(); fit();
+}
+modeBtn.addEventListener('click', activate);
+document.addEventListener('click', e => { const b = e.target.closest?.('.mode'); if (b && b !== modeBtn) deactivate(); });
+appearanceBtn.addEventListener('pointerdown', () => { if (ML.active) quiet(); }, { capture: true });
+
+window.__MALANGI = {
+  start: activate, stop: quiet, editorLighting() { },
+  active: () => ML.active && G.mode === 'malangi',
+  frame,
+  inspect: () => ({
+    active: ML.active, mode: G.mode, part: ML.gPart, gy: ML.gy, pressure: ML.p, target: ML.target, holding: ML.holding, held: ML.held, pointers: ML.ptrs.size,
+    eyes: ML.eyes.map(e => ({ out: e.out, extension: e.e })), gut: ML.gut, waxLeft: ML.waxLeft, waxHead: ML.waxHead, dipping: ML.dip, hands: ML.showHands,
+    flail: ML.flail, pain: ML.pain, pant: ML.pant, faint: ML.faint, lift: ML.lift, voice: AU.level, time: ML.time,
+    stats: { ...ML.stats, meanMs: ML.stats.ms / Math.max(1, ML.stats.frames) }, twins: WAX.twins.length, samples: WAX.total,
+    drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles
+  }),
+  _: { ML, U, WAX, AU, LIMB, FACE, CAM, GUT, HANDS, camera, renderer, deformWorld }
+};
 })();
 
 
