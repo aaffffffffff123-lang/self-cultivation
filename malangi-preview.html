@@ -14832,8 +14832,12 @@ function addDamage(x) {
 /* 한 걸음 분량. simulate()가 잘게 쪼갠 dt로 부른다. 방울을 실제로 내보내는 건 자세가 정해진 뒤 emitFluids()가 한다. */
 function stepBody(dt, pressing) {
   const v = ML.v, p = Math.max(0, ML.p);
-  // 누적: 세게 쥐고 있는 만큼 쌓인다. 왁스가 덮여 있으면 덜 쌓인다.
-  if (pressing) addDamage(dt * 1.5 * smoothstep(.3, 1, p) * mix(1, .5, sat(ML.waxLeft * 1.2)));
+  // 압박 시간도 누적한다. 한 번 잡은 채 버틸수록 부담이 커지고, 놓으면 추가 누적은 즉시 멈춘다.
+  // 초당 계산이므로 화면 주사율이나 pointermove 발생 횟수에 영향을 받지 않는다.
+  if (pressing) {
+    const effort = smoothstep(.18, 1, p), sustained = smoothstep(1.5, 7, ML.held);
+    addDamage(dt * (1.5 + .9 * sustained) * effort * mix(1, .5, sat(ML.waxLeft * 1.2)));
+  }
   const D = Math.max(0, Number(v.damage) || 0);
   ML.sT = smoothstep(8, 14, D); ML.sS = smoothstep(15, 19, D);
   ML.sB = Math.max(smoothstep(31, 36, D), sat(((v.noseBlood || 0) - .06) * 1.4));
@@ -15278,7 +15282,7 @@ function burstWax(at, radius) {
   WAX.mat.uniforms.uEvR.value[i].set(radius, radius);
   WAX.checkT = 0;
 }
-function endWaxPress() { WAX.cur = -1; WAX.floor = Math.min(1.2, WAX.floor + .14 * sat(ML.peak * 1.2)); }
+function endWaxPress() { WAX.cur = -1; }
 function stressAt(s) {
   const u = WAX.mat.uniforms; let S = WAX.base;
   for (let i = 0; i < WAX.used; i++) {
@@ -15296,7 +15300,8 @@ function updateWax(dt) {
     // 쥔 채로 위아래로 훑으면 지나온 자리의 기록은 그대로 두고 새 칸을 잡는다(옮기면 깨진 자리에 왁스가 도로 붙어 버린다).
     if (WAX.cur >= 0 && Math.abs(ML.gy - u.uEvC.value[WAX.cur].y) > u.uEvR.value[WAX.cur].y * .55) beginWaxPress(ML.gy, ML.gh);
     if (WAX.cur >= 0) { const c = u.uEvC.value[WAX.cur]; c.w = Math.max(c.w, 2.3 * p + drag * .9); }
-    // 세게 쥐면 쥔 자리가 아니어도 껍질 곳곳이 견디지 못한다. 쥘 때마다 조금씩 더 약해진다.
+    // 같은 자리를 계속 쥐어도 실금이 퍼진다. 다시 누르는 횟수 대신 실제 압박 시간을 쌓는다.
+    WAX.floor = Math.min(1.2, WAX.floor + dt * .07 * smoothstep(.3, 1, p));
     WAX.base = Math.max(WAX.base, WAX.floor + .6 * smoothstep(.55, 1.05, p), WAX.cur < 0 ? p * .9 : 0);
     u.uBase.value = WAX.base;
   }
@@ -15784,7 +15789,7 @@ function beginHold(local) {
   ML.pullR = ML.gPart === 'head' ? .46 : ML.gPart === 'torso' ? .32 : .27;      // 머리는 통째로 딸려 오고 목이 늘어난다
   ML.p = Math.max(ML.p, .05);
   ML.eyeFirst = Math.random() < .5 ? 0 : 1;
-  ML.fear = Math.min(1, ML.fear + .3); ML.stats.squeezes++; addDamage(.3);
+  ML.fear = Math.min(1, ML.fear + .3); ML.stats.squeezes++; addDamage(.08);
   beginWaxPress(y, ML.gh); auGrab(); vib(12);
   if (!ML.firstTouch) { ML.firstTouch = true; hintEl.classList.remove('show'); }
 }
