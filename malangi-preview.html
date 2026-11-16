@@ -4766,13 +4766,18 @@ const HEAVY_WET = (() => {
   batch.count = 0;
   scene.add(batch);
 
-  // 0: 피 / 1: 침 / 2: 콧물
+  // 0: 피 / 1: 침 / 2: 콧물 / 3: 눈물 / 4: 오줌 / 5: 토(물) / 6: 토(건더기) — 3번부터는 말랑이 모드가 쓴다
   const colors = [
     col('#e41e3a'),
     col('#e3f4ff'),
-    col('#c8df91')
+    col('#c8df91'),
+    col('#8fd0ff'),
+    col('#f2d04a'),
+    col('#63c51c'),
+    col('#e0c95a')
   ];
-  const floorColors = ['#dc2540', '#a8d9ed', '#c3d78b'];
+  const floorColors = ['#dc2540', '#a8d9ed', '#c3d78b', '#9fd8ff', '#e6c64e', '#4e861b', '#b9a646'];
+  const floorAlpha = [0.8, 0.4, 0.4, 0.4, 0.45, 0.72, 0.7];
 
   const pool = Array.from({ length: MAX }, () => ({
     p: V3(),
@@ -5004,7 +5009,7 @@ const HEAVY_WET = (() => {
             p.p.z,
             p.size * 2.3,
             floorColors[p.kind],
-            p.kind === 0 ? 0.8 : 0.4
+            floorAlpha[p.kind]
           );
 
           if (
@@ -5054,7 +5059,7 @@ const HEAVY_WET = (() => {
     }
   }
 
-  return { hit, drip, update, clear };
+  return { hit, drip, update, clear, emit };
 })();
 
 
@@ -8951,6 +8956,31 @@ window.__api=Object.assign(window.__api,{queueCareReply,flipHandTarget,startSoci
       if(s.wet<=.001&&s.dirt<=.001){s.hits=0;clearDrops();}
       if(s.stains.length)paintStains(v,s);
       return Math.max(s.wet,s.dirt);
+    },
+    // 말랑이 모드: 쥐어짜서 지린 만큼 얼룩을 늘린다. 본편의 자동 번짐(peed·soiled)은 켜지 않는다.
+    soak(v, wet, dirt) {
+      if (!v) return null;
+      const s = state(v);
+      if (!s.stains.length) makeStains(v, s);
+      s.wet = Math.min(1, s.wet + Math.max(0, Number(wet) || 0));
+      s.dirt = Math.min(1, s.dirt + Math.max(0, Number(dirt) || 0));
+      if (s.stains.length) { followLegShape(v, s); paintStains(v, s); }
+      return [s.wet, s.dirt];
+    },
+    // 말랑이 모드: 본편에서 떨어지던 방울이 공중에 멈춰 있지 않게 이어서 떨어뜨린다.
+    tick(v, dt) {
+      if (active !== v) { clearDrops(); active = v; }
+      tickDrops(dt);
+    }
+  };
+  // 말랑이 모드: 얼굴 벌게짐·붉은 점·눈 핏발 값을 읽고 쓴다. 본편으로 돌아오면 본편이 이 값에서부터 가라앉힌다.
+  window.__SC_REACTION_API = {
+    get(v) { const s = state(v); return { flush: s.flush, spots: s.spots, blood: s.blood }; },
+    set(v, o) {
+      const s = state(v);
+      for (const k of ['flush', 'spots', 'blood']) if (Number.isFinite(o[k])) s[k] = clamp(o[k], 0, 1);
+      const faceKey = [s.flush, s.spots].map(x => Math.round(x * 40)).join(':');
+      if (faceKey !== s.faceKey) { s.faceKey = faceKey; v.faceDirty = true; }
     }
   };
   // 기존 pointerdown 다음에 실행: 줄넘기는 누르는 즉시 목 전용 잡기로 전환한다.
@@ -13517,8 +13547,20 @@ paintSplat(p.x, clamp(p.z, -1.55, 1.55), .16, '#4e861b', .92);
     event.stopImmediatePropagation();
   }, { capture: true, passive: false });
 
+  // 말랑이 모드: 쥐어짜는 만큼 덜어 내고(토하기), 본편 프레임이 돌지 않는 동안에도 배 모양이 따라가게 한다.
+  function drain(v, amount) {
+    if (!v) return 0;
+    const s = ensure(v), a = Math.min(s.fullness, Math.max(0, Number(amount) || 0));
+    s.fullness -= a;
+    return a;
+  }
+  function shape(v, dt) {
+    if (!v) return;
+    adopt(v);
+    shapeBody(v, ensure(v), Math.max(0, Number(dt) || 0));
+  }
   const api = window.__SC_FULLNESS_V1 = {
-    version: 'FULLNESS_V1', config: CFG, feed, busy, reset,
+    version: 'FULLNESS_V1', config: CFG, feed, busy, reset, drain, shape,
     inspect(v = G.v) {
       const s = v ? ensure(v) : null;
       return s ? { fullness: s.fullness, shown: s.shown, phase: s.phase, t: s.t } : null;
@@ -13987,15 +14029,23 @@ const ML = {
   // 살아 있는 반응
   pain: 0, fear: 0, tired: 0, flail: 0, burstT: 0, burstOn: true, spasm: 0, pant: 0, daze: 0, maxT: 0, faint: 0,
   blinkIn: 2.4, blink: 0, gaze: new T.Vector2(), sweatAcc: 0, tearAcc: 0, tearEye: 0, faceT: 0, lastGrunt: -9,
-  eyes: [{ out: false, e: 0, ev: 0, sx: 0, svx: 0, sy: 0, svy: 0, backAt: 0 }, { out: false, e: 0, ev: 0, sx: 0, svx: 0, sy: 0, svy: 0, backAt: 0 }],
+  eyes: [{ out: false, e: 0, ev: 0, sx: 0, svx: 0, sy: 0, svy: 0, backAt: 0, blood: 0, bloodKey: -1 }, { out: false, e: 0, ev: 0, sx: 0, svx: 0, sy: 0, svy: 0, backAt: 0, blood: 0, bloodKey: -1 }],
   gut: 0, gutV: 0, gutOut: false, eyeFirst: 0, events: [], landFx: 0, pokeV: 0, lastCrackPop: -9,
   // 왁스·도구
   showHands: true, waxColor: 0, waxLeft: 1, waxHead: 1, dip: -1, dipY: 0, stir: 0, stirIn: 2.2,
   firstTouch: false, fitKey: '', shake: 0,
+  // 누적 단계(본편과 같은 v.damage에서 읽는다): 눈물 물총·콧물·코피. 그리고 쥐어짜는 기세, 배부른 정도, 배에 든 양
+  sT: 0, sS: 0, sB: 0, wear: 0, q: 0, belly: 0, food: 0,
   stats: { frames: 0, ms: 0, maxMs: 0, pops: 0, guts: 0, cracks: 0, dips: 0, squeezes: 0 }
 };
 const WAX_COLORS = ['#c9a4f5', '#8fdcc9', '#ff9fb6', '#ffd23f'];
 const WAX_NAMES = ['보라', '민트', '분홍', '노랑'];
+/* 본편 쪽 상태(포만도·바지 얼룩·얼굴 벌게짐)에 닿는 창구. 없으면 그 기능만 빠진다. */
+const FULL = () => { const f = window.__SC_FULLNESS_V1; return f && f.drain && f.shape ? f : null; };
+const HYG = () => { const h = window.__SC_HYGIENE; return h && h.soak ? h : null; };
+const REACT = () => window.__SC_REACTION_API || null;
+/* 모드를 나갔다 와도 이어지는 몸속 사정(오줌통·똥통). 비우면 한동안 안 나오고, 먹인 게 있으면 빨리 찬다. */
+const TANK = { bladder: 1, bowel: 1 };
 
 /* 지금 외모에서 몸 각 부위가 어디쯤인지. 외모를 바꾸면 다시 잰다. */
 function measure() {
@@ -14005,7 +14055,7 @@ function measure() {
   M.headRy = HEAD_R * L.headH;
   M.top = M.headC + M.headRy + (['spiky', 'mohawk'].includes(L.style) ? .17 : .07);
   M.headHalf = v.surfacePoint(dirN(1, 0, 0)).x + .035;
-  M.torsoHalf = .285 * W;
+  M.H = H; M.torsoBase = .285 * W; M.torsoHalf = M.torsoBase * (1 + ML.belly * .35);
   M.legHalf = (['skirt'].includes(L.bottomStyle) || L.topStyle === 'dress' ? .30 : .2) * W;
   M.mouthY = M.headC + v.surfacePoint(v.mouthDir || dirN(0, L.mouthY, .9)).y;
 }
@@ -14020,6 +14070,17 @@ function halfWidth(y) {
   const head = ML.v.surfacePoint(_hw.set(Math.sqrt(1 - d * d), d, 0)).x + .035;
   return mix(mix(M.legHalf, M.torsoHalf, a), head, b);
 }
+/* 배부른 정도(본편 포만도)를 읽어 몸통 치수에 반영한다. 뚱뚱한 배는 겉을 쥐게 되고, 토해서 꺼지면 손도 따라 들어간다. */
+function readBelly(dt) {
+  const v = ML.v, F = FULL(), raw = window.__SC_FULLNESS_V1;
+  if (F) F.shape(v, dt);
+  const s = raw && raw.inspect ? raw.inspect(v) : null;
+  ML.belly = s ? sat(s.shown) : 0; ML.food = s ? Math.max(0, s.fullness) : 0;
+  if (ML.dim) ML.dim.torsoHalf = ML.dim.torsoBase * (1 + ML.belly * .35);
+}
+/* 쥔 높이가 아랫배(골반 바로 위아래)인 정도, 배·가슴인 정도. */
+function lowZone(y) { const M = ML.dim, H = M.H; return smoothstep(M.hip + .22 * H, M.hip + .1 * H, y) * smoothstep(M.hip - .17 * H, M.hip - .07 * H, y); }
+function bellyZone(y) { const M = ML.dim, H = M.H; return smoothstep(M.hip + .1 * H, M.hip + .22 * H, y) * (1 - smoothstep(M.neck - .1 * H, M.neck + .03 * H, y)); }
 
 /* ---- ml-10-deform.js ---- */
 /* ===== 말랑 변형 =====
@@ -14301,7 +14362,7 @@ function applyRig(dt) {
 }
 
 /* ===== 살아 있는 반응: 표정 ===== */
-const FACE = { open: .9, pup: 1, px: 0, py: 0, browR: 0, browY: 0, tint: 0 };
+const FACE = { open: .9, pup: 1, px: 0, py: 0, browR: 0, browY: 0, tint: 0, carry: 0 };
 function driveFace(dt) {
   const v = ML.v, T0 = ML.time, L = v.look, p = Math.max(0, ML.p), pressing = ML.holding && ML.dip < 0;
   const popped = ML.eyes[0].e > .5 || ML.eyes[1].e > .5;
@@ -14337,6 +14398,11 @@ function driveFace(dt) {
   } else if (ML.pain > .3) {
     open = .62; browR = -.45; browY = .01; mouth = { open: .12, smile: -.75, smirk: 0, wide: .85 }; shape = 'frown';
   }
+  if (FL.vomit.flow > .6) {            // 토하는 동안: 눈을 질끈 감고 입을 있는 대로 벌린다
+    const k = sat(FL.vomit.flow / 6);
+    open = mix(open, .06, k); browR = mix(browR, .5, k); browY = mix(browY, -.02, k);
+    mouth = { open: 1, smile: -.7, smirk: 0, wide: 1 + .08 * Math.sin(T0 * 21) }; shape = 'o';
+  }
   open *= 1 - blinking;
   if (popped) { const awake = 1 - ML.faint; open = 1; pup = mix(.62, .46, awake); px = Math.sin(T0 * 33) * .012 * awake; py = Math.cos(T0 * 29) * .012 * awake + .016 * ML.faint; }
   const k = 1 - Math.exp(-22 * dt);
@@ -14359,13 +14425,15 @@ function driveFace(dt) {
   const teethKey = v.upper.join('') + v.lower.join('') + (v.lipBlood > .15 ? 1 : 0);
   if (Math.abs(after - before) > .002 || teethKey !== v.teethKey || M.shape !== v.mouthDrawShape) { v.teethKey = teethKey; v.mouthDrawShape = M.shape; v.paintMouth(); }
   // 얼굴이 벌게진다: 볼터치(얼굴 그림) + 살색 자체
-  const tintWant = pressing ? sat(Math.pow(p, 1.3) * .95) : ML.pain * .35;
+  FACE.carry = Math.max(0, FACE.carry - dt * .4);      // 본편에서 벌게진 채로 넘어온 몫은 서서히 가라앉는다
+  const tintWant = Math.max(pressing ? sat(Math.pow(p, 1.3) * .95) : ML.pain * .35, .3 * ML.wear, FACE.carry);      // 누적이 쌓인 만큼은 평소에도 벌겋다
   FACE.tint = damp(FACE.tint, tintWant, pressing ? 6 : 1.6, dt);
   applyTint(FACE.tint, ML.gut);
   const blush = sat(FACE.tint * 1.2);
   if (Math.abs(blush - v.blush) > .04) { v.blush = blush; v.faceDirty = true; }
   // 눈물
-  const tearWant = ML.pain > .62 ? .9 : ML.pain > .36 ? .45 : 0;
+  // 아프면 고여서 떨어지는 건 그대로. 누적이 쌓인 뒤에는 쥘 때마다 물총처럼 뻗는다(뻗는 방울은 emitFluids가 낸다).
+  const tearWant = Math.max(ML.pain > .62 ? .9 : ML.pain > .36 ? .45 : 0, pressing ? ML.sT * sat(p * 1.4) : 0);
   v.tear = damp(v.tear, tearWant, tearWant > v.tear ? 1.6 : .35, dt);
   if (Math.abs(v.tear - (v._tearPainted ?? -1)) > .012) { v._tearPainted = v.tear; v.faceDirty = true; }
   if (v.tear > .3 && ML.waxHead < .5) {
@@ -14459,6 +14527,7 @@ function buildEyeExtras(v) {
   EX.v = v;
   EX.socketMat = EX.socketMat || mat('#5e1c2c', { roughness: .6 });
   EX.stalkMat = EX.stalkMat || mat('#f08b97', { roughness: .3 });
+  EX.socketMat.userData.shared = EX.stalkMat.userData.shared = true;      // 캐릭터를 갈아도 계속 쓰는 재질
   for (const e of v.eyes) {
     const sock = mesh(new T.SphereGeometry(.055, 18, 12), EX.socketMat, v.headMesh, false);
     sock.scale.set(1, 1.05, .3); sock.visible = false; sock.userData.mlExtra = true; orient(sock, e.d, V3(0, 1, 0));
@@ -14571,6 +14640,388 @@ function stepGut(dt) {
   });
 }
 
+/* ---- ml-33-eyeblood.js ---- */
+/* ===== 눈 핏발 =====
+ * 흰자에 그림 한 장을 입혀, 눈알이 튀어나오는 동안 가장자리에서 눈동자 쪽으로 핏줄이 뻗어 들어오게 한다.
+ * 놓아도 한동안 벌겋고, 누적이 쌓여 있으면 평소에도 그만큼 충혈돼 있다.
+ * 그림은 눈알 공에 그대로 감기는 펼친 지도다(가로 = 둘레 한 바퀴, 정면이 가로 1/4 지점). */
+const EYEB = { v: null, tex: [], veins: [], prev: [], haze: null, turn: 0, W: 512, H: 256, white: new T.Color(1, 1, 1), pink: col('#ff8a90') };
+/* az: 정면을 보는 축 둘레의 각, pol: 정면에서 벌어진 각 → 그림 좌표 */
+function eyeMapXY(az, pol, out) {
+  const sp = Math.sin(pol), x = sp * Math.cos(az), y = sp * Math.sin(az), z = Math.cos(pol);
+  let u = Math.atan2(z, -x) / TAU; if (u < 0) u += 1;
+  out[0] = u * EYEB.W; out[1] = Math.acos(clamp(y, -1, 1)) / PI * EYEB.H;
+  return out;
+}
+/* 핏줄 길: 눈알 뒤쪽에서 시작해 눈동자 가까이까지 구불구불 들어온다. 곁가지가 한두 개 붙는다. */
+function makeVeins(seed) {
+  let s = seed >>> 0;
+  const R = () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
+  const list = [], N = 17, xy = [0, 0];
+  const unwrap = pts => { for (let k = 2; k < pts.length; k += 2) { while (pts[k] - pts[k - 2] > EYEB.W / 2) pts[k] -= EYEB.W; while (pts[k] - pts[k - 2] < -EYEB.W / 2) pts[k] += EYEB.W; } return pts; };
+  // 그림 이음매(가로 끝)를 넘는 길은 반대쪽에도 한 번 더 그려야 한다. 필요한 쪽만 적어 둔다.
+  const sides = pts => { let lo = 1e9, hi = -1e9; for (let k = 0; k < pts.length; k += 2) { lo = Math.min(lo, pts[k]); hi = Math.max(hi, pts[k]); } return [-EYEB.W, 0, EYEB.W].filter(o => hi + o >= -6 && lo + o <= EYEB.W + 6); };
+  for (let i = 0; i < N; i++) {
+    let az = (i + R() * .8) / N * TAU;
+    const end = .3 + R() * .32, w = 2.1 + R() * 2, born = R() * .35, steps = 15, trail = [], pts = [];
+    for (let k = 0; k <= steps; k++) { az += (R() - .5) * .2; const pol = mix(1.75, end, k / steps); trail.push(az, pol); eyeMapXY(az, pol, xy); pts.push(xy[0], xy[1]); }
+    unwrap(pts); list.push({ pts, w, born, offs: sides(pts) });
+    const n = 1 + (R() < .6 ? 1 : 0);
+    for (let b = 0; b < n; b++) {
+      const k0 = 4 + ((R() * 8) | 0), turn = (R() < .5 ? -1 : 1) * (.05 + R() * .05), bp = [];
+      let a = trail[k0 * 2], pol = trail[k0 * 2 + 1];
+      for (let k = 0; k <= 6; k++) { eyeMapXY(a, pol, xy); bp.push(xy[0], xy[1]); a += turn + (R() - .5) * .06; pol -= .045 + R() * .03; }
+      unwrap(bp); list.push({ pts: bp, w: w * .55, born: born + (k0 / steps) * .5 + .1, offs: sides(bp) });
+    }
+  }
+  return list;
+}
+/* 눈동자에서 멀수록 진해지는 붉은 기. 한 번만 만든다. */
+function eyeHaze() {
+  if (EYEB.haze) return EYEB.haze;
+  const c = document.createElement('canvas'); c.width = 128; c.height = 64;
+  const g = c.getContext('2d'), im = g.createImageData(128, 64), d = im.data;
+  for (let y = 0; y < 64; y++) for (let x = 0; x < 128; x++) {
+    const phi = (x + .5) / 128 * TAU, th = (y + .5) / 64 * PI, z = Math.sin(phi) * Math.sin(th);     // z: 정면 쪽 성분
+    const a = smoothstep(.62, 1.75, Math.acos(clamp(z, -1, 1))), k = (y * 128 + x) * 4;
+    d[k] = 226; d[k + 1] = 44; d[k + 2] = 66; d[k + 3] = Math.round(255 * (.1 + .9 * a));
+  }
+  g.putImageData(im, 0, 0);
+  return (EYEB.haze = c);
+}
+function paintEyeBlood(i, level) {
+  const t = EYEB.tex[i], g = t.g, W = EYEB.W, H = EYEB.H;
+  g.globalAlpha = 1; g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H);
+  if (level > .01) {
+    g.globalAlpha = Math.min(1, level * .85); g.imageSmoothingEnabled = true; g.drawImage(eyeHaze(), 0, 0, W, H); g.globalAlpha = 1;
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    for (const vn of EYEB.veins[i]) {
+      const grow = sat((level - vn.born * .3) / .42); if (grow <= .02) continue;
+      const pts = vn.pts, n = pts.length / 2, upto = grow * (n - 1), whole = Math.floor(upto), part = upto - whole;
+      g.strokeStyle = `rgba(190,18,44,${(.5 + .45 * level).toFixed(3)})`; g.lineWidth = vn.w * (.75 + .55 * level);
+      for (const off of vn.offs) {
+        g.beginPath(); g.moveTo(pts[0] + off, pts[1]);
+        for (let k = 1; k <= whole; k++) g.lineTo(pts[k * 2] + off, pts[k * 2 + 1]);
+        if (whole < n - 1 && part > .01) g.lineTo(mix(pts[whole * 2], pts[whole * 2 + 2], part) + off, mix(pts[whole * 2 + 1], pts[whole * 2 + 3], part));
+        g.stroke();
+      }
+    }
+  }
+  t.t.needsUpdate = true;
+}
+function buildEyeBlood(v) {
+  removeEyeBlood();
+  EYEB.v = v;
+  v.eyes.forEach((e, i) => {
+    if (!EYEB.tex[i]) { const t = canvasTex(EYEB.W, EYEB.H); t.t.userData = Object.assign(t.t.userData || {}, { shared: true }); EYEB.tex[i] = t; EYEB.veins[i] = makeVeins(7919 * (i + 1) + 31); }
+    const m = e.white.material;
+    EYEB.prev[i] = m.map && m.map !== EYEB.tex[i].t ? m.map : null;
+    m.map = EYEB.tex[i].t; m.needsUpdate = true;
+    ML.eyes[i].bloodKey = -1;
+  });
+}
+function removeEyeBlood() {
+  const v = EYEB.v; EYEB.v = null;
+  if (!v || !v.eyes) return;
+  v.eyes.forEach((e, i) => {
+    const m = e.white.material;
+    if (EYEB.tex[i] && m.map === EYEB.tex[i].t) { m.map = EYEB.prev[i] || null; m.needsUpdate = true; }
+    m.color.copy(EYEB.white);
+  });
+}
+function driveEyeBlood() {
+  const v = ML.v; if (!v || EYEB.v !== v) return;
+  EYEB.turn ^= 1;      // 한 프레임에 한쪽 눈만 다시 그린다. 차례는 프레임마다 바꾼다(그릴 게 있을 때만 바꾸면 두 눈이 서로 기다리다 영영 안 그려진다).
+  v.eyes.forEach((e, i) => {
+    const st = ML.eyes[i], level = sat(st.blood), key = Math.round(level * 16);
+    if (key !== st.bloodKey && (i === EYEB.turn || st.bloodKey < 0)) { st.bloodKey = key; paintEyeBlood(i, key / 16); }
+    e.white.material.color.copy(EYEB.white).lerp(EYEB.pink, level * .28);
+  });
+}
+
+/* ---- ml-34-snot.js ---- */
+/* ===== 콧물 =====
+ * 콧구멍마다 한 가닥. 쥐면 쭉 쏘아져 나와 덜렁거리고, 놓으면 눈알·내장처럼 도로 빨려 들어간다. */
+const SNOT_N = 7;
+const SNOT = [0, 1].map(() => ({ out: false, x: 0, v: 0, len: .2, backAt: 0, live: false, mesh: null, P: [], Q: [] }));
+function buildSnot() {
+  if (SNOT[0].mesh) return;
+  const m = new T.MeshStandardMaterial({ color: col('#b4d868'), roughness: .05, transparent: true, opacity: .8 });
+  m.userData.shared = true;
+  for (const s of SNOT) {
+    s.mesh = makeTube(scene, m, 18, 7); s.mesh.visible = false; s.mesh.castShadow = false; s.mesh.renderOrder = 2;
+    for (let i = 0; i < SNOT_N; i++) { s.P.push(V3()); s.Q.push(V3()); }
+  }
+}
+function hideSnot() { for (const s of SNOT) { s.out = false; s.x = 0; s.v = 0; s.live = false; if (s.mesh) s.mesh.visible = false; } }
+/* 마디 사이를 부드럽게 잇는 곡선(캣멀롬). */
+function curveAt(P, last, t, o) {
+  const f = t * last, i = Math.min(last - 1, Math.floor(f)), u = f - i;
+  const p0 = P[Math.max(0, i - 1)], p1 = P[i], p2 = P[i + 1], p3 = P[Math.min(last, i + 2)], u2 = u * u, u3 = u2 * u;
+  return o.set(
+    .5 * (2 * p1.x + (p2.x - p0.x) * u + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * u2 + (3 * p1.x - p0.x - 3 * p2.x + p3.x) * u3),
+    .5 * (2 * p1.y + (p2.y - p0.y) * u + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * u2 + (3 * p1.y - p0.y - 3 * p2.y + p3.y) * u3),
+    .5 * (2 * p1.z + (p2.z - p0.z) * u + (2 * p0.z - 5 * p1.z + 4 * p2.z - p3.z) * u2 + (3 * p1.z - p0.z - 3 * p2.z + p3.z) * u3));
+}
+const _sA = V3(), _sB = V3(), _sH = V3(), _sF = V3();
+function stepSnot(dt) {
+  const v = ML.v;
+  if (!SNOT[0].mesh) return;
+  if (SNOT[0].x < .02 && SNOT[1].x < .02) { for (const s of SNOT) if (s.live) { s.live = false; s.mesh.visible = false; } return; }
+  v.headMesh.getWorldDirection(_sF);
+  deformWorld(_sH.set(0, ML.dim.headC, 0).applyMatrix4(U.mlFwd.value));
+  const hr = (ML.dim.headRy + .012) * (1 + Math.max(0, ML.p) * .2), h = Math.min(dt, 1 / 40), drag = Math.exp(-2.6 * h);
+  SNOT.forEach((s, i) => {
+    const g = clamp(s.x, 0, 1.25), side = i ? 1 : -1;
+    if (g < .02) { if (s.live) { s.live = false; s.mesh.visible = false; } return; }
+    const A = deformWorld(v.noseM.localToWorld(_sA.set(side * .022, -.04, .03)));
+    const P = s.P, Q = s.Q, n = SNOT_N, seg = s.len * g / (n - 1);
+    if (!s.live) {      // 처음엔 콧구멍에서 앞으로 쏘아져 나온다
+      s.live = true;
+      for (let k = 0; k < n; k++) { P[k].copy(A).addScaledVector(_sF, k * .004); Q[k].copy(P[k]).addScaledVector(_sF, -.035 * k / n); Q[k].y += .014 * k / n; }
+    }
+    P[0].copy(A);
+    for (let k = 1; k < n; k++) { _sB.subVectors(P[k], Q[k]).multiplyScalar(drag); Q[k].copy(P[k]); P[k].add(_sB); P[k].y -= 4.4 * h * h; }
+    for (let it = 0; it < 4; it++) {
+      for (let k = 1; k < n; k++) {
+        _sB.subVectors(P[k], P[k - 1]); const d = _sB.length() || 1e-6, c = (d - seg) / d;
+        if (k === 1) P[k].addScaledVector(_sB, -c); else { P[k].addScaledVector(_sB, -c * .5); P[k - 1].addScaledVector(_sB, c * .5); }
+      }
+      _sB.copy(A).addScaledVector(_sF, seg * .7); _sB.y -= seg * .7; P[1].lerp(_sB, .5);      // 첫 마디는 콧구멍에서 앞·아래로
+      for (let k = 2; k < n; k++) {
+        _sB.subVectors(P[k], _sH); const d = _sB.length();
+        if (d < hr) P[k].addScaledVector(_sB, (hr - d) / (d || 1e-6));
+        if (P[k].y < .02) P[k].y = .02;
+      }
+      P[0].copy(A);
+    }
+    s.mesh.visible = true;
+    const last = n - 1, thick = mix(.7, 1, sat(g));
+    updateTube(s.mesh, (t, o) => curveAt(P, last, t, o), t => {
+      const bulb = smooth((t - .74) / .2), tip = Math.sqrt(Math.max(0, 1 - Math.pow(Math.max(0, (t - .93) / .07), 2)));
+      return (.0095 + .003 * t + .014 * bulb) * Math.max(.06, tip) * thick * (1 + .08 * Math.sin(t * 30 + ML.time * 6 + i));
+    });
+  });
+}
+
+/* ---- ml-35-body.js ---- */
+/* ===== 몸에서 나오는 것들 =====
+ * 눈물 물총 → 콧물 → 코피는 누적 데미지(본편과 같은 v.damage)에 따라 차례로 풀린다. 손보기에서 패 놓고 오면 처음부터 뿜는다.
+ * 토는 먹인 게 있을 때 배를 쥐면 쥐는 만큼, 오줌·방귀·똥은 아랫배를 쥔 채 비비면 차례로 나온다.
+ * 방울은 본편의 대량 액체 묶음(HEAVY_WET)에 실어 보내므로 바닥 자국도 본편 것이 그대로 남는다. */
+const WET = { BLOOD: 0, SNOT: 2, TEAR: 3, PEE: 4, VOMIT: 5, CHUNK: 6 };
+const FL = {
+  tearAcc: [0, 0], bloodAcc: 0, bloodSide: 1, bled: 0, dripAcc: 0, snotAcc: 0, nosePainted: -1, spotsSent: 0,
+  vomit: { flow: 0, acc: 0, on: false, block: false, lurch: 0 },
+  low: { urge: 0, rub: 0, dx: 0, dy: 0, pee: 0, peeAcc: 0, wetAcc: 0, peeing: false, farts: 0, poopAcc: 0, poops: 0, stained: false }
+};
+function resetFluids() {
+  FL.tearAcc[0] = FL.tearAcc[1] = 0; FL.bloodAcc = 0; FL.bled = 0; FL.dripAcc = 0; FL.snotAcc = 0; FL.nosePainted = -1;
+  Object.assign(FL.vomit, { flow: 0, acc: 0, on: false, block: false, lurch: 0 });
+  Object.assign(FL.low, { urge: 0, rub: 0, dx: 0, dy: 0, pee: 0, peeAcc: 0, wetAcc: 0, peeing: false, farts: 0, poopAcc: 0, poops: 0, stained: false });
+  hideSnot(); clearFarts();
+}
+/* 말랑이에서 쌓이는 데미지는 본편의 쓰러지는 선 아래에서 멈춘다. 그 위는 손보기에서 맞아야만 올라간다. */
+function damageCap() { const c = window.__SC_FATIGUE_V1 && window.__SC_FATIGUE_V1.config; return ((c && c.collapseAt) || 180) * .8; }
+function addDamage(x) {
+  const v = ML.v; if (!v || !(x > 0)) return;
+  const D = Math.max(0, Number(v.damage) || 0), cap = damageCap();
+  if (D < cap) v.damage = Math.min(cap, D + x);
+}
+
+/* 한 걸음 분량. simulate()가 잘게 쪼갠 dt로 부른다. 방울을 실제로 내보내는 건 자세가 정해진 뒤 emitFluids()가 한다. */
+function stepBody(dt, pressing) {
+  const v = ML.v, p = Math.max(0, ML.p);
+  // 누적: 세게 쥐고 있는 만큼 쌓인다. 왁스가 덮여 있으면 덜 쌓인다.
+  if (pressing) addDamage(dt * 1.5 * smoothstep(.3, 1, p) * mix(1, .5, sat(ML.waxLeft * 1.2)));
+  const D = Math.max(0, Number(v.damage) || 0);
+  ML.sT = smoothstep(8, 14, D); ML.sS = smoothstep(15, 19, D);
+  ML.sB = Math.max(smoothstep(31, 36, D), sat(((v.noseBlood || 0) - .06) * 1.4));
+  ML.wear = sat(D / 45);
+  ML.q = damp(ML.q, pressing ? sat(ML.pv / 2.4) : 0, 20, dt);      // 쥐어짜는 기세: 세기가 빠르게 올라가는 순간에만 선다
+  // 눈 핏발: 튀어나와 있으면 끝까지, 불거지는 동안엔 살짝. 들어가면 몇 초에 걸쳐 가라앉아, 다음에 튀어나올 때 다시 번져 오는 게 보인다.
+  const bulge = smoothstep(.2, .5, p) * (1 - ML.waxHead);
+  for (const e of ML.eyes) { const want = e.out ? 1 : Math.max(.5 * ML.wear, bulge * .3); e.blood = damp(e.blood, want, want > e.blood ? (e.out ? 2.2 : 1) : .45, dt); }
+  // 콧물: 얼굴 왁스가 벗겨진 뒤에만
+  const canPop = ML.waxHead < .45;
+  SNOT.forEach((s, i) => {
+    if (pressing && !s.out && canPop && ML.sS > .02 && p > .5 + i * .07) { s.out = true; s.v += 7; s.len = (.13 + .25 * ML.sS) * rand(.82, 1.18); ML.events.push(['snot', i]); }
+    if (!pressing && s.out && ML.sinceRelease > s.backAt) { s.out = false; ML.events.push(['sniff', i]); }
+    if (s.out && pressing) s.len = Math.min(.48, s.len + dt * .035 * p);      // 쥐고 있는 동안 조금씩 더 늘어진다
+    spring(s, 'x', 'v', s.out ? 1 : 0, s.out ? 80 : 150, s.out ? 8 : 16, dt); s.x = clamp(s.x, 0, 1.3);
+  });
+  // 토: 배에 든 게 있을 때 배(가슴까지)를 쥐면 쥐는 만큼 나오고, 나온 만큼 포만도가 준다
+  const V = FL.vomit, F = FULL(), belly = pressing ? bellyZone(ML.gy) : 0;
+  let flow = 0;
+  if (F && ML.food > .4 && belly > .05) flow = belly * smoothstep(.42, .95, p) * (9 + 30 * sat(ML.food / 45));
+  V.flow = damp(V.flow, flow, flow > V.flow ? 10 : 16, dt);
+  V.block = !!F && pressing && ML.food > 1.5 && belly > .3;          // 토할 게 남아 있는 동안은 내장이 못 나온다
+  if (F && V.flow > .3) {
+    const out = F.drain(v, V.flow * dt); ML.food = Math.max(0, ML.food - out); V.acc = Math.min(40, V.acc + out * 4.5);
+    if (!V.on) { V.on = true; V.lurch = rand(.35, .5); ML.events.push(['vomit', 1]); }
+    V.lurch -= dt; if (V.lurch <= 0) { V.lurch = rand(.42, .64); ML.events.push(['retch', 0]); }
+  } else if (V.on && V.flow < .15) V.on = false;
+  // 아랫배: 쥔 채 비빈 만큼 마려움이 찬다 → 오줌 → 방귀 → 똥
+  const L = FL.low, lz = pressing ? lowZone(ML.gy) : 0;
+  if (pressing) { L.rub = damp(L.rub, Math.hypot(ML.dragW.x - L.dx, ML.dragW.y - L.dy) / dt, 12, dt); L.dx = ML.dragW.x; L.dy = ML.dragW.y; }
+  else { L.rub = 0; L.dx = L.dy = 0; }
+  if (lz > .05) L.urge = Math.min(4.6, L.urge + dt * lz * (.55 * smoothstep(.3, 1, p) + Math.min(1.2, L.rub * .6)));
+  else L.urge = Math.max(0, L.urge - dt * (pressing ? .15 : .3));
+  let pee = 0;
+  if (lz > .05 && L.urge > .5 && TANK.bladder > (L.peeing ? 0 : .12)) pee = lz * (.25 + .75 * smoothstep(.3, 1, p)) * sat((L.urge - .5) * 2.5);
+  L.pee = damp(L.pee, pee, pee > L.pee ? 12 : 5, dt);              // 놓아도 잠깐은 찔끔찔끔 샌다
+  if (L.pee > .03 && TANK.bladder > 0) {
+    TANK.bladder = Math.max(0, TANK.bladder - L.pee * dt * .2);
+    L.peeAcc = Math.min(30, L.peeAcc + L.pee * dt * 130); L.wetAcc += L.pee * dt * .28;
+    if (!L.peeing) { L.peeing = true; ML.events.push(['pee', 1]); }
+  } else {
+    L.peeing = false;
+    if (L.pee <= .03) TANK.bladder = Math.min(1, TANK.bladder + dt * (ML.food > 10 ? .06 : .035));
+  }
+  if (L.urge < 1.2) L.farts = 0;
+  if (lz > .05 && L.farts < 2 && L.urge >= (L.farts ? 2.8 : 2)) { L.farts++; ML.events.push(['fart', L.farts]); }
+  if (lz > .05 && L.urge >= 3.6 && TANK.bowel > .02) {
+    L.poopAcc += dt * (1.6 + 2.2 * smoothstep(.4, 1, p));
+    while (L.poopAcc >= 1 && TANK.bowel > .02) { L.poopAcc -= 1; TANK.bowel = Math.max(0, TANK.bowel - .1); ML.events.push(['poop', L.poops++]); }
+  } else {
+    L.poopAcc = Math.min(L.poopAcc, .7);
+    if (lz <= .05) { L.poops = 0; TANK.bowel = Math.min(1, TANK.bowel + dt * (ML.food > 10 ? .04 : .012)); }
+  }
+}
+
+/* 한 프레임에 한 번, 자세와 찌그러짐이 정해진 뒤에 방울을 내보낸다. */
+const _fq = new T.Quaternion(), _fp = V3(), _fd = V3(), _fv = V3(), _fu = V3();
+function emitFluids(dt) {
+  const v = ML.v, p = Math.max(0, ML.p), q = ML.q, pressing = ML.holding && ML.dip < 0, faceOpen = ML.waxHead < .5, M = ML.dim;
+  v.headMesh.getWorldQuaternion(_fq);
+  // 눈물 물총: 쥐는 순간 확 뿜고, 꽉 쥐고 있는 동안은 줄줄
+  const jet = faceOpen && pressing ? ML.sT : 0;
+  if (jet > .02) {
+    const rate = jet * (170 * q * sat(.4 + p) + 62 * smoothstep(.55, 1, p));
+    v.eyes.forEach((e, i) => {
+      FL.tearAcc[i] = Math.min(16, FL.tearAcc[i] + rate * dt);
+      let n = FL.tearAcc[i] | 0; if (!n) return;
+      FL.tearAcc[i] -= n;
+      // 눈꼬리 아래에서 바깥·위·앞으로 한 줄기. 눈알이 나와 있으면 눈구멍 바깥 가장자리에서 옆으로 뿜는다.
+      const popped = ML.eyes[i].e > .5 && !!EX.sockets[i];
+      if (popped) EX.sockets[i].getWorldPosition(_fp); else e.g.localToWorld(_fp.set(e.s * .035, -.03, .04));
+      deformWorld(_fp);
+      const ax = e.s * (popped ? .95 : .72), ay = .5 + .12 * Math.sin(ML.time * 7 + i * 2), az = popped ? .42 : .7;      // 줄기가 살아 있는 것처럼 조준이 살짝 흔들린다
+      if (popped) _fp.addScaledVector(_fd.set(ax, ay, az).normalize().applyQuaternion(_fq), .07);
+      for (; n > 0; n--) {
+        _fd.set(ax + rand(-.09, .09), ay + rand(-.09, .09), az + rand(-.09, .09)).normalize().applyQuaternion(_fq);
+        _fv.copy(_fd).multiplyScalar((1.5 + 1.3 * p + 1.6 * q) * rand(.93, 1.07));
+        HEAVY_WET.emit(_fu.copy(_fp).addScaledVector(_fv, rand(0, dt)), _fv, WET.TEAR, rand(.011, .017), rand(2.6, 3.8));
+      }
+    });
+  } else FL.tearAcc[0] = FL.tearAcc[1] = 0;
+  // 코피: 콧구멍 두 줄기
+  const B = faceOpen ? ML.sB : 0;
+  if (B > .02 && pressing) {
+    FL.bloodAcc = Math.min(16, FL.bloodAcc + B * (150 * q * sat(.4 + p) + 60 * smoothstep(.5, 1, p)) * dt);
+    for (let n = FL.bloodAcc | 0; n > 0; n--) {
+      FL.bloodAcc -= 1; FL.bled++;
+      const s = (FL.bloodSide = -FL.bloodSide);
+      deformWorld(v.noseM.localToWorld(_fp.set(s * .022, -.045, .032)));
+      _fd.set(s * (.16 + rand(-.06, .06)), -.5 + rand(-.1, .1), .85 + rand(-.08, .08)).normalize().applyQuaternion(_fq);
+      _fv.copy(_fd).multiplyScalar((1.1 + 1.3 * p + 1.4 * q) * rand(.93, 1.07));
+      HEAVY_WET.emit(_fp.addScaledVector(_fv, rand(0, dt)), _fv, WET.BLOOD, rand(.01, .016) * (1 + .3 * B), rand(2.4, 3.4));
+    }
+  } else if (!pressing && faceOpen && (v.noseBlood || 0) > .12) {      // 놓여 있을 때: 이미 난 코피는 뚝뚝 떨어진다
+    FL.dripAcc += dt * v.noseBlood * 3;
+    while (FL.dripAcc >= 1) {
+      FL.dripAcc -= 1;
+      const s = (FL.bloodSide = -FL.bloodSide);
+      deformWorld(v.noseM.localToWorld(_fp.set(s * .022, -.05, .03)));
+      HEAVY_WET.emit(_fp, _fv.set(rand(-.08, .08), rand(-.5, -.2), rand(.12, .3)), WET.BLOOD, rand(.007, .012), 1.25);
+    }
+  }
+  // 콧물 방울: 가닥이 쏘아져 나오는 순간(세기가 확 오를 때) 콧구멍에서 같이 튄다
+  const snotty = faceOpen && pressing ? ML.sS : 0;
+  if (snotty > .02 && q > .05) {
+    FL.snotAcc = Math.min(10, FL.snotAcc + snotty * 70 * q * sat(.4 + p) * dt);
+    for (let n = FL.snotAcc | 0; n > 0; n--) {
+      FL.snotAcc -= 1;
+      const s = (FL.bloodSide = -FL.bloodSide);
+      deformWorld(v.noseM.localToWorld(_fp.set(s * .022, -.045, .032)));
+      _fd.set(s * (.2 + rand(-.1, .1)), -.35 + rand(-.15, .15), .9).normalize().applyQuaternion(_fq);
+      _fv.copy(_fd).multiplyScalar((.9 + 1.2 * p + 1.2 * q) * rand(.85, 1.1));
+      HEAVY_WET.emit(_fp, _fv, WET.SNOT, rand(.008, .013), rand(2.2, 3.4));
+    }
+  } else FL.snotAcc = 0;
+  if (FL.bled) {      // 뿜은 만큼 코 밑에 피가 남는다(본편과 같은 코피 값이라 다른 모드에서도 보인다)
+    v.noseBlood = Math.min(.85, (v.noseBlood || 0) + FL.bled * .0016); FL.bled = 0;
+    if (Math.abs(v.noseBlood - FL.nosePainted) > .03) { FL.nosePainted = v.noseBlood; v.faceDirty = true; }
+  }
+  // 많이 쌓이면 볼에 붉은 점이 돋는다(본편 줄넘기 때와 같은 것). 돌아가면 본편이 천천히 가라앉힌다.
+  const R = REACT(), spots = smoothstep(.5, 1, ML.wear) * .8;
+  if (R && spots > FL.spotsSent + .04) { FL.spotsSent = spots; R.set(v, { spots: Math.max(spots, R.get(v).spots) }); }
+  // 토: 입에서 앞으로
+  const V = FL.vomit;
+  let n = Math.min(14, V.acc | 0);
+  if (n) {
+    V.acc -= n;
+    v.headMesh.getWorldDirection(_fu);
+    deformWorld(_fp.copy(v.mouthWorld())).addScaledVector(_fu, .015);
+    for (; n > 0; n--) {
+      const chunk = Math.random() < .16, spread = chunk ? .34 : .16;
+      _fv.copy(_fu).multiplyScalar((chunk ? rand(1, 1.6) : rand(1.35, 2.05)) * (.7 + .5 * p));      // 발 앞 바닥에 고이게, 너무 멀리 뻗지는 않는다
+      _fv.x += rand(-spread, spread); _fv.y += rand(-.55, .05); _fv.z += rand(-spread * .4, spread * .4);
+      HEAVY_WET.emit(_fd.copy(_fp).addScaledVector(_fv, rand(0, dt)), _fv, chunk ? WET.CHUNK : WET.VOMIT, chunk ? rand(.014, .024) : rand(.016, .03), chunk ? rand(.9, 1.3) : rand(2.4, 4));
+    }
+  }
+  // 오줌: 가랑이에서 앞으로 포물선. 싼 만큼 바지가 젖는다(본편 바지 얼룩).
+  const L = FL.low;
+  n = Math.min(12, L.peeAcc | 0);
+  if (n) {
+    L.peeAcc -= n;
+    // 쥔 손이 가랑이를 덮고 있으므로, 손이 보일 때는 손가락 앞에서 줄기가 삐져나오게 한다
+    deformLocal(_fp.set(0, M.hip - .015 * M.H, depthRadius(M.hip) * .95 + (ML.showHands && pressing ? .085 : .015))).applyMatrix4(U.mlFwd.value);
+    v.root.getWorldQuaternion(_fq);
+    const sway = Math.sin(ML.time * 9) * .09;
+    for (; n > 0; n--) {
+      _fd.set(rand(-.07, .07) + sway, rand(.3, .55), 1).normalize().applyQuaternion(_fq);
+      _fv.copy(_fd).multiplyScalar((1.2 + 1.7 * L.pee * (.5 + .5 * p)) * rand(.92, 1.08));
+      HEAVY_WET.emit(_fu.copy(_fp).addScaledVector(_fv, rand(0, dt)), _fv, WET.PEE, rand(.01, .015), rand(2.6, 3.6));
+    }
+  }
+  if (L.wetAcc > .015) { soakPants(L.wetAcc, 0); L.wetAcc = 0; }
+}
+/* 바지 얼룩은 본편 것을 그대로 쓴다. 얼룩 겹은 처음 생길 때 만들어지므로, 그때 찌그러짐 셰이더를 다시 심는다. */
+function soakPants(wet, dirt) {
+  const H = HYG(); if (!H) return;
+  H.soak(ML.v, wet, dirt);
+  if (!FL.low.stained) { FL.low.stained = true; patchCharacter(ML.v); }
+}
+/* 방귀 구름. 본편 연기 그림을 누르스름하게 물들여 따로 띄운다(본편 연기 묶음을 물들이면 그쪽 먼지까지 누레진다). */
+const FARTS = { live: [], pool: [] };
+function fartCloud(at, n) {
+  for (let i = 0; i < n; i++) {
+    const s = FARTS.pool.pop() || new T.Sprite(new T.SpriteMaterial({ map: puffTex, transparent: true, depthWrite: false, color: col('#bccb3a') }));
+    const side = i % 2 ? 1 : -1;      // 엉덩이 뒤에서 양옆으로 퍼져 나와야 몸에 가리지 않는다
+    s.position.copy(at).add(_c.set(side * rand(.02, .1), rand(-.04, .05), rand(-.04, .04)));
+    s.material.opacity = .95; s.scale.setScalar(.12); s.renderOrder = 3; scene.add(s);
+    FARTS.live.push({ s, age: 0, life: rand(.9, 1.3), size: rand(.2, .32), vel: V3(side * rand(.55, 1.15), rand(.05, .4), rand(-.2, .25)) });
+  }
+}
+function updateFarts(dt) {
+  for (let i = FARTS.live.length - 1; i >= 0; i--) {
+    const f = FARTS.live[i], t = (f.age += dt) / f.life;
+    f.s.position.addScaledVector(f.vel, dt); f.vel.multiplyScalar(Math.exp(-2.2 * dt));
+    f.s.scale.setScalar(f.size * (.6 + t * 2)); f.s.material.opacity = Math.max(0, .95 * (1 - t * t));
+    if (t >= 1) { scene.remove(f.s); FARTS.pool.push(f.s); FARTS.live.splice(i, 1); }
+  }
+}
+function clearFarts() { for (const f of FARTS.live) { scene.remove(f.s); FARTS.pool.push(f.s); } FARTS.live.length = 0; }
+/* 똥 덩어리. 본편의 떨어지는 물건들과 같이 굴러다니다 사라진다. */
+const LUMP = { geo: null, mat: null };
+function spawnLump(at) {
+  if (!LUMP.geo) { LUMP.geo = new T.SphereGeometry(1, 10, 8); LUMP.mat = mat('#6f4424', { roughness: .9 }); LUMP.mat.userData.shared = true; }
+  const m = new T.Mesh(LUMP.geo, LUMP.mat), r = rand(.024, .038);
+  m.scale.set(r * rand(.9, 1.2), r * rand(.72, .95), r * rand(.9, 1.25)); m.castShadow = true; m.receiveShadow = false;
+  spawn(m, at, V3(rand(-.3, .3), rand(-.4, .1), rand(.15, .5)), { kind: 'junk', r: r * .75, life: 11, bounce: .1, fade: true, spin: V3(rand(-5, 5), rand(-5, 5), rand(-5, 5)), sound: sp => auLump(sp) });
+}
+
 /* ---- ml-40-hands.js ---- */
 /* ===== 내 두 손 =====
  * 본편과 같은 살색·빨간 소매. 양옆에서 다가와 쥔 자리를 감싸고, 누르는 만큼 조여 든다.
@@ -14585,7 +15036,7 @@ function buildHands() {
     const root = new T.Group(); root.visible = false; scene.add(root);    // 본편 손 묶음(handsRoot)과 섞이지 않게 따로 둔다
     const g = new T.Group(); g.scale.set(-side, 1, 1); root.add(g);
     const palm = mesh(new T.SphereGeometry(.1, 20, 14), mySkin, g); palm.scale.set(.44, 1.12, .98); palm.position.set(-.04, 0, 0);
-    const heel = mesh(new T.SphereGeometry(.06, 14, 10), mySkin, g); heel.scale.set(.55, .95, 1.05); heel.position.set(-.032, -.07, .035);
+    const heel = mesh(new T.SphereGeometry(.06, 14, 10), mySkin, g); heel.scale.set(.5, .8, .9); heel.position.set(-.036, -.058, .03);
     const fingers = [];
     for (let i = 0; i < 4; i++) {       // 본편 손처럼 짧고 통통한 손가락. 세 마디가 감아 쥔다.
       const L = [.072, .054, .044].map(x => x * (i === 0 ? .92 : i === 3 ? .8 : 1)), r = i === 3 ? .026 : .0295;
@@ -14595,7 +15046,9 @@ function buildHands() {
       const n = mesh(new T.SphereGeometry(.021, 10, 8), nail, j3, false); n.scale.set(.35, .95, 1.1); n.position.set(-r * .82, 0, -L[2] * .6);
       fingers.push([j1, j2, j3]);
     }
-    const t1 = new T.Group(); t1.position.set(-.014, -.03, .072); t1.rotation.x = -.3; g.add(t1);
+    // 엄지는 손바닥 위쪽 가장자리(검지 옆, 손목 쪽)에 붙는다. 붙는 자리에는 도톰한 살을 하나 둔다.
+    const thenar = mesh(new T.SphereGeometry(.05, 14, 10), mySkin, g); thenar.scale.set(.52, .8, .95); thenar.position.set(-.03, .072, .04);
+    const t1 = new T.Group(); t1.position.set(-.02, .1, .05); t1.rotation.x = -1.6; g.add(t1);
     const tm = mesh(capsuleGeo(.035, .066, 12, 5), mySkin, t1); tm.rotation.x = PI / 2; tm.position.z = .033;
     const t2 = new T.Group(); t2.position.z = .066; t1.add(t2);
     const tm2 = mesh(capsuleGeo(.032, .05, 12, 5), mySkin, t2); tm2.rotation.x = PI / 2; tm2.position.z = .025;
@@ -14610,7 +15063,7 @@ function buildHands() {
 function hideHands() { for (const h of HANDS) h.root.visible = false; }
 function depthRadius(y) {   // 쥔 자리의 앞뒤 두께(반지름)
   const M = ML.dim, W = ML.v.look.bodyW, a = smoothstep(M.hip - .08, M.hip + .08, y), b = smoothstep(M.neck - .02, M.neck + .16, y);
-  return mix(mix(.1 * W, .21 * W, a), HEAD_R * .95, b);
+  return mix(mix(.1 * W, .21 * W * (1 + ML.belly * .42), a), HEAD_R * .95, b);
 }
 function poseHands(dt) {
   const v = ML.v, T0 = ML.time, pressing = ML.holding && ML.dip < 0, p = Math.max(0, ML.p), K = U.mlK.value;
@@ -14650,7 +15103,9 @@ function poseHands(dt) {
       f[0].rotation.x = (i - 1.5) * mix(.2, .05, k);
     });
     const tc = mix(.5, clamp(.14 * HAND_SCALE / Math.max(.07, rz), .5, 1.9), k) + p * .18 * k;
-    h.thumb[0].rotation.y = tc * .62; h.thumb[1].rotation.y = tc * .5;
+    // 쉴 때는 위로 서서 안쪽으로 살짝 굽어 있다가, 쥘 때는 몸 앞쪽으로 내려와 감싼다
+    h.thumb[0].rotation.x = mix(-1.6, -.3, k);
+    h.thumb[0].rotation.y = mix(.5, tc * .62, k); h.thumb[1].rotation.y = mix(.5, tc * .5, k);
   }
 }
 
@@ -14728,6 +15183,7 @@ function waxMaterial() {
         gl_FragColor = linearToOutputTexel(vec4(c, 1.0));
       }`
   });
+  WAX.mat.userData.shared = true;      // 캐릭터를 갈아도 계속 쓰는 재질
   return WAX.mat;
 }
 function setTwinRest() { WAX.mat.uniforms.uRest.value = this.userData.rest; WAX.mat.uniformsNeedUpdate = true; }
@@ -14741,7 +15197,7 @@ function canonicalPose(v) {
   v.armRig.forEach(a => { a.sh.rotation.set(-.05, 0, a.s * .1); a.el.rotation.set(-.15, 0, -a.s * .05); });
   v.root.updateMatrixWorld(true);
 }
-function buildWax(v) {
+function buildWax(v, keep) {
   removeWax();
   const material = waxMaterial();
   canonicalPose(v);
@@ -14780,7 +15236,16 @@ function buildWax(v) {
   WAX.total = WAX.samples.length; WAX.headTotal = WAX.samples.filter(s => s.head).length || 1;
   WAX.eyeRest = v.eyes.map(e => e.g.getWorldPosition(V3()).applyMatrix4(inv));
   WAX.mouthRest = v.mouthWorld().applyMatrix4(inv);
-  resetWax();
+  if (keep) restoreWax(); else resetWax();
+}
+/* 다른 모드에 갔다 왔을 때: 깨진 자리는 깨진 채로 둔다. 조각은 다시 날리지 않는다. */
+function restoreWax() {
+  WAX.cur = -1;
+  let alive = 0, head = 0;
+  for (const s of WAX.samples) { s.broken = WAX.done || stressAt(s.rest) >= s.th; if (!s.broken) { alive++; if (s.head) head++; } }
+  ML.waxLeft = alive / Math.max(1, WAX.total); ML.waxHead = head / WAX.headTotal;
+  WAX.mat.uniforms.uColor.value.copy(WAX.color);
+  if (WAX.done || alive === 0) stripWax(); else for (const tw of WAX.twins) tw.visible = true;
 }
 function removeWax() {
   for (const tw of WAX.twins) detach(tw);
@@ -14940,7 +15405,7 @@ function buildTub() {
 /* ===== 소리 =====
  * 본편 효과음 모듈의 출력단(압축·리버브·소리 끄기)을 그대로 쓴다. 외부 음원 파일 없음.
  * 목소리는 본편 캐릭터 목소리와 같은 방식(톱니파 + 모음 포먼트)으로, 눌리는 세기에 따라 이어서 낸다. */
-const AU = { v: null, phraseT: 0, phraseDur: 0, gapT: 0, vowel: [300, 870], level: 0, crack: 0, pantT: 0, sobLeft: 0, sobT: 0, squishAcc: 0, squishT: 0, creakT: 0, chipT: 0, lastP: 0 };
+const AU = { v: null, phraseT: 0, phraseDur: 0, gapT: 0, vowel: [300, 870], level: 0, crack: 0, pantT: 0, sobLeft: 0, sobT: 0, squishAcc: 0, squishT: 0, creakT: 0, chipT: 0, lastP: 0, sqT: 0, bloodT: 0, hissT: 0, vomT: 0, peeT: 0 };
 const VOW = { eu: [300, 870], eo: [570, 840], a: [730, 1090], ae: [660, 1700], e: [530, 1840], o: [440, 1020] };
 function auK() { const K = SFX.__ml; return K && K.ctx && K.ctx.state === 'running' && PREF.sound ? K : null; }
 const AU_OUT = new Map();
@@ -14989,7 +15454,7 @@ function auVoice(dt) {
   if (!V) return;
   const t = V.ctx.currentTime, base = auPitch();
   let effort = pressing ? sat((p - .05) * 1.25) * (1 - .8 * ML.faint) : 0;      // 기절하면 신음만 가늘게 샌다
-  const waxed = sat(ML.waxHead * 1.3), gut = sat(ML.gut * 1.6);
+  const waxed = sat(ML.waxHead * 1.3), gut = sat(Math.max(ML.gut * 1.6, FL.vomit.flow / 8));      // 토가 입을 막아도 내장처럼 그르렁거린다
   let level = 0, noise = 0;
   if (effort > .03) {
     if (AU.gapT > 0) {                       // 숨 들이쉬는 틈
@@ -15145,6 +15610,110 @@ function auDip(into) {
   }
 }
 
+/* ----- 몸에서 나오는 것들의 소리 ----- */
+/* 눈물·코피가 뻗을 때: 짧은 물총 소리. kind 1은 피(더 낮고 질다). */
+function auSquirt(k, kind) {
+  const K = auK(); if (!K) return;
+  const t = K.ctx.currentTime, o = auOut(K, .06), hi = kind ? .62 : 1;
+  k = sat(k);
+  K.burst(o, t, { dur: .06 + .06 * k, peak: .09 + .13 * k, a: .004, type: 'bandpass', f: 3400 * hi, f1: 1500 * hi, q: 1.7 });   // 쉭
+  K.tone(o, t, { f0: (760 + 420 * k) * hi, f1: 330 * hi, dur: .055, peak: .06 + .07 * k, a: .003 });                              // 찍
+  if (kind) K.burst(o, t + .025, { dur: .09, peak: .06 + .1 * k, type: 'lowpass', f: 950, f1: 260, q: 1.4 });                      // 질척
+  if (k > .5) K.burst(o, t + .03, { dur: .16, peak: .05 * k, a: .012, type: 'bandpass', f: 2600 * hi, f1: 1200 * hi, q: .9 });       // 줄기가 빠져나가는 꼬리
+}
+/* 꽉 쥐고 있는 동안 이어지는 가는 물줄기. */
+function auStream(k) {
+  const K = auK(); if (!K) return;
+  K.burst(auOut(K, .04), K.ctx.currentTime, { dur: .13, peak: .018 + .028 * sat(k), a: .03, type: 'bandpass', f: rand(3600, 5200), q: 1.3 });
+}
+/* 콧물: 나올 때는 끈적하게 늘어나는 소리, 들어갈 때는 훌쩍. */
+function auSnot(out) {
+  const K = auK(); if (!K) return;
+  const t = K.ctx.currentTime, o = auOut(K, .07);
+  if (out) {
+    K.burst(o, t, { dur: .22, peak: .34, a: .012, type: 'bandpass', f: 700, f1: 1900, q: 3.2 });
+    K.tone(o, t, { type: 'triangle', f0: 180, f1: 430, dur: .2, peak: .2, a: .012 });
+    for (let i = 0; i < 3; i++) K.burst(o, t + .04 + i * .05, { dur: .02, peak: .18, type: 'bandpass', f: rand(1500, 2600), q: 2.5 });
+  } else {
+    K.burst(o, t, { dur: .2, peak: .19, a: .03, type: 'bandpass', f: 1400, f1: 3600, q: 2.2 });
+    K.burst(o, t + .05, { dur: .12, peak: .08, a: .02, type: 'highpass', f: 4200 });
+    K.tone(o, t + .17, { f0: 520, f1: 250, dur: .05, peak: .1 });
+  }
+}
+/* 토: 시작할 때 구역질 한 번, 그 뒤로는 나오는 양에 맞춰 쏟아지는 소리를 잇는다. */
+function auVomitStart() {
+  const K = auK(); if (!K) return;
+  const t = K.ctx.currentTime, base = auPitch();
+  SFX.gag({ pitch: base });
+  K.voice(t + .16, { pitch: base * .88, dur: .34, peak: .24, vowel: [530, 1840], bend: -.42, rough: 1, wet: .04 });
+  AU.vomT = .1;
+}
+function auRetch() {
+  const K = auK(); if (!K) return;
+  const t = K.ctx.currentTime, o = auOut(K, .05);
+  K.voice(t, { pitch: auPitch() * rand(.78, .95), dur: rand(.16, .26), peak: .15, vowel: VOW.eo, bend: -.3, rough: .95, wet: .04 });
+  K.tone(o, t, { f0: 140, f1: 58, dur: .11, peak: .14, a: .006 });
+}
+function auVomitFlow(dt, flow) {
+  AU.vomT -= dt;
+  if (flow < .6 || AU.vomT > 0) return;
+  const K = auK(); AU.vomT = rand(.085, .13); if (!K) return;
+  const t = K.ctx.currentTime, o = auOut(K, .04), k = sat(flow / 30);
+  K.burst(o, t, { dur: .12, peak: .12 + .16 * k, a: .008, type: 'lowpass', f: 1300 - 300 * k, f1: 220, q: .7 });
+  K.burst(o, t + .01, { dur: .07, peak: .06 + .07 * k, type: 'bandpass', f: rand(900, 1600), f1: 400, q: 1 });
+  if (Math.random() < .5) K.tone(o, t + .02, { f0: rand(120, 170), f1: 60, dur: .09, peak: .1 + .08 * k, a: .006 });
+}
+/* 오줌: 가는 쉬 소리에 바닥에 떨어지는 쪼르르를 섞는다. */
+function auPee(dt, flow) {
+  AU.peeT -= dt;
+  if (flow < .05 || AU.peeT > 0) return;
+  const K = auK(); AU.peeT = rand(.05, .08); if (!K) return;
+  const t = K.ctx.currentTime, o = auOut(K, .05), k = sat(flow);
+  K.burst(o, t, { dur: .14, peak: .024 + .044 * k, a: .03, type: 'bandpass', f: rand(3200, 5200), q: 1.2 });
+  if (Math.random() < .55) K.tone(o, t + rand(0, .03), { f0: rand(700, 1300), f1: rand(380, 560), dur: .035, peak: .03 + .04 * k, a: .003 });
+}
+/* 방귀: 톱니파를 낮게 깔고 진폭을 부르르 떨게 한다. 뒤로 갈수록 음이 흔들린다. */
+function auFart(n) {
+  const K = auK(); if (!K) return;
+  const ctx = K.ctx, t = ctx.currentTime + .01, o = K.out(rand(-.15, .15), .1), dur = rand(.28, .46) * (n > 1 ? 1.3 : 1), f0 = rand(92, 128);
+  const osc = ctx.createOscillator(), lp = ctx.createBiquadFilter(), g = ctx.createGain(), am = ctx.createOscillator(), ag = ctx.createGain();
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(f0 * 1.25, t); osc.frequency.exponentialRampToValueAtTime(f0, t + dur * .3); osc.frequency.linearRampToValueAtTime(f0 * rand(.72, 1.35), t + dur);
+  lp.type = 'lowpass'; lp.Q.value = 1.8; lp.frequency.setValueAtTime(900, t); lp.frequency.exponentialRampToValueAtTime(320, t + dur);
+  am.type = 'square'; am.frequency.setValueAtTime(rand(34, 48), t); am.frequency.linearRampToValueAtTime(rand(26, 40), t + dur * .5); am.frequency.linearRampToValueAtTime(rand(16, 26), t + dur);
+  ag.gain.value = .085; am.connect(ag); ag.connect(g.gain);
+  g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(.13, t + .015); g.gain.setValueAtTime(.13, t + dur * .6); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  osc.connect(lp); lp.connect(g); g.connect(o);
+  osc.start(t); osc.stop(t + dur + .05); am.start(t); am.stop(t + dur + .05);
+  osc.onended = () => { try { osc.disconnect(); lp.disconnect(); g.disconnect(); am.disconnect(); ag.disconnect(); } catch (_) { } };
+  K.burst(o, t, { dur: dur * .8, peak: .05, a: .01, type: 'lowpass', f: 500, f1: 160, q: 1 });
+}
+/* 똥: 질게 밀려 나오는 소리, 그리고 바닥에 떨어지는 툭. */
+function auPoop() {
+  const K = auK(); if (!K) return;
+  const t = K.ctx.currentTime, o = auOut(K, .08);
+  K.burst(o, t, { dur: .16, peak: .26, a: .006, type: 'lowpass', f: 1000, f1: 170, q: 1.6 });
+  K.tone(o, t, { type: 'sawtooth', f0: rand(130, 170), f1: 62, dur: .13, peak: .12, a: .006 });
+  for (let i = 0; i < 3; i++) K.tone(o, t + .02 + i * .035, { f0: rand(200, 320), f1: rand(90, 130), dur: .04, peak: .1, a: .004 });
+}
+function auLump(speed) {
+  const K = auK(); if (!K) return;
+  const t = K.ctx.currentTime, o = auOut(K, .1), k = sat(speed / 2.5);
+  K.tone(o, t, { f0: 130, f1: 58, dur: .07, peak: .07 + .14 * k });
+  K.burst(o, t, { dur: .04, peak: .05 + .06 * k, type: 'lowpass', f: 520, f1: 150, q: .8 });
+}
+/* 매 프레임: 뻗는 순간의 물총 소리와, 이어지는 물줄기·토·오줌 소리. */
+function auFluids(dt) {
+  const p = Math.max(0, ML.p), pressing = ML.holding && ML.dip < 0, faceOpen = ML.waxHead < .5;
+  AU.sqT -= dt; AU.bloodT -= dt; AU.hissT -= dt;
+  if (pressing && faceOpen) {
+    if (ML.sT > .05 && ML.q > .28 && AU.sqT <= 0) { auSquirt(ML.q * ML.sT, 0); AU.sqT = .2; }
+    if (ML.sB > .05 && ML.q > .28 && AU.bloodT <= 0) { auSquirt(ML.q * ML.sB, 1); AU.bloodT = .24; }
+    if (AU.hissT <= 0 && p > .6 && (ML.sT > .05 || ML.sB > .05)) { auStream(Math.max(ML.sT, ML.sB) * smoothstep(.6, 1, p)); AU.hissT = rand(.07, .11); }
+  }
+  auVomitFlow(dt, FL.vomit.flow); auPee(dt, FL.low.pee);
+}
+
 /* ---- ml-90-main.js ---- */
 /* ===== 화면 요소 (시험판에 원래 있던 것 그대로: 왁스 색 4개 · 왁스 입히기 · 손 표시 · 소리) ===== */
 const modesEl = $('.modes');
@@ -15215,7 +15784,7 @@ function beginHold(local) {
   ML.pullR = ML.gPart === 'head' ? .46 : ML.gPart === 'torso' ? .32 : .27;      // 머리는 통째로 딸려 오고 목이 늘어난다
   ML.p = Math.max(ML.p, .05);
   ML.eyeFirst = Math.random() < .5 ? 0 : 1;
-  ML.fear = Math.min(1, ML.fear + .3); ML.stats.squeezes++;
+  ML.fear = Math.min(1, ML.fear + .3); ML.stats.squeezes++; addDamage(.3);
   beginWaxPress(y, ML.gh); auGrab(); vib(12);
   if (!ML.firstTouch) { ML.firstTouch = true; hintEl.classList.remove('show'); }
 }
@@ -15229,6 +15798,7 @@ function releaseAll(cancelled) {
   ML.wobV += amount * 30 * (Math.random() < .5 ? -1 : 1);
   ML.pant = Math.max(ML.pant, sat(amount * 1.25)); ML.daze = Math.max(ML.daze, amount > .78 ? 1 : 0, ML.faint > .4 ? 1.5 : 0);
   ML.eyes.forEach((e, i) => { e.backAt = (ML.gut > .2 ? .36 : .12) + (i === ML.eyeFirst ? 0 : rand(.16, .3)); });
+  SNOT.forEach((s, i) => { s.backAt = .28 + i * .13 + rand(0, .1); });
   AU.sobLeft = amount > .72 ? 2 : amount > .5 ? 1 : 0; AU.sobT = 1.3;
   if (cancelled) return;
   auRelease(amount);
@@ -15288,7 +15858,7 @@ function resetDynamics() {
     lift: 0, liftV: 0, landed: true, landFx: 0, pain: 0, fear: 0, tired: 0, flail: 0, spasm: 0, pant: 0, daze: 0, gut: 0, gutV: 0, gutOut: false, shake: 0, dip: -1, dipY: 0, stir: 0, stirIn: 2.2, maxT: 0, faint: 0 });
   ML.ptrs.clear(); ML.pull.set(0, 0, 0); ML.pullV.set(0, 0, 0); ML.pullWant.set(0, 0, 0); ML.dragW.set(0, 0, 0); ML.events.length = 0;
   ML.eyes.forEach(e => Object.assign(e, { out: false, e: 0, ev: 0, sx: 0, svx: 0, sy: 0, svy: 0 }));
-  resetLimbs(); resetGut();
+  resetLimbs(); resetGut(); resetFluids(); ML.q = 0;
 }
 function simulate(dt) {
   ML.time += dt; ML.sinceRelease += dt;
@@ -15341,6 +15911,7 @@ function simulate(dt) {
     if (ML.stirIn <= 0) { ML.stirIn = rand(2.6, 5.5); ML.stir = rand(.5, .9); ML.events.push(['stir', 0]); }
   }
   ML.stir = Math.max(0, ML.stir - dt);
+  stepBody(dt, pressing);
   // 눈알·내장: 얼굴 왁스가 벗겨진 뒤에만 튀어나온다
   const canPop = ML.waxHead < .45;
   ML.eyes.forEach((e, i) => {
@@ -15350,7 +15921,7 @@ function simulate(dt) {
     spring(e, 'sx', 'svx', e.out ? Math.sin(ML.time * 7 + i * 2) * .012 - LIMB.head.vy * .004 : 0, 55, 4, dt);
     spring(e, 'sy', 'svy', e.out ? Math.cos(ML.time * 6 + i) * .008 : 0, 55, 4, dt);
   });
-  if (pressing && !ML.gutOut && canPop && ML.p > .84) { ML.gutOut = true; ML.gutV += 2; ML.events.push(['gut', 1]); }
+  if (pressing && !ML.gutOut && canPop && ML.p > .84 && !FL.vomit.block) { ML.gutOut = true; ML.gutV += 2; ML.events.push(['gut', 1]); }
   if (!pressing && ML.gutOut && ML.sinceRelease > .1) { ML.gutOut = false; ML.events.push(['gut', 0]); }
   spring(ML, 'gut', 'gutV', ML.gutOut ? 1 : 0, ML.gutOut ? 60 : 30, ML.gutOut ? 11 : 8, dt); ML.gut = clamp(ML.gut, 0, 1.15);
   if (ML.dip >= 0) stepDip(dt);
@@ -15360,7 +15931,7 @@ function simulate(dt) {
 function startDip() {
   quiet();
   ML.dip = 0; ML.gPart = 'torso'; ML.gyWant = ML.gy = ML.dim.hip + .3; dipBtn.disabled = true;
-  ML.eyes.forEach(e => { e.out = false; }); ML.gutOut = false; ML.fear = 1;
+  ML.eyes.forEach(e => { e.out = false; }); ML.gutOut = false; ML.fear = 1; SNOT.forEach(s => { s.out = false; });
   WAX.tubWax.color.copy(col(WAX_COLORS[ML.waxColor]));
   sweepChips(); ML.stats.dips++;
   SFX.pop(0); if (ML.waxHead < .5) SFX.yelp({ pitch: auPitch(), power: .8 });
@@ -15405,7 +15976,8 @@ function animate(dt) {
   const v = ML.v, pressing = ML.holding && ML.dip < 0;
   // 왁스가 남아 있는 동안은 속이 덜 찌그러진다(딱딱한 껍질). 벗겨질수록 말랑해진다.
   U.mlSq.value.set(ML.gy, ML.gh, ML.p * mix(1, .5, sat(ML.waxLeft * 1.2)), 0);
-  { const M = ML.dim, a = smoothstep(M.hip - .1, M.hip + .1, ML.gy), b = smoothstep(M.neck - .04, M.neck + .18, ML.gy); U.mlK.value.x = mix(mix(.52, .6, a), .46, b); }   // 머리는 덜 납작하게
+  { const M = ML.dim, a = smoothstep(M.hip - .1, M.hip + .1, ML.gy), b = smoothstep(M.neck - .04, M.neck + .18, ML.gy); U.mlK.value.x = mix(mix(.52, .6, a), .46, b);   // 머리는 덜 납작하게
+    const fat = ML.belly * a * (1 - b); U.mlK.value.y = .22 + .2 * fat; U.mlK.value.z = .5 + .32 * fat; }   // 배가 부르면 쥔 자리 앞뒤·위아래로 더 물렁하게 삐져나온다
   U.mlPull.value.set(ML.pullC.x, ML.pullC.y, ML.pullC.z, ML.pullR);
   U.mlPullD.value.copy(ML.pull);
   U.mlPoke.value.set(ML.pokeC.x + ML.pull.x, ML.pokeC.y + ML.pull.y, ML.pokeC.z, .115);
@@ -15420,10 +15992,10 @@ function animate(dt) {
     } else { const s = Math.sin(ML.time * .9) > 0 ? 1 : -1, look = ML.fear > .15 || ML.pain > .2 ? 1 : .35; gx = s * .8 * look * smooth(Math.abs(Math.sin(ML.time * .9)) * 2.5); gy = -.45 * look; }
     ML.gaze.x = damp(ML.gaze.x, gx, 7, dt); ML.gaze.y = damp(ML.gaze.y, gy, 7, dt);
   }
-  driveFace(dt); applyEyes(dt); stepGut(dt); updateWax(dt); poseHands(dt);
+  driveFace(dt); applyEyes(dt); driveEyeBlood(); stepGut(dt); stepSnot(dt); updateWax(dt); poseHands(dt); emitFluids(dt);
   for (const [type, a] of ML.events) {
     if (type === 'pop') {
-      auPop(true, a ? .3 : -.3); ML.shake = 1; vib(18); ML.stats.pops++; burstWax(WAX.eyeRest && WAX.eyeRest[a], .13);
+      auPop(true, a ? .3 : -.3); ML.shake = 1; vib(18); ML.stats.pops++; addDamage(.4); burstWax(WAX.eyeRest && WAX.eyeRest[a], .13);
       const at = deformWorld(v.eyes[a].g.getWorldPosition(V3()));
       popText('뿅!', at, 'flick', 40);
       for (let i = 0; i < 4; i++) spawnDrop(at, V3(rnd(-.8, .8), rnd(.4, 1.6), rnd(.3, 1.2)), 'tear', rnd(.009, .015));
@@ -15431,7 +16003,33 @@ function animate(dt) {
     else if (type === 'stir') auStir();
     else if (type === 'gut') {
       auGut(!!a);
-      if (a) { ML.shake = 1; vib([10, 30, 22]); ML.stats.guts++; burstWax(WAX.mouthRest, .15); const at = deformWorld(v.mouthWorld()); popText('꾸엑!', at, 'upper', 42); for (let i = 0; i < 6; i++) spawnDrop(at, V3(rnd(-.6, .6), rnd(.2, 1.2), rnd(.5, 1.5)), 'sweat', rnd(.008, .014)); }
+      if (a) { ML.shake = 1; vib([10, 30, 22]); ML.stats.guts++; addDamage(.6); burstWax(WAX.mouthRest, .15); const at = deformWorld(v.mouthWorld()); popText('꾸엑!', at, 'upper', 42); for (let i = 0; i < 6; i++) spawnDrop(at, V3(rnd(-.6, .6), rnd(.2, 1.2), rnd(.5, 1.5)), 'sweat', rnd(.008, .014)); }
+    } else if (type === 'snot') {
+      auSnot(true); addDamage(.15);
+      const s = a ? 1 : -1;
+      deformWorld(v.noseM.localToWorld(_a.set(s * .022, -.045, .032)));
+      v.headMesh.getWorldQuaternion(_q);
+      for (let i = 0; i < 4; i++) { _b.set(s * rand(0, .3), rand(-.6, -.1), rand(.6, 1)).normalize().applyQuaternion(_q).multiplyScalar(rand(.8, 1.7)); HEAVY_WET.emit(_a, _b, WET.SNOT, rand(.007, .011), rand(2, 3)); }
+      if (!a) popText('쭈욱', _a, 'tissue', 28);
+    } else if (type === 'sniff') { if (!a) auSnot(false); }
+    else if (type === 'vomit') {
+      auVomitStart(); ML.shake = 1; vib([14, 26, 14]); burstWax(WAX.mouthRest, .15);
+      popText('우웨엑!', deformWorld(v.mouthWorld()), 'tissue', 46);
+    } else if (type === 'retch') { auRetch(); ML.wobV += rand(-7, 7); ML.jellyV -= .25; }
+    else if (type === 'pee') {
+      const M = ML.dim;
+      burstWax(_b.set(0, M.hip - .02 * M.H, .12), .13);
+      popText('쪼르르', deformLocal(_a.set(0, M.hip, .2)).applyMatrix4(U.mlFwd.value), 'hair', 28);
+    } else if (type === 'fart') {
+      const M = ML.dim;
+      deformLocal(_a.set(0, M.hip - .06 * M.H, -.12)).applyMatrix4(U.mlFwd.value);
+      fartCloud(_a, 6); auFart(a); ML.jellyV -= .45; ML.wobV += rand(-9, 9); vib(22);
+      popText('뿡!', _a, 'hair', 32);
+    } else if (type === 'poop') {
+      const M = ML.dim;
+      deformLocal(_a.set(rand(-.04, .04), M.hip - .1 * M.H, .05)).applyMatrix4(U.mlFwd.value);
+      spawnLump(_a); auPoop(); soakPants(0, .13);
+      if (!a) { burstWax(_b.set(0, M.hip - .08 * M.H, 0), .15); popText('뿌직!', _a, 'bat', 36); vib([16, 30, 16]); ML.shake = Math.max(ML.shake, .6); }
     }
   }
   ML.events.length = 0;
@@ -15441,30 +16039,54 @@ function animate(dt) {
     if (n >= 5 && ML.time - ML.lastCrackPop > .7) { ML.lastCrackPop = ML.time; popText('뽀도독', _a.set(rand(-.2, .2), ML.gy + rand(-.1, .2), .3).applyMatrix4(U.mlFwd.value), 'tooth', 30); }
   }
   auChips(updateChips(dt), dt);
-  auSquish(dt); auVoice(dt);
+  auSquish(dt); auVoice(dt); auFluids(dt); updateFarts(dt);
   if (pressing) auStretch(dt, Math.hypot(ML.pullV.x, ML.pullV.y));
 }
-function bind(v, fresh) {
+/* 본편에서 하던 동작이 남긴 것 정리: 눈물 닦거나 막느라 늘여 놓은 팔, 부풀다 만 콧물 방울. */
+function settleFromMain(v) {
+  v._wipeV2 = null; v._guardV2 = null;
+  const arms = v._bodyCloth && v._bodyCloth.arms;
+  for (const a of v.armRig) {
+    a.el.position.y = -.2; a.hand.position.y = -.2;
+    const rec = arms && arms.find(r => r.a === a);
+    if (rec && rec.upper) { rec.upper.position.y = -.1; rec.upper.scale.y = 1; }
+    if (rec && rec.fore) { rec.fore.position.y = -.085; rec.fore.scale.y = 1; }
+    if (rec && rec.cuff) rec.cuff.position.y = -.17;
+  }
+  if (v.snot) { v.snot.scale.setScalar(.01); v.snotT = 0; }
+}
+/* how — 'fresh': 처음 들어올 때(새 왁스) · 'keep': 다른 모드에 갔다 왔을 때(왁스는 벗긴 만큼 그대로) · 'look': 말랑이 안에서 외모를 바꿨을 때 */
+function bind(v, how) {
   const wasDone = WAX.done;
-  if (ML.v && ML.v !== v) { EX.v = null; EX.sockets = []; EX.stalks = []; WAX.twins = []; WAX.samples = []; }   // 이전 캐릭터는 본편이 이미 치웠다
+  if (ML.v && ML.v !== v) { EX.v = null; EX.sockets = []; EX.stalks = []; WAX.twins = []; WAX.samples = []; EYEB.v = null; }   // 이전 캐릭터는 본편이 이미 치웠다
   ML.v = v; ML.lookRef = v._appliedLook;
   // 본편에서 쓰러져 있거나 주저앉은 채로 넘어왔으면 먼저 똑바로 세운다.
   window.__SC_LEGS?.squat?.(v, 0); window.__SC_FATIGUE_V1?.standUp?.(v);
+  settleFromMain(v);
   v.root.visible = true; v.root.rotation.order = 'XYZ';
   v.state = 'stand'; v.stateT = 0; v.phys = null;
   measure(); resetDynamics();
-  buildEyeExtras(v); tagLimbs(v); buildWax(v);
-  if (!fresh && wasDone) stripWax();
+  buildEyeExtras(v); buildEyeBlood(v); tagLimbs(v); buildWax(v, how === 'keep');
+  if (how === 'look' && wasDone) stripWax();
   patchCharacter(v);
+  // 본편에서 벌게진 얼굴·눈 핏발을 이어받는다. 말랑이 안에서는 이쪽이 그린다.
+  const R = REACT();
+  if (R) {
+    const r = R.get(v);
+    if (how !== 'look') { FACE.carry = r.flush; for (const e of ML.eyes) e.blood = r.blood; }
+    R.set(v, { flush: 0 }); FL.spotsSent = r.spots;
+  } else if (how !== 'look') for (const e of ML.eyes) e.blood = 0;
   ML.fitKey = ''; dipBtn.disabled = false;
 }
 function frame(dt) {
   const started = performance.now(), v = G.v;
   if (!v) return;
-  if (v !== ML.v || v._appliedLook !== ML.lookRef) bind(v, false);
+  if (v !== ML.v || v._appliedLook !== ML.lookRef) bind(v, 'look');
   fitToy(); syncVolumeButton();
   if (document.querySelector('.modal:not([hidden])')) { quiet(); renderer.render(scene, camera); return; }
   const h = clamp(dt, .001, .05), n = Math.max(1, Math.ceil(h * 100));
+  readBelly(h);
+  { const hy = window.__SC_HYGIENE; if (hy && hy.tick) hy.tick(v, h); }      // 본편에서 떨어지던 오줌 방울이 공중에 멈춰 있지 않게
   for (let i = 0; i < n; i++) simulate(h / n);
   animate(h);
   updateParticles(h, G); flushLateFX(); updateFlashes(h);
@@ -15485,8 +16107,9 @@ function activate() {
   if (ML.active) return;
   ML.active = true;
   handsRoot.children.forEach(o => { o.visible = false; });
-  buildHands(); buildGut(); buildChips(); buildTub();
-  bind(G.v, true);
+  buildHands(); buildGut(); buildChips(); buildTub(); buildSnot();
+  // 왁스는 「왁스 입히기」로만 새로 덮는다. 처음 들어올 때만 덮인 채로 시작하고, 다른 모드에 갔다 오면 벗긴 만큼 그대로다.
+  bind(G.v, WAX.started ? 'keep' : 'fresh'); WAX.started = true;
   U.mlOn.value = 1;
   if (!ML.firstTouch) hintEl.classList.add('show');
 }
@@ -15499,11 +16122,13 @@ function deactivate() {
   hideHands(); resetGut(); clearChips(); removeWax();
   if (WAX.tub) WAX.tub.visible = false;
   if (v && v === G.v && v.root.parent) {     // 캐릭터를 본편이 넘겨받을 수 있는 상태로 돌려놓는다
-    removeEyeExtras(); clearTint(); unpatchShadows(v); resetDynamics(); canonicalPose(v);
-    v.state = 'stand'; v.stateT = 0; v.blush = 0; v.tear = 0; v.stars.visible = false;
+    // 벌게진 얼굴과 눈 핏발은 본편에 넘긴다(거기서 서서히 가라앉는다). 눈물·코피·바지 얼룩·배는 같은 몸의 것이라 그대로 남는다.
+    { const R = REACT(); if (R) R.set(v, { flush: sat(FACE.tint * .9), blood: Math.max(ML.eyes[0].blood, ML.eyes[1].blood) }); }
+    removeEyeExtras(); removeEyeBlood(); clearTint(); unpatchShadows(v); resetDynamics(); canonicalPose(v);
+    v.state = 'stand'; v.stateT = 0; v.blush = 0; v.stars.visible = false;
     v.armRig.forEach(a => Object.assign(a.cur, { sx: -.05, sz: .1, ex: -.15, ez: .05 }));
     v.headDirty = true; v.faceDirty = true; v.applyDeform(); v.paintFace();
-  } else { EX.v = null; EX.sockets = []; EX.stalks = []; }
+  } else { EX.v = null; EX.sockets = []; EX.stalks = []; EYEB.v = null; hideSnot(); clearFarts(); }
   ML.v = null; ML.lookRef = null; dipBtn.disabled = false;
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); lastT = performance.now(); fit();
 }
@@ -15519,10 +16144,13 @@ window.__MALANGI = {
     active: ML.active, mode: G.mode, part: ML.gPart, gy: ML.gy, pressure: ML.p, target: ML.target, holding: ML.holding, held: ML.held, pointers: ML.ptrs.size,
     eyes: ML.eyes.map(e => ({ out: e.out, extension: e.e })), gut: ML.gut, waxLeft: ML.waxLeft, waxHead: ML.waxHead, dipping: ML.dip, hands: ML.showHands,
     flail: ML.flail, pain: ML.pain, pant: ML.pant, faint: ML.faint, lift: ML.lift, voice: AU.level, time: ML.time,
+    damage: ML.v ? ML.v.damage : 0, stage: { tears: ML.sT, snot: ML.sS, blood: ML.sB, wear: ML.wear }, squirt: ML.q, belly: ML.belly, food: ML.food,
+    vomit: FL.vomit.flow, pee: FL.low.pee, urge: FL.low.urge, bladder: TANK.bladder, bowel: TANK.bowel, snot: SNOT.map(s => s.x), eyeBlood: ML.eyes.map(e => e.blood),
     stats: { ...ML.stats, meanMs: ML.stats.ms / Math.max(1, ML.stats.frames) }, twins: WAX.twins.length, samples: WAX.total,
     drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles
   }),
-  _: { ML, U, WAX, AU, LIMB, FACE, CAM, GUT, HANDS, camera, renderer, deformWorld }
+  _: { ML, U, WAX, AU, LIMB, FACE, CAM, GUT, HANDS, FL, TANK, SNOT, EYEB, camera, renderer, deformWorld, stripWax, resetWax,
+    sounds: { auSquirt, auStream, auSnot, auVomitStart, auRetch, auVomitFlow, auPee, auFart, auPoop, auLump, auPop, auGut, auGrab, auRelease } }
 };
 })();
 
